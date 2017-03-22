@@ -1,9 +1,4 @@
-package com.edgar.util.eventbus.codec;
-
-import com.google.common.base.Preconditions;
-
-import com.edgar.util.eventbus.event.EventAction;
-import com.edgar.util.eventbus.event.Message;
+package com.edgar.util.eventbus.event;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,5 +23,10 @@ public class MessageCodec implements EventActionCodec {
     map.put("resource", message.resource());
     map.put("content", message.content());
     return map;
+  }
+
+  @Override
+  public String name() {
+    return Message.TYPE;
   }
 }

@@ -1,5 +1,6 @@
 package com.edgar.util.eventbus.event;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 
 /**
@@ -28,5 +29,13 @@ class EventImpl implements Event {
   @Override
   public EventAction action() {
     return action;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper("Event")
+        .add("head", head)
+        .add("data", action)
+        .toString();
   }
 }

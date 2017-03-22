@@ -15,7 +15,7 @@ public class EventbusTest {
 
   public static void main(String[] args) {
     KafkaOptions kafkaOptions = new KafkaOptions()
-            .setServers("10.11.0.31:9092")
+            .setServers("test.ihorn.com.cn:9092")
             .setGroup("user")
             .setId("user-7889898")
             .setConsumerTopics(Lists.newArrayList("test_niot"));

@@ -1,13 +1,13 @@
 package com.edgar.util.eventbus.kafka;
 
+import com.edgar.util.eventbus.event.Event;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
-public class EventDeserializer implements Deserializer<Map> {
+public class EventDeserializer implements Deserializer<Event> {
   private String encoding = "UTF8";
 
   @Override
@@ -21,17 +21,18 @@ public class EventDeserializer implements Deserializer<Map> {
   }
 
   @Override
-  public Map<String, Object> deserialize(String topic, byte[] data) {
+  public Event deserialize(String topic, byte[] data) {
     try {
       ObjectMapper mapper = new ObjectMapper();
       if (data == null) {
         return null;
       } else {
-        return mapper.readValue(data, Map.class);
+        Map<String, Object> map = mapper.readValue(data, Map.class);
+        return Event.fromMap(map);
       }
     } catch (Exception e) {
       throw new SerializationException(
-              "Error when deserializing byte[] to Map: " + e.getMessage());
+              "Error when deserializing byte[] to Event: " + e.getMessage());
     }
   }
 

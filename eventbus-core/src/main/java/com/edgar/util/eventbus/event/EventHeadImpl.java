@@ -44,15 +44,28 @@ class EventHeadImpl implements EventHead {
    */
   private final long duration;
 
-  EventHeadImpl(String id, String to, String action, long duration) {
+  EventHeadImpl(String id, String to, String action, long timestamp, long duration) {
     Preconditions.checkNotNull(id, "id can not be null");
     Preconditions.checkNotNull(to, "to can not be null");
     Preconditions.checkNotNull(action, "action cannot be null");
+    Preconditions.checkNotNull(timestamp, "timestamp cannot be null");
+    Preconditions.checkNotNull(duration, "duration cannot be null");
     this.id = id;
     this.to = to;
     this.action = action;
-    this.timestamp = Instant.now().getEpochSecond();
+    this.timestamp = timestamp;
     this.duration = duration;
+  }
+
+  EventHeadImpl(String id, String to, String action, long duration) {
+    this(id, to, action, Instant.now().getEpochSecond(), duration);
+  }
+
+  @Override
+  public EventHead addExts(Map<String, String> exts) {
+    Preconditions.checkNotNull(exts, "exts can not be null");
+    this.ext.putAll(exts);
+    return this;
   }
 
   @Override
@@ -66,12 +79,12 @@ class EventHeadImpl implements EventHead {
   @Override
   public String toString() {
     MoreObjects.ToStringHelper helper
-            = MoreObjects.toStringHelper("header")
-            .add("to", to)
-            .add("action", action)
-            .add("id", id)
-            .add("timestamp", timestamp)
-            .add("duration", duration);
+        = MoreObjects.toStringHelper("header")
+        .add("to", to)
+        .add("action", action)
+        .add("id", id)
+        .add("timestamp", timestamp)
+        .add("duration", duration);
     ext.forEach((k, v) -> helper.add(k, v));
     return helper.toString();
   }

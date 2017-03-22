@@ -1,5 +1,6 @@
 package com.edgar.util.eventbus.kafka;
 
+import com.edgar.util.eventbus.event.Event;
 import com.google.common.base.Preconditions;
 
 import com.edgar.util.base.MorePreconditions;
@@ -35,7 +36,7 @@ public class ConsumerRunnable implements Runnable {
 
   private List<String> topics = new ArrayList<>();
 
-  private long startingOffset;
+  private long startingOffset = -2;
 
   public void setStartingOffset(long startingOffset) {
     this.startingOffset = startingOffset;
@@ -70,14 +71,14 @@ public class ConsumerRunnable implements Runnable {
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
               "com.edgar.util.eventbus.kafka.EventDeserializer");
     props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");//latest
 
-    final KafkaConsumer<String, Map> consumer = new KafkaConsumer<>(props);
+    final KafkaConsumer<String, Event> consumer = new KafkaConsumer<>(props);
     for (String topic : topics) {
       List<PartitionInfo> partitions;
       while ((partitions = consumer.partitionsFor(topic)) == null) {
         try {
-          LOGGER.info("---@ [KAFKA] [topic {} since no metadata is available, wait 5s]",
+          LOGGER.info("<====== [KAFKA] [topic {} since no metadata is available, wait 5s]",
                       topic);
           TimeUnit.SECONDS.sleep(5);
         } catch (InterruptedException e) {
@@ -137,18 +138,16 @@ public class ConsumerRunnable implements Runnable {
     });
     try {
       while (true) {
-        ConsumerRecords<String, Map> records = consumer.poll(100);
+        ConsumerRecords<String, Event> records = consumer.poll(100);
         if (records.count() > 0) {
           LOGGER.info(
                   "---@ [KAFKA] [poll message] [count:{}]",
                   records.count());
         }
 
-        for (ConsumerRecord<String, Map> record : records) {
+        for (ConsumerRecord<String, Event> record : records) {
           LOGGER.info(
-                  "Receive message: time->{} topic->{}, partition->{}, offset->{}, key->{}, "
-                  + "value->{}",
-                  Instant.now().getEpochSecond(),
+                  "---@ [KAFKA] [Receive message] [{}] [{}] [{}] [{}] [{}]",
                   record.topic(), record.partition(), record.offset(), record.key(),
                   record.value());
         }

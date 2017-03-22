@@ -1,7 +1,4 @@
-package com.edgar.util.eventbus.codec;
-
-import com.edgar.util.eventbus.event.EventAction;
-import com.edgar.util.eventbus.event.Response;
+package com.edgar.util.eventbus.event;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,5 +25,10 @@ public class ResponseCodec implements EventActionCodec {
     map.put("reply", response.reply());
     map.put("content", response.content());
     return map;
+  }
+
+  @Override
+  public String name() {
+    return Response.TYPE;
   }
 }

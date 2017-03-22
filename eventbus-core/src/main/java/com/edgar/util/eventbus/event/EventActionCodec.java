@@ -1,4 +1,4 @@
-package com.edgar.util.eventbus.codec;
+package com.edgar.util.eventbus.event;
 
 import com.edgar.util.eventbus.event.EventAction;
 
@@ -26,4 +26,6 @@ public interface EventActionCodec {
    * @return
    */
   Map<String, Object> encode(EventAction action);
+
+  String name();
 }

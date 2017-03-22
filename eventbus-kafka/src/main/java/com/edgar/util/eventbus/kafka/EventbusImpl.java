@@ -30,11 +30,11 @@ public class EventbusImpl implements Eventbus {
     ConsumerRunnable runnable = new ConsumerRunnable();
     runnable.setClientId(options.getId());
     runnable.setGroupId(options.getGroup());
-    runnable.setKafkaConnect("test.ihorn.com.cn:9092");
+    runnable.setKafkaConnect(options.getServers());
     options.getConsumerTopics().forEach(t -> {
       runnable.addTopic(t);
     });
-//    runnable.setStartingOffset(44096);
+//    runnable.setStartingOffset(-1);
     consumeExecutor.execute(runnable);
   }
 

@@ -1,7 +1,4 @@
-package com.edgar.util.eventbus.codec;
-
-import com.edgar.util.eventbus.event.EventAction;
-import com.edgar.util.eventbus.event.Request;
+package com.edgar.util.eventbus.event;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,5 +25,10 @@ public class RequestCodec implements EventActionCodec {
     map.put("operation", request.operation());
     map.put("content", request.content());
     return map;
+  }
+
+  @Override
+  public String name() {
+    return Request.TYPE;
   }
 }

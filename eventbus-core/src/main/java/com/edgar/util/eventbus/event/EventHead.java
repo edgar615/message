@@ -10,6 +10,8 @@ import java.util.UUID;
  */
 public interface EventHead {
 
+  EventHead addExts(Map<String, String> exts);
+
   /**
    * 增加额外属性
    *
