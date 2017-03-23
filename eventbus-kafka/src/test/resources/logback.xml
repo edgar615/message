@@ -33,10 +33,11 @@
     <logger name="ch.qos.logback.core" level="WARN"/>
     <logger name="ch.qos.logback.classic" level="WARN"/>
     <logger name="org.maven" level="INFO"/>-->
-    <logger name="com.edgar" level="debug"/>
-
-    <root level="INFO">
-        <appender-ref ref="STDOUT"/>
+    <logger name="com.edgar" level="debug">
         <appender-ref ref="FILE"/>
+    </logger>
+
+    <root level="DEBUG">
+        <appender-ref ref="STDOUT"/>
     </root>
 </configuration>

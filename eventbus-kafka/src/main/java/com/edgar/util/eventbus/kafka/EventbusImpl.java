@@ -1,6 +1,7 @@
 package com.edgar.util.eventbus.kafka;
 
 import com.edgar.util.eventbus.Eventbus;
+import com.edgar.util.eventbus.event.Event;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.slf4j.Logger;
@@ -22,11 +23,11 @@ public class EventbusImpl implements Eventbus {
 
   private final ExecutorService sendExecutor = Executors.newFixedThreadPool(1);
 
-  private Producer<String, String> producer;
+  private final SendedEventQueue sendedEventQueue;
 
   public EventbusImpl(KafkaOptions options) {
-
-    this.producer = new KafkaProducer<>(options.producerProps());
+//    http://kelgon.iteye.com/blog/2287985
+    sendedEventQueue = new SendedEventQueue();
     ConsumerRunnable runnable = new ConsumerRunnable();
     runnable.setClientId(options.getId());
     runnable.setGroupId(options.getGroup());
@@ -36,6 +37,12 @@ public class EventbusImpl implements Eventbus {
     });
 //    runnable.setStartingOffset(-1);
     consumeExecutor.execute(runnable);
+  }
+
+  @Override
+  public void send(Event event) {
+
+    sendedEventQueue.enqueue(event);
   }
 
 }
