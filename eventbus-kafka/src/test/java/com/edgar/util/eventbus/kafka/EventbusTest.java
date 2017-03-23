@@ -16,13 +16,13 @@ public class EventbusTest {
 
   public static void main(String[] args) {
     KafkaOptions kafkaOptions = new KafkaOptions()
-            .setServers("10.4.7.31:9092")
+            .setServers("localhost:9092")
             .setGroup("user")
             .setId("user-7889898")
             .setConsumerTopics(Lists.newArrayList("test_niot"));
     Eventbus eventbus = new EventbusImpl(kafkaOptions);
 
-    for (; ; ) {
+    for (int i = 0; i < 100; i ++) {
       Message message = Message.create("UserAdd", ImmutableMap.of("foo", "bar"));
       Event event = Event.create("test", message);
       eventbus.send(event);

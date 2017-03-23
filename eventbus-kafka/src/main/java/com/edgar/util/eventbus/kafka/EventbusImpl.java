@@ -28,15 +28,15 @@ public class EventbusImpl implements Eventbus {
   public EventbusImpl(KafkaOptions options) {
 //    http://kelgon.iteye.com/blog/2287985
     sendedEventQueue = new SendedEventQueue();
-    ConsumerRunnable runnable = new ConsumerRunnable();
-    runnable.setClientId(options.getId());
-    runnable.setGroupId(options.getGroup());
-    runnable.setKafkaConnect(options.getServers());
-    options.getConsumerTopics().forEach(t -> {
-      runnable.addTopic(t);
-    });
+//    ConsumerRunnable runnable = new ConsumerRunnable();
+//    runnable.setClientId(options.getId());
+//    runnable.setGroupId(options.getGroup());
+//    runnable.setKafkaConnect(options.getServers());
+//    options.getConsumerTopics().forEach(t -> {
+//      runnable.addTopic(t);
+//    });
 //    runnable.setStartingOffset(-1);
-    consumeExecutor.execute(runnable);
+//    consumeExecutor.execute(runnable);
   }
 
   @Override

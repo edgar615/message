@@ -88,6 +88,10 @@ public class SendedEventQueue {
 
   public void enqueue(Event event) {
     synchronized (events) {
+      if (events.size() > 10000) {
+        //TODO
+      }
+      System.out.println(events.size());
       events.add(event);
       if (!running) {
         running = true;
