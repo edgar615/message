@@ -1,18 +1,18 @@
 package com.edgar.util.eventbus.kafka;
 
+import com.edgar.util.eventbus.EventSendAction;
 import com.edgar.util.eventbus.Eventbus;
+import com.edgar.util.eventbus.SendedQueue;
 import com.edgar.util.eventbus.event.Event;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
- * Created by Edgar on 2017/3/22.
- *
  * @author Edgar  Date 2017/3/22
  */
 public class EventbusImpl implements Eventbus {
@@ -21,13 +21,19 @@ public class EventbusImpl implements Eventbus {
 
   private final ExecutorService consumeExecutor = Executors.newFixedThreadPool(1);
 
-  private final ExecutorService sendExecutor = Executors.newFixedThreadPool(1);
+  private final ThreadPoolExecutor sendExecutor =
+          (ThreadPoolExecutor) Executors.newFixedThreadPool(5);
 
-  private final SendedEventQueue sendedEventQueue;
+  private final SendedQueue sendedQueue;
 
-  public EventbusImpl(KafkaOptions options) {
+  Producer<String, Event> producer;
+
+  public EventbusImpl(KafkaEventbusOptions options) {
 //    http://kelgon.iteye.com/blog/2287985
-    sendedEventQueue = new SendedEventQueue();
+    ProducerOptions producerOptions = new ProducerOptions()
+            .setServers("10.11.0.31:9092");
+    EventSendAction action = new KafkaSendAction(producerOptions);
+    sendedQueue = SendedQueue.create(action, 10000);
 //    ConsumerRunnable runnable = new ConsumerRunnable();
 //    runnable.setClientId(options.getId());
 //    runnable.setGroupId(options.getGroup());
@@ -41,8 +47,7 @@ public class EventbusImpl implements Eventbus {
 
   @Override
   public void send(Event event) {
-
-    sendedEventQueue.enqueue(event);
+    sendedQueue.enqueue(event);
   }
 
 }

@@ -15,15 +15,15 @@ import com.edgar.util.eventbus.event.Message;
 public class EventbusTest {
 
   public static void main(String[] args) {
-    KafkaOptions kafkaOptions = new KafkaOptions()
-            .setServers("localhost:9092")
+    KafkaEventbusOptions kafkaEventbusOptions = new KafkaEventbusOptions()
+            .setServers("10.11.0.31:9092")
             .setGroup("user")
             .setId("user-7889898")
             .setConsumerTopics(Lists.newArrayList("test_niot"));
-    Eventbus eventbus = new EventbusImpl(kafkaOptions);
+    Eventbus eventbus = new EventbusImpl(kafkaEventbusOptions);
 
-    for (int i = 0; i < 100; i ++) {
-      Message message = Message.create("UserAdd", ImmutableMap.of("foo", "bar"));
+    for (int i = 0; i < 10000; i ++) {
+      Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
       Event event = Event.create("test", message);
       eventbus.send(event);
     }

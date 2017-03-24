@@ -15,12 +15,12 @@ import java.util.UUID;
  *
  * @author Edgar  Date 2016/5/17
  */
-public class KafkaOptions {
+public class KafkaEventbusOptions {
 
   /**
-   * The default number of event loop threads to be used  = 2 * number of cores on the machine
+   * The default number of consumer worker threads to be used  = 2 * number of cores on the machine
    */
-  public static final int DEFAULT_EVENT_LOOP_POOL_SIZE =
+  public static final int DEFAULT_WORKER_POOL_SIZE =
           2 * Runtime.getRuntime().availableProcessors();
 
   public static final int DEFAULT_LINGER_MS = 1;
@@ -46,13 +46,6 @@ public class KafkaOptions {
   private static final String DEFAULT_GROUP = DEFAULT_ID;
 
   private static final String DEFAULT_AUTO_OFFSET_RESET = "latest";
-
-
-  private static String DEFAULT_SERIALIZER_CLASS =
-          "org.apache.kafka.common.serialization.StringSerializer";
-
-  private static String DEFAULT_DESERIALIZER_CLASS =
-          "org.apache.kafka.common.serialization.StringDeserializer";
 
   private static String DEFAULT_PARTITION_CLASS = null;
 
@@ -88,16 +81,6 @@ public class KafkaOptions {
 
   private int producerLingerMs = DEFAULT_LINGER_MS;
 
-  /**
-   * key的序列化类
-   */
-  private String keySerializerClass = DEFAULT_SERIALIZER_CLASS;
-
-  /**
-   * value的序列化类
-   */
-  private String valueSerializerClass = DEFAULT_SERIALIZER_CLASS;
-
   //consumer
 
   /**
@@ -130,16 +113,6 @@ public class KafkaOptions {
   private String id = DEFAULT_ID;
 
   /**
-   * key的反序列化类
-   */
-  private String keyDeserializerClass = DEFAULT_DESERIALIZER_CLASS;
-
-  /**
-   * value的反序列化类
-   */
-  private String valueDeserializerClass = DEFAULT_DESERIALIZER_CLASS;
-
-  /**
    * 订阅的主题
    */
   private List<String> consumerTopics;
@@ -147,7 +120,7 @@ public class KafkaOptions {
   /**
    * 线程数量
    */
-  private int workerPoolSize = DEFAULT_EVENT_LOOP_POOL_SIZE;
+  private int workerPoolSize = DEFAULT_WORKER_POOL_SIZE;
 
 //  /**
 //   * 消费事件之后从回调函数
@@ -160,7 +133,7 @@ public class KafkaOptions {
 //  private Handler<KafkaMessage> messageListener;
 
 
-  public KafkaOptions() {
+  public KafkaEventbusOptions() {
 
   }
 
@@ -172,8 +145,10 @@ public class KafkaOptions {
     producerProps.put(ProducerConfig.BATCH_SIZE_CONFIG, producerBatchSize);
     producerProps.put(ProducerConfig.LINGER_MS_CONFIG, producerLingerMs);
     producerProps.put(ProducerConfig.BUFFER_MEMORY_CONFIG, producerBufferMemory);
-    producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySerializerClass);
-    producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSerializerClass);
+    producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                      "org.apache.kafka.common.serialization.StringSerializer");
+    producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                      "com.edgar.util.eventbus.kafka.EventSerializer");
     if (!Strings.isNullOrEmpty(partitionClass)) {
       producerProps.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, partitionClass);
     }
@@ -190,10 +165,10 @@ public class KafkaOptions {
     consumerProps.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, consumerSessionTimeoutMs);
     consumerProps
             .put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-                 keyDeserializerClass);
+                 "org.apache.kafka.common.serialization.StringDeserializer");
     consumerProps
             .put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-                 valueDeserializerClass);
+                 "com.edgar.util.eventbus.kafka.EventDeserializer");
     return consumerProps;
   }
 
@@ -205,9 +180,9 @@ public class KafkaOptions {
    * 设置auto.offset.reset.仅支持earliest,latest,none三种配置
    *
    * @param consumerAutoOffsetReset auto.offset.reset
-   * @return KafkaOptions
+   * @return KafkaEventbusOptions
    */
-  public KafkaOptions setConsumerAutoOffsetRest(String consumerAutoOffsetReset) {
+  public KafkaEventbusOptions setConsumerAutoOffsetRest(String consumerAutoOffsetReset) {
     Preconditions.checkArgument("earliest".equals(consumerAutoOffsetReset)
                                 || "none".equals(consumerAutoOffsetReset)
                                 || "latest".equals(consumerAutoOffsetReset),
@@ -224,9 +199,9 @@ public class KafkaOptions {
    * 设置blockedCheckerMs，如果超过blockedCheckerMs仍然未被处理完的事件会打印警告日志.
    *
    * @param blockedCheckerMs 最大阻塞时间
-   * @return KafkaOptions
+   * @return KafkaEventbusOptions
    */
-  public KafkaOptions setBlockedCheckerMs(int blockedCheckerMs) {
+  public KafkaEventbusOptions setBlockedCheckerMs(int blockedCheckerMs) {
     this.blockedCheckerMs = blockedCheckerMs;
     return this;
   }
@@ -239,40 +214,10 @@ public class KafkaOptions {
    * 设置worker线程池的大小，该线程池主要用户处理事件的业务逻辑
    *
    * @param workerPoolSize 线程池大小.
-   * @return KafkaOptions
+   * @return KafkaEventbusOptions
    */
-  public KafkaOptions setWorkerPoolSize(int workerPoolSize) {
+  public KafkaEventbusOptions setWorkerPoolSize(int workerPoolSize) {
     this.workerPoolSize = workerPoolSize;
-    return this;
-  }
-
-  public String getKeySerializerClass() {
-    return keySerializerClass;
-  }
-
-  /**
-   * 设置键的序列化类.
-   *
-   * @param keySerializerClass 实现Serializer接口
-   * @return KafkaOptions
-   */
-  public KafkaOptions setKeySerializerClass(String keySerializerClass) {
-    this.keySerializerClass = keySerializerClass;
-    return this;
-  }
-
-  public String getValueSerializerClass() {
-    return valueSerializerClass;
-  }
-
-  /**
-   * 设置值的序列化类
-   *
-   * @param valueSerializerClass 序列化类 实现Serializer接口
-   * @return KafkaOptions
-   */
-  public KafkaOptions setValueSerializerClass(String valueSerializerClass) {
-    this.valueSerializerClass = valueSerializerClass;
     return this;
   }
 
@@ -284,9 +229,9 @@ public class KafkaOptions {
    * 设置分区类partitioner.class
    *
    * @param partitionClass 实现Partitioner接口
-   * @return KafkaOptions
+   * @return KafkaEventbusOptions
    */
-  public KafkaOptions setPartitionClass(String partitionClass) {
+  public KafkaEventbusOptions setPartitionClass(String partitionClass) {
     this.partitionClass = partitionClass;
     return this;
   }
@@ -299,9 +244,9 @@ public class KafkaOptions {
    * 设置 acks.
    *
    * @param producerAcks acks
-   * @return KafkaOptions
+   * @return KafkaEventbusOptions
    */
-  public KafkaOptions setProducerAcks(String producerAcks) {
+  public KafkaEventbusOptions setProducerAcks(String producerAcks) {
     this.producerAcks = producerAcks;
     return this;
   }
@@ -314,9 +259,9 @@ public class KafkaOptions {
    * 设置batch.size.
    *
    * @param producerBatchSize batch.size
-   * @return KafkaOptions
+   * @return KafkaEventbusOptions
    */
-  public KafkaOptions setProducerBatchSize(int producerBatchSize) {
+  public KafkaEventbusOptions setProducerBatchSize(int producerBatchSize) {
     this.producerBatchSize = producerBatchSize;
     return this;
   }
@@ -329,9 +274,9 @@ public class KafkaOptions {
    * 设置buffer.memory .
    *
    * @param producerBufferMemory buffer.memory
-   * @return KafkaOptions
+   * @return KafkaEventbusOptions
    */
-  public KafkaOptions setProducerBufferMemory(int producerBufferMemory) {
+  public KafkaEventbusOptions setProducerBufferMemory(int producerBufferMemory) {
     this.producerBufferMemory = producerBufferMemory;
     return this;
   }
@@ -344,9 +289,9 @@ public class KafkaOptions {
    * 设置retries.
    *
    * @param producerRetries retries
-   * @return KafkaOptions
+   * @return KafkaEventbusOptions
    */
-  public KafkaOptions setProducerRetries(int producerRetries) {
+  public KafkaEventbusOptions setProducerRetries(int producerRetries) {
     this.producerRetries = producerRetries;
     return this;
   }
@@ -359,9 +304,9 @@ public class KafkaOptions {
    * 设置linger.ms.
    *
    * @param producerLingerMs
-   * @return KafkaOptions
+   * @return KafkaEventbusOptions
    */
-  public KafkaOptions setProducerLingerMs(int producerLingerMs) {
+  public KafkaEventbusOptions setProducerLingerMs(int producerLingerMs) {
     this.producerLingerMs = producerLingerMs;
     return this;
   }
@@ -370,7 +315,7 @@ public class KafkaOptions {
     return consumerAutoCommit;
   }
 
-//    public KafkaOptions setConsumerAutoCommit(boolean consumerAutoCommit) {
+//    public KafkaEventbusOptions setConsumerAutoCommit(boolean consumerAutoCommit) {
 //        this.consumerAutoCommit = consumerAutoCommit;
 //        return this;
 //    }
@@ -379,7 +324,7 @@ public class KafkaOptions {
     return consumerAutoCommitIntervalMs;
   }
 
-  public KafkaOptions setConsumerAutoCommitIntervalMs(int consumerAutoCommitIntervalMs) {
+  public KafkaEventbusOptions setConsumerAutoCommitIntervalMs(int consumerAutoCommitIntervalMs) {
     this.consumerAutoCommitIntervalMs = consumerAutoCommitIntervalMs;
     return this;
   }
@@ -392,9 +337,9 @@ public class KafkaOptions {
    * 设置consumer的超时时间.
    *
    * @param consumerSessionTimeoutMs 毫秒数
-   * @return KafkaOptions
+   * @return KafkaEventbusOptions
    */
-  public KafkaOptions setConsumerSessionTimeoutMs(int consumerSessionTimeoutMs) {
+  public KafkaEventbusOptions setConsumerSessionTimeoutMs(int consumerSessionTimeoutMs) {
     this.consumerSessionTimeoutMs = consumerSessionTimeoutMs;
     return this;
   }
@@ -407,9 +352,9 @@ public class KafkaOptions {
    * 设置kafka的地址.
    *
    * @param servers kafka的地址
-   * @return KafkaOptions
+   * @return KafkaEventbusOptions
    */
-  public KafkaOptions setServers(String servers) {
+  public KafkaEventbusOptions setServers(String servers) {
     this.servers = servers;
     return this;
   }
@@ -422,9 +367,9 @@ public class KafkaOptions {
    * 设置eventbus所属的消费者组，同一个分区下，同一个组的两个消费者只有一个能够读取消息.
    *
    * @param group 组名
-   * @return KafkaOptions
+   * @return KafkaEventbusOptions
    */
-  public KafkaOptions setGroup(String group) {
+  public KafkaEventbusOptions setGroup(String group) {
     this.group = group;
     return this;
   }
@@ -437,40 +382,10 @@ public class KafkaOptions {
    * eventbus的ID.
    *
    * @param id id
-   * @return KafkaOptions
+   * @return KafkaEventbusOptions
    */
-  public KafkaOptions setId(String id) {
+  public KafkaEventbusOptions setId(String id) {
     this.id = id;
-    return this;
-  }
-
-  public String getKeyDeserializerClass() {
-    return keyDeserializerClass;
-  }
-
-  /**
-   * 设置消息键的反序列化类.
-   *
-   * @param keyDeserializerClass 反序列化类，实现Deserializer接口
-   * @return
-   */
-  public KafkaOptions setKeyDeserializerClass(String keyDeserializerClass) {
-    this.keyDeserializerClass = keyDeserializerClass;
-    return this;
-  }
-
-  public String getValueDeserializerClass() {
-    return valueDeserializerClass;
-  }
-
-  /**
-   * 设置消息值的反序列化类.
-   *
-   * @param valueDeserializerClass 反序列化类，实现Deserializer接口
-   * @return KafkaOptions
-   */
-  public KafkaOptions setValueDeserializerClass(String valueDeserializerClass) {
-    this.valueDeserializerClass = valueDeserializerClass;
     return this;
   }
 
@@ -482,9 +397,9 @@ public class KafkaOptions {
    * 设置订阅的主题.
    *
    * @param consumerTopics 主题集合
-   * @return KafkaOptions
+   * @return KafkaEventbusOptions
    */
-  public KafkaOptions setConsumerTopics(List<String> consumerTopics) {
+  public KafkaEventbusOptions setConsumerTopics(List<String> consumerTopics) {
     this.consumerTopics = consumerTopics;
     return this;
   }
