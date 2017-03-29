@@ -1,8 +1,8 @@
 package com.edgar.util.eventbus.kafka;
 
 import com.edgar.util.eventbus.EventFuture;
-import com.edgar.util.eventbus.EventSendAction;
-import com.edgar.util.eventbus.event.Event;
+import com.edgar.util.eventbus.SendBackend;
+import com.edgar.util.event.Event;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -12,11 +12,11 @@ import org.apache.kafka.clients.producer.ProducerRecord;
  *
  * @author Edgar  Date 2017/3/24
  */
-public class KafkaSendAction implements EventSendAction {
+public class KafkaSendBackend implements SendBackend {
 
   private Producer<String, Event> producer;
 
-  public KafkaSendAction(ProducerOptions options) {
+  public KafkaSendBackend(ProducerOptions options) {
     producer = new KafkaProducer<>(options.toProps());
   }
 

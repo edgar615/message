@@ -1,4 +1,4 @@
-package com.edgar.util.eventbus.event;
+package com.edgar.util.event;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  */
 public interface Event {
 
-  static List<EventActionCodec> codecList
+  List<EventActionCodec> codecList
       = Lists.newArrayList(ServiceLoader.load(EventActionCodec.class));
 
   /**

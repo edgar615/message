@@ -1,4 +1,4 @@
-package com.edgar.util.eventbus.event;
+package com.edgar.util.event;
 
 /**
  * 消息活动，用于区分不同的消息类型.

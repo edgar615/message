@@ -1,6 +1,6 @@
 package com.edgar.util.eventbus;
 
-import com.edgar.util.eventbus.event.Event;
+import com.edgar.util.event.Event;
 
 /**
  * Created by Edgar on 2016/4/26.

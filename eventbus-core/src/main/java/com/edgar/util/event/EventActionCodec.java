@@ -1,6 +1,4 @@
-package com.edgar.util.eventbus.event;
-
-import com.edgar.util.eventbus.event.EventAction;
+package com.edgar.util.event;
 
 import java.util.Map;
 

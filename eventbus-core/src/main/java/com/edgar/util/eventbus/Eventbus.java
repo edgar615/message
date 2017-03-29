@@ -1,6 +1,8 @@
 package com.edgar.util.eventbus;
 
-import com.edgar.util.eventbus.event.Event;
+import com.edgar.util.event.Event;
+
+import java.util.Map;
 
 /**
  * <b>发布事件</b>.
@@ -39,10 +41,25 @@ import com.edgar.util.eventbus.event.Event;
  * 表标志此事件为已发布
  * 2.挖掘数据库的交易日志（如MySQL的binlog）将日志发布给消息代理
  * <p>
- * Eventbus采用第一个方式，如果Eventbus注册发布事件的持久化机制，会先通过ProducerPersist将事件持久化，然后才会将事件加入待发送队列
+ * Eventbus采用第一个方式，如果Eventbus注册发布事件的持久化机制，会先通过${@link SendStorage}将事件持久化，然后才会将事件加入待发送队列
  *
  * @author Edgar  Date 2017/3/22
  */
 public interface Eventbus {
-  void send(Event event);
+
+  /**
+   * 发送事件.
+   * 该会将事件放入待发送队列${@link SendQueue}，为了避免内存溢出，如果超出了队列的容量，该方法会返回false.
+   * 如果事件已经通过${@link SendStorage}做了持久化，不必做重试操作。
+   *
+   * @param event
+   * @return
+   */
+  boolean send(Event event);
+
+  Map<String, Object> metrics();
+
+  static Eventbus create(EventbusOptions options) {
+    return new EventbusImpl(options);
+  }
 }

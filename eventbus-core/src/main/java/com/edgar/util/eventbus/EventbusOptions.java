@@ -7,6 +7,10 @@ package com.edgar.util.eventbus;
  */
 public class EventbusOptions {
 
+  private static long DEFAULT_PERIOD = 5 * 60 * 1000;
+
+  private static int DEFAULT_SEND_MAXSIZE = 10000;
+
   /**
    * 消费者组，默认值UUID
    */
@@ -16,6 +20,17 @@ public class EventbusOptions {
    * 消费者ID，默认值UUID
    */
   private String id;
+
+  /**
+   * 从存储层查询待发送事件的间隔，单位毫秒
+   */
+  private long fetchPendingPeriod = DEFAULT_PERIOD;
+
+  private SendBackend sendBackend;
+
+  private SendStorage sendStorage;
+
+  private int maxSendSize = DEFAULT_SEND_MAXSIZE;
 
 
   public String getGroup() {
@@ -48,4 +63,39 @@ public class EventbusOptions {
     return this;
   }
 
+  public long getFetchPendingPeriod() {
+    return fetchPendingPeriod;
+  }
+
+  public EventbusOptions setFetchPendingPeriod(long fetchPendingPeriod) {
+    this.fetchPendingPeriod = fetchPendingPeriod;
+    return this;
+  }
+
+  public int getMaxSendSize() {
+    return maxSendSize;
+  }
+
+  public EventbusOptions setMaxSendSize(int maxSendSize) {
+    this.maxSendSize = maxSendSize;
+    return this;
+  }
+
+  public SendBackend getSendBackend() {
+    return sendBackend;
+  }
+
+  public EventbusOptions setSendBackend(SendBackend sendBackend) {
+    this.sendBackend = sendBackend;
+    return this;
+  }
+
+  public SendStorage getSendStorage() {
+    return sendStorage;
+  }
+
+  public EventbusOptions setSendStorage(SendStorage sendStorage) {
+    this.sendStorage = sendStorage;
+    return this;
+  }
 }

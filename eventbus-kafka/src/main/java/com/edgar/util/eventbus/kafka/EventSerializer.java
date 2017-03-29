@@ -1,6 +1,6 @@
 package com.edgar.util.eventbus.kafka;
 
-import com.edgar.util.eventbus.event.Event;
+import com.edgar.util.event.Event;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;

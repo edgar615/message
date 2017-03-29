@@ -28,6 +28,8 @@ public class ProducerOptions {
 
   private static String DEFAULT_PARTITION_CLASS = null;
 
+  private static long DEFAULT_PERIOD = 5 * 60 * 1000;
+
   //producer
   private String servers = DEFAULT_SERVERS;
 

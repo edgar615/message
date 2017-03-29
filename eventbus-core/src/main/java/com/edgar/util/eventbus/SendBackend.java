@@ -1,13 +1,13 @@
 package com.edgar.util.eventbus;
 
-import com.edgar.util.eventbus.event.Event;
+import com.edgar.util.event.Event;
 
 /**
- * Created by Edgar on 2017/3/24.
+ * 消息发送的接口.
  *
  * @author Edgar  Date 2017/3/24
  */
-public interface EventSendAction {
+public interface SendBackend {
 
   EventFuture<Void> send(Event event);
 

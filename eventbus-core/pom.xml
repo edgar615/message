@@ -32,6 +32,11 @@
             <groupId>com.edgar</groupId>
             <artifactId>util</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

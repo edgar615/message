@@ -1,4 +1,4 @@
-package com.edgar.util.eventbus.event;
+package com.edgar.util.event;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -8,27 +8,25 @@ import java.util.Map;
  *
  * @author Edgar  Date 2017/3/22
  */
-public class ResponseCodec implements EventActionCodec {
+public class MessageCodec implements EventActionCodec {
   @Override
   public EventAction decode(Map<String, Object> map) {
-    Integer result = (Integer) map.get("result");
+    String resource = (String) map.get("resource");
     Map<String, Object> content = (Map<String, Object>) map.get("content");
-    String reply = (String) map.get("reply");
-    return Response.create(result, reply, content);
+    return Message.create(resource, content);
   }
 
   @Override
   public Map<String, Object> encode(EventAction action) {
-    Response response = (Response) action;
+    Message message = (Message) action;
     Map<String, Object> map = new HashMap<>();
-    map.put("result", response.result());
-    map.put("reply", response.reply());
-    map.put("content", response.content());
+    map.put("resource", message.resource());
+    map.put("content", message.content());
     return map;
   }
 
   @Override
   public String name() {
-    return Response.TYPE;
+    return Message.TYPE;
   }
 }

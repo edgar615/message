@@ -3,7 +3,7 @@ package com.edgar.util.eventbus.kafka;
 import com.google.common.base.Preconditions;
 
 import com.edgar.util.base.MorePreconditions;
-import com.edgar.util.eventbus.event.Event;
+import com.edgar.util.event.Event;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ConsumerRunnable implements Runnable {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(EventbusImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConsumerRunnable.class);
 
   private ReceivedEventQueue queue = new ReceivedEventQueue();
 

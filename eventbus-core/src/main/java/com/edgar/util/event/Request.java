@@ -1,4 +1,4 @@
-package com.edgar.util.eventbus.event;
+package com.edgar.util.event;
 
 import java.util.Map;
 

@@ -1,8 +1,11 @@
 package com.edgar.util.eventbus.event;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
+
+import com.edgar.util.event.Event;
+import com.edgar.util.event.Message;
+import com.edgar.util.event.Request;
+import com.edgar.util.event.Response;
 import org.junit.Assert;
 import org.junit.Test;
 
