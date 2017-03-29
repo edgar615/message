@@ -1,9 +1,8 @@
-package com.edgar.util.eventbus.kafka;
+package com.edgar.util.eventbus;
 
 import com.google.common.collect.ImmutableList;
 
 import com.edgar.util.event.Event;
-import com.edgar.util.eventbus.SendStorage;
 
 import java.util.ArrayList;
 import java.util.List;
