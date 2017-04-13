@@ -22,11 +22,6 @@ public interface Request extends EventAction {
   String operation();
 
   /**
-   * @return 资源标识
-   */
-  String resource();
-
-  /**
    * 创建一个Request.
    *
    * @param resource 资源标识，接口

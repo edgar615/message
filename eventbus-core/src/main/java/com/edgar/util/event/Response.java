@@ -28,7 +28,7 @@ public interface Response extends EventAction {
    */
   Map<String, Object> content();
 
-  static Response create(int result, String reply, Map<String, Object> content) {
-    return new ResponseImpl(result, reply, content);
+  static Response create(String resource, int result, String reply, Map<String, Object> content) {
+    return new ResponseImpl(resource, result, reply, content);
   }
 }

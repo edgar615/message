@@ -2,10 +2,6 @@ package com.edgar.util.event;
 
 import com.google.common.collect.ImmutableMap;
 
-import com.edgar.util.event.Event;
-import com.edgar.util.event.Message;
-import com.edgar.util.event.Request;
-import com.edgar.util.event.Response;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -99,7 +95,7 @@ public class EventTest {
   @Test
   public void testResponse() {
     String reply = UUID.randomUUID().toString();
-    Response response = Response.create(1, reply, ImmutableMap.of("foo", 1));
+    Response response = Response.create("test", 1, reply, ImmutableMap.of("foo", 1));
     String id = UUID.randomUUID().toString();
     String to = UUID.randomUUID().toString();
     Event event = Event.create(id, to, response);

@@ -1,6 +1,8 @@
 package com.edgar.util.eventbus;
 
 import com.edgar.util.event.Event;
+import com.edgar.util.eventbus.Callback;
+import com.edgar.util.eventbus.EventFuture;
 
 /**
  * Created by Edgar on 2016/4/26.

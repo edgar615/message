@@ -27,9 +27,16 @@ class ResponseImpl implements Response {
    */
   private final Map<String, Object> content;
 
-  ResponseImpl(int result, String reply, Map<String, Object> content) {
-    Preconditions.checkNotNull(reply, "operation cannot be null");
+  /**
+   * 资源标识
+   */
+  private final String resource;
+
+  ResponseImpl(String resource, int result, String reply, Map<String, Object> content) {
+    Preconditions.checkNotNull(resource, "resource cannot be null");
+    Preconditions.checkNotNull(reply, "reply cannot be null");
     Preconditions.checkNotNull(content, "content cannot be null");
+    this.resource = resource;
     this.result = result;
     this.reply = reply;
     this.content = ImmutableMap.copyOf(content);
@@ -53,6 +60,7 @@ class ResponseImpl implements Response {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper("Response")
+            .add("resource", resource)
             .add("result", result)
             .add("reply", reply)
             .add("content", content)
@@ -62,6 +70,11 @@ class ResponseImpl implements Response {
   @Override
   public String name() {
     return TYPE;
+  }
+
+  @Override
+  public String resource() {
+    return resource;
   }
 
 }

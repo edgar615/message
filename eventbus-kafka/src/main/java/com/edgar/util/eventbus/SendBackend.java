@@ -11,4 +11,7 @@ public interface SendBackend {
 
   EventFuture<Void> send(Event event);
 
+  static SendBackend create(ProducerOptions options) {
+    return new SendBackendImpl(options);
+  }
 }

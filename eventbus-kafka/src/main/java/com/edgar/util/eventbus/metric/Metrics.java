@@ -1,4 +1,4 @@
-package com.edgar.util.metirc;
+package com.edgar.util.eventbus.metric;
 
 import com.codahale.metrics.MetricRegistry;
 
@@ -11,6 +11,10 @@ import java.util.Map;
  */
 public interface Metrics {
   void sendEnqueue();
+
+  void consumerStart();
+
+  void consumerEnd(long duration);
 
   void sendStart();
 

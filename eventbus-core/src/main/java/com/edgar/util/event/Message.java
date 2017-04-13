@@ -17,11 +17,6 @@ public interface Message extends EventAction {
   Map<String, Object> content();
 
   /**
-   * @return 资源标识
-   */
-  String resource();
-
-  /**
    * 创建一个单向消息
    *
    * @param resource 资源标识

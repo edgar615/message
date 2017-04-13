@@ -3,6 +3,8 @@ package com.edgar.util.eventbus;
 import com.edgar.util.event.Event;
 
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * <b>发布事件</b>.
@@ -59,7 +61,19 @@ public interface Eventbus {
 
   Map<String, Object> metrics();
 
-  static Eventbus create(EventbusOptions options) {
-    return new EventbusImpl(options);
+  void consumer(String topic, String resource, EventHandler handler);
+
+  void handle(Event event);
+
+  ScheduledExecutorService scheduledExecutor();
+
+  ExecutorService workerExecutor();
+
+  ExecutorService producerExecutor();
+
+  ExecutorService consumerExecutor();
+
+  static Eventbus create(ProducerOptions producerOptions, ConsumerOptions consumerOptions) {
+    return new EventbusImpl(producerOptions, consumerOptions);
   }
 }

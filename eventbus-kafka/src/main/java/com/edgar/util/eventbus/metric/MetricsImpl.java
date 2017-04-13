@@ -1,4 +1,4 @@
-package com.edgar.util.metirc;
+package com.edgar.util.eventbus.metric;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
@@ -18,6 +18,14 @@ import java.util.stream.Collectors;
 class MetricsImpl implements Metrics {
   private final MetricRegistry registry;
 
+  private final Counter consumerPending;
+
+  private final Counter consumerCompleted;
+
+  private final Counter consumerProcessed;
+
+  private final Timer consumerTimer;
+
   private final Counter sendPending;
 
   private final Counter sendSucceed;
@@ -35,11 +43,29 @@ class MetricsImpl implements Metrics {
     this.sendFailed = registry.counter(MetricRegistry.name(baseName, "send", "failed"));
     this.sendProcessed = registry.counter(MetricRegistry.name(baseName, "send", "processed"));
     this.sendTimer = registry.timer(MetricRegistry.name(baseName, "send"));
+
+    this.consumerPending = registry.counter(MetricRegistry.name(baseName, "consumer", "pending"));
+    this.consumerCompleted = registry.counter(MetricRegistry.name(baseName, "consumer",
+                                                                  "completed"));
+    this.consumerProcessed = registry.counter(MetricRegistry.name(baseName, "consumer", "processed"));
+    this.consumerTimer = registry.timer(MetricRegistry.name(baseName, "consumer"));
   }
 
   @Override
   public void sendEnqueue() {
     sendPending.inc();
+  }
+
+  @Override
+  public void consumerStart() {
+    consumerProcessed.inc();
+  }
+
+  @Override
+  public void consumerEnd(long duration) {
+    consumerProcessed.dec();
+    consumerCompleted.inc();
+    consumerTimer.update(duration, TimeUnit.SECONDS);
   }
 
   @Override

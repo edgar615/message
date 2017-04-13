@@ -1,11 +1,10 @@
-package com.edgar.util.eventbus.kafka;
+package com.edgar.util.eventbus;
 
 import com.google.common.base.Strings;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 
 import java.util.Properties;
-import java.util.UUID;
 
 /**
  * Producer的配置属性.
@@ -13,6 +12,10 @@ import java.util.UUID;
  * @author Edgar  Date 2016/5/17
  */
 public class ProducerOptions {
+
+  private static long DEFAULT_PERIOD = 5 * 60 * 1000;
+
+  private static int DEFAULT_SEND_MAXSIZE = 10000;
 
   public static final int DEFAULT_LINGER_MS = 1;
 
@@ -24,14 +27,19 @@ public class ProducerOptions {
 
   private static final String DEFAULT_ACKS = "all";
 
-  private static final String DEFAULT_SERVERS = "localhost:9092";
-
   private static String DEFAULT_PARTITION_CLASS = null;
 
-  private static long DEFAULT_PERIOD = 5 * 60 * 1000;
+  /**
+   * 从存储层查询待发送事件的间隔，单位毫秒
+   */
+  private long fetchPendingPeriod = DEFAULT_PERIOD;
+
+  private SendStorage sendStorage;
+
+  private int maxSendSize = DEFAULT_SEND_MAXSIZE;
 
   //producer
-  private String servers = DEFAULT_SERVERS;
+  private String servers;
 
   /**
    * 响应,可选值 0, 1, all
@@ -75,11 +83,38 @@ public class ProducerOptions {
     producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
                       "org.apache.kafka.common.serialization.StringSerializer");
     producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-                      "com.edgar.util.eventbus.kafka.EventSerializer");
+                      "com.edgar.util.eventbus.EventSerializer");
     if (!Strings.isNullOrEmpty(partitionClass)) {
       producerProps.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, partitionClass);
     }
     return producerProps;
+  }
+
+  public long getFetchPendingPeriod() {
+    return fetchPendingPeriod;
+  }
+
+  public ProducerOptions setFetchPendingPeriod(long fetchPendingPeriod) {
+    this.fetchPendingPeriod = fetchPendingPeriod;
+    return this;
+  }
+
+  public int getMaxSendSize() {
+    return maxSendSize;
+  }
+
+  public ProducerOptions setMaxSendSize(int maxSendSize) {
+    this.maxSendSize = maxSendSize;
+    return this;
+  }
+
+  public SendStorage getSendStorage() {
+    return sendStorage;
+  }
+
+  public ProducerOptions setSendStorage(SendStorage sendStorage) {
+    this.sendStorage = sendStorage;
+    return this;
   }
 
   public String getPartitionClass() {
@@ -90,7 +125,7 @@ public class ProducerOptions {
    * 设置分区类partitioner.class
    *
    * @param partitionClass 实现Partitioner接口
-   * @return KafkaEventbusOptions
+   * @return ProducerOptions
    */
   public ProducerOptions setPartitionClass(String partitionClass) {
     this.partitionClass = partitionClass;
@@ -105,7 +140,7 @@ public class ProducerOptions {
    * 设置 acks.
    *
    * @param acks acks
-   * @return KafkaEventbusOptions
+   * @return ProducerOptions
    */
   public ProducerOptions setAcks(String acks) {
     this.acks = acks;
@@ -120,7 +155,7 @@ public class ProducerOptions {
    * 设置batch.size.
    *
    * @param batchSize batch.size
-   * @return KafkaEventbusOptions
+   * @return ProducerOptions
    */
   public ProducerOptions setBatchSize(int batchSize) {
     this.batchSize = batchSize;
@@ -135,7 +170,7 @@ public class ProducerOptions {
    * 设置buffer.memory .
    *
    * @param bufferMemory buffer.memory
-   * @return KafkaEventbusOptions
+   * @return ProducerOptions
    */
   public ProducerOptions setBufferMemory(int bufferMemory) {
     this.bufferMemory = bufferMemory;
@@ -150,7 +185,7 @@ public class ProducerOptions {
    * 设置retries.
    *
    * @param retries retries
-   * @return KafkaEventbusOptions
+   * @return ProducerOptions
    */
   public ProducerOptions setRetries(int retries) {
     this.retries = retries;
@@ -165,7 +200,7 @@ public class ProducerOptions {
    * 设置linger.ms.
    *
    * @param lingerMs
-   * @return KafkaEventbusOptions
+   * @return ProducerOptions
    */
   public ProducerOptions setLingerMs(int lingerMs) {
     this.lingerMs = lingerMs;
@@ -180,7 +215,7 @@ public class ProducerOptions {
    * 设置kafka的地址.
    *
    * @param servers kafka的地址
-   * @return KafkaEventbusOptions
+   * @return ProducerOptions
    */
   public ProducerOptions setServers(String servers) {
     this.servers = servers;

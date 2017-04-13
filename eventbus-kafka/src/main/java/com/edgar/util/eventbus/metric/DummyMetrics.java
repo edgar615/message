@@ -1,4 +1,4 @@
-package com.edgar.util.metirc;
+package com.edgar.util.eventbus.metric;
 
 import java.util.Map;
 
@@ -10,6 +10,16 @@ import java.util.Map;
 public class DummyMetrics implements Metrics {
   @Override
   public void sendEnqueue() {
+
+  }
+
+  @Override
+  public void consumerStart() {
+
+  }
+
+  @Override
+  public void consumerEnd(long duration) {
 
   }
 

@@ -13,8 +13,12 @@ public interface EventAction {
   String UNKNOWN = "unknown";
 
   /**
-   *
    * @return action名称
    */
   String name();
+
+  /**
+   * @return 资源标识
+   */
+  String resource();
 }

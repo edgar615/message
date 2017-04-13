@@ -1,4 +1,4 @@
-package com.edgar.util.eventbus.kafka;
+package com.edgar.util.eventbus;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
