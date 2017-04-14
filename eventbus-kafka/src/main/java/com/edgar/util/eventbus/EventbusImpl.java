@@ -3,12 +3,14 @@ package com.edgar.util.eventbus;
 import com.google.common.base.Strings;
 
 import com.edgar.util.concurrent.NamedThreadFactory;
+import com.edgar.util.concurrent.OrderQueue;
 import com.edgar.util.event.Event;
+import com.edgar.util.eventbus.metric.DummyMetrics;
 import com.edgar.util.eventbus.metric.Metrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -21,16 +23,11 @@ import java.util.concurrent.TimeUnit;
  */
 class EventbusImpl implements Eventbus {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(EventbusImpl.class);
-
-  private final List<HandlerBinding> bindings = new ArrayList<>();
+  private static final Logger LOGGER = LoggerFactory.getLogger(Eventbus.class);
 
   private final ScheduledExecutorService scheduledExecutor =
           Executors.newSingleThreadScheduledExecutor(
                   NamedThreadFactory.create("eventbus-schedule"));
-
-  private final ExecutorService workerExecutor =
-          Executors.newCachedThreadPool(NamedThreadFactory.create("eventbus-worker"));
 
   private final ExecutorService producerExecutor
           = Executors.newFixedThreadPool(1, NamedThreadFactory.create("eventbus-producer"));
@@ -38,25 +35,48 @@ class EventbusImpl implements Eventbus {
   private final ExecutorService consumerExecutor
           = Executors.newFixedThreadPool(1, NamedThreadFactory.create("eventbus-consumer"));
 
-  private final Metrics metrics;
+  private Metrics metrics = new DummyMetrics();
 
-  private SendQueue sendQueue;
+  private OrderQueue sendQueue;
 
   private SendStorage sendStorage;
+
+  private SendBackend backend;
+
+  private final Callback callback = (future) -> {
+    Event event = future.event();
+    long duration = Instant.now().getEpochSecond() - event.head().timestamp();
+    metrics.sendEnd(future.succeeded(), duration);
+    if (future.succeeded()) {
+      LOGGER.info("======> [{}] [OK] [{}] [{}] [{}] [{}]",
+                  event.head().id(),
+                  event.head().to(),
+                  event.head().action(),
+                  Helper.toHeadString(event),
+                  Helper.toActionString(event));
+    } else {
+      LOGGER.error("======> [{}] [FAILED] [{}] [{}] [{}] [{}]",
+                   event.head().id(),
+                   event.head().to(),
+                   event.head().action(),
+                   Helper.toHeadString(event),
+                   Helper.toActionString(event),
+                   future.cause().getMessage());
+    }
+    mark(event, future.succeeded() ? 1 : 2);
+  };
 
   EventbusImpl(ProducerOptions producerOptions, ConsumerOptions consumerOptions) {
     metrics = Metrics.create("eventbus");
     if (producerOptions != null &&
         !Strings.isNullOrEmpty(producerOptions.getServers())) {
-      SendBackend backend = new SendBackendImpl(producerOptions);
+      this.backend = new SendBackendImpl(producerOptions);
       sendStorage = producerOptions.getSendStorage();
-      sendQueue = SendQueue
-              .create(producerExecutor, backend, producerOptions.getMaxSendSize(), sendStorage,
-                      metrics);
+      sendQueue = new OrderQueue();
       if (sendStorage != null) {
         Runnable scheduledCommand = () -> {
           List<Event> pending = sendStorage.pendingList();
-          pending.forEach(e -> sendQueue.enqueue(e));
+          pending.forEach(e -> send(e));
         };
         long period = producerOptions.getFetchPendingPeriod();
         scheduledExecutor.scheduleAtFixedRate(scheduledCommand, period, period, TimeUnit
@@ -66,20 +86,38 @@ class EventbusImpl implements Eventbus {
     if (consumerOptions != null &&
         !Strings.isNullOrEmpty(consumerOptions.getServers())) {
       ConsumerBackend consumerBackend =
-              new ConsumerBackendImpl(this, consumerOptions, metrics);
+              new ConsumerBackendImpl(consumerOptions, metrics);
       consumerExecutor.submit(consumerBackend);
     }
 
   }
 
   @Override
-  public boolean send(Event event) {
-    boolean checkAndSave = false;
+  public void send(Event event) {
     if (sendStorage != null) {
-      checkAndSave = sendStorage.checkAndSave(event);
+      sendStorage.checkAndSave(event);
     }
-    boolean result = sendQueue.enqueue(event);
-    return checkAndSave || result;
+
+    Runnable command = () -> {
+      if (event.head().duration() > 0) {
+        long current = Instant.now().getEpochSecond();
+        if (current > event.head().timestamp() + event.head().duration()) {
+          LOGGER.info("---|  [{}] [EXPIRE] [{}] [{}] [{}] [{}]",
+                      event.head().id(),
+                      event.head().to(),
+                      event.head().action(),
+                      Helper.toHeadString(event),
+                      Helper.toActionString(event));
+          mark(event, 3);
+        } else {
+          backend.send(event)
+                  .setCallback(callback);
+        }
+      }
+      metrics.sendStart();
+    };
+    sendQueue.execute(command, producerExecutor);
+    metrics.sendEnqueue();
   }
 
   @Override
@@ -89,34 +127,20 @@ class EventbusImpl implements Eventbus {
 
   @Override
   public void consumer(String topic, String resource, EventHandler handler) {
-    HandlerBinding binding = new HandlerBinding(topic, resource, handler);
-    bindings.add(binding);
+    HandlerRegistration.instance().registerHandler(topic, resource, handler);
   }
 
-  @Override
-  public void handle(Event event) {
-    bindings.stream()
-            .filter(b -> b.match(event))
-            .forEach(b -> b.eventHandler().handle(event));
+  private void mark(Event event, int status) {
+    try {
+      if (sendStorage != null && sendStorage.shouldStorage(event)) {
+        sendStorage.mark(event, status);
+      }
+    } catch (Exception e) {
+      LOGGER.warn("---| [{}] [FAILED] [mark:{}] [{}]",
+                  event.head().id(),
+                  status,
+                  e.getMessage());
+    }
   }
 
-  @Override
-  public ScheduledExecutorService scheduledExecutor() {
-    return scheduledExecutor;
-  }
-
-  @Override
-  public ExecutorService workerExecutor() {
-    return workerExecutor;
-  }
-
-  @Override
-  public ExecutorService producerExecutor() {
-    return producerExecutor;
-  }
-
-  @Override
-  public ExecutorService consumerExecutor() {
-    return consumerExecutor;
-  }
 }

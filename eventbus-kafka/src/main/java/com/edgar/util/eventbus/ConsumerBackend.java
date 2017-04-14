@@ -9,8 +9,8 @@ import com.edgar.util.eventbus.metric.Metrics;
  */
 public interface ConsumerBackend extends Runnable {
 
-  static ConsumerBackend create(Eventbus eventbus,
-                                ConsumerOptions options, Metrics metrics) {
-    return new ConsumerBackendImpl(eventbus, options, metrics);
+  static ConsumerBackend create(
+          ConsumerOptions options, Metrics metrics) {
+    return new ConsumerBackendImpl(options, metrics);
   }
 }

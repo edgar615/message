@@ -7,7 +7,7 @@ import com.edgar.util.event.Event;
  *
  * @author Edgar  Date 2017/4/12
  */
-public class HandlerBinding {
+class HandlerBinding {
 
   private final String topic;
 
@@ -15,7 +15,7 @@ public class HandlerBinding {
 
   private final EventHandler eventHandler;
 
-  public HandlerBinding(String topic, String resource, EventHandler eventHandler) {
+  HandlerBinding(String topic, String resource, EventHandler eventHandler) {
     this.topic = topic;
     this.resource = resource;
     this.eventHandler = eventHandler;

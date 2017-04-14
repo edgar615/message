@@ -16,11 +16,8 @@ public class BlockedEventChecker {
 
   private final Map<RecordMeta, Object> map = new WeakHashMap<>();
 
-  private final long maxExecTime;
-
   private BlockedEventChecker(long interval, long maxExecTime,
                               ScheduledExecutorService scheduledExecutorService) {
-    this.maxExecTime = maxExecTime;
     scheduledExecutorService.scheduleAtFixedRate(() -> {
       synchronized (BlockedEventChecker.this) {
         map.keySet()

@@ -1,5 +1,8 @@
 package com.edgar.util.eventbus;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -11,6 +14,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class ConsumeEventTest extends EventbusTest {
 
+  private static Logger logger = LoggerFactory.getLogger(ConsumeEventTest.class);
+
   public static void main(String[] args) {
     String server = "10.11.0.31:9092";
     ConsumerOptions options = new ConsumerOptions();
@@ -19,7 +24,7 @@ public class ConsumeEventTest extends EventbusTest {
             .addTopic("test");
     Eventbus eventbus = new EventbusImpl(null, options);
     eventbus.consumer(null, null, e-> {
-      System.out.println("handle" + e);
+      logger.info("---} handle {}", e);
       if (e.action().resource().equals("5")) {
         try {
           TimeUnit.SECONDS.sleep(5);

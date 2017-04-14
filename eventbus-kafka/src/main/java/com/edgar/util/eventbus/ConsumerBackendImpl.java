@@ -2,6 +2,8 @@ package com.edgar.util.eventbus;
 
 import com.google.common.collect.ImmutableMap;
 
+import com.edgar.util.concurrent.NamedThreadFactory;
+import com.edgar.util.concurrent.StripedQueue;
 import com.edgar.util.event.Event;
 import com.edgar.util.eventbus.metric.DummyMetrics;
 import com.edgar.util.eventbus.metric.Metrics;
@@ -25,6 +27,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -53,15 +58,21 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Edgar  Date 2017/4/5
  */
-class ConsumerBackendImpl implements ConsumerBackend {
+class ConsumerBackendImpl implements ConsumerBackend, Runnable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ConsumerBackendImpl.class);
 
   private final ConsumerOptions options;
 
-  private final Eventbus eventbus;
+  private final ExecutorService workerExecutor;
+
+  private final ExecutorService consumerExecutor;
 
   private final BlockedEventChecker checker;
+
+  private StripedQueue queue;
+
+  private Partitioner partitioner;
 
   /**
    * 正在处理的消息（不包括已经处理完成或者还在线程池排队的任务）
@@ -74,16 +85,25 @@ class ConsumerBackendImpl implements ConsumerBackend {
 
   private Metrics metrics = new DummyMetrics();
 
-  ConsumerBackendImpl(Eventbus eventbus,
-                      ConsumerOptions options, Metrics metrics) {
-    this.eventbus = eventbus;
+  ConsumerBackendImpl(ConsumerOptions options, Metrics metrics) {
+    this.consumerExecutor =
+            Executors.newFixedThreadPool(1, NamedThreadFactory.create("eventbus-consumer"));
+    this.workerExecutor = Executors.newFixedThreadPool(
+            options.getWorkerPoolSize(),
+            NamedThreadFactory.create("eventbus-worker"));
+    this.queue = new StripedQueue(workerExecutor);
+    this.partitioner = new RoundRobinPartitioner(options.getWorkerPoolSize());
     this.options = options;
     if (metrics != null) {
       this.metrics = metrics;
     }
+    ScheduledExecutorService scheduledExecutor =
+            Executors.newSingleThreadScheduledExecutor(
+                    NamedThreadFactory.create("eventbus-blocker-checker"));
     checker = BlockedEventChecker
             .create(options.getBlockedCheckerMs(), options.getBlockedCheckerMs(),
-                    eventbus.scheduledExecutor());
+                    scheduledExecutor);
+    consumerExecutor.submit(this);
   }
 
   /**
@@ -218,7 +238,6 @@ class ConsumerBackendImpl implements ConsumerBackend {
                   topicPartition.partition(),
                   position,
                   lastCommitedOffsetAndMetadata);
-//          running = true;
         }
       }
     });
@@ -239,11 +258,13 @@ class ConsumerBackendImpl implements ConsumerBackend {
                       record.topic(),
                       Helper.toHeadString(event),
                       Helper.toActionString(event));
-          eventbus.workerExecutor().submit(() -> {
+          queue.add(partitioner.partition(event), () -> {
             long start = Instant.now().getEpochSecond();
             enqueue(record);
             try {
-              eventbus.handle(record.value());
+              HandlerRegistration.instance()
+                      .getHandlers(event)
+                      .forEach(h -> h.handle(event));
             } catch (Exception e) {
               LOGGER.error("---| [{}] [Failed]", record.value().head().id(), e);
             }

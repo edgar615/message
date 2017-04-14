@@ -3,8 +3,6 @@ package com.edgar.util.eventbus;
 import com.edgar.util.event.Event;
 
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * <b>发布事件</b>.
@@ -51,27 +49,16 @@ public interface Eventbus {
 
   /**
    * 发送事件.
-   * 该会将事件放入待发送队列${@link SendQueue}，为了避免内存溢出，如果超出了队列的容量，该方法会返回false.
-   * 如果事件已经通过${@link SendStorage}做了持久化，不必做重试操作。
+   * 该会将事件放入待发送队列${@link SendQueue}。
    *
    * @param event
    * @return
    */
-  boolean send(Event event);
+  void send(Event event);
 
   Map<String, Object> metrics();
 
   void consumer(String topic, String resource, EventHandler handler);
-
-  void handle(Event event);
-
-  ScheduledExecutorService scheduledExecutor();
-
-  ExecutorService workerExecutor();
-
-  ExecutorService producerExecutor();
-
-  ExecutorService consumerExecutor();
 
   static Eventbus create(ProducerOptions producerOptions, ConsumerOptions consumerOptions) {
     return new EventbusImpl(producerOptions, consumerOptions);
