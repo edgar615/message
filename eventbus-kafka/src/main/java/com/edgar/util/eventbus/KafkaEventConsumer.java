@@ -159,6 +159,14 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
   @Override
   public void run() {
+    try {
+      startConsumer();
+    } catch (Exception e) {
+      LOGGER.error("[consumer] [Starting]", e);
+    }
+  }
+
+  private void startConsumer() {
     consumer = new KafkaConsumer<>(options.consumerProps());
     List<PartitionInfo> partitions;
     for (String topic : options.getTopics()) {
