@@ -14,7 +14,7 @@ public class KafkaEventProducer extends EventProducerImpl {
 
   private Producer<String, Event> producer;
 
-  KafkaEventProducer(KafkaProducerOptions options) {
+  public KafkaEventProducer(KafkaProducerOptions options) {
     super(options);
     producer = new KafkaProducer<>(options.toProps());
   }

@@ -53,7 +53,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Edgar  Date 2017/4/5
  */
-class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
+public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(KafkaEventConsumer.class);
 
@@ -72,7 +72,7 @@ class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
   private volatile boolean started = false;
 
-  KafkaEventConsumer(KafkaConsumerOptions options) {
+  public KafkaEventConsumer(KafkaConsumerOptions options) {
     super(options);
     this.consumerExecutor =
             Executors.newFixedThreadPool(1, NamedThreadFactory.create("eventbus-consumer"));
