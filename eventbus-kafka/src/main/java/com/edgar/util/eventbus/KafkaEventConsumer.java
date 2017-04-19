@@ -159,18 +159,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
   @Override
   public void run() {
-    Properties props = new Properties();
-    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, options.getServers());
-    props.put(ConsumerConfig.GROUP_ID_CONFIG, options.getGroup());
-//    props.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
-    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-              "org.apache.kafka.common.serialization.StringDeserializer");
-    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-              "com.edgar.util.eventbus.EventDeserializer");
-    props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");//latest earliest
-
-    consumer = new KafkaConsumer<>(props);
+    consumer = new KafkaConsumer<>(options.consumerProps());
     List<PartitionInfo> partitions;
     for (String topic : options.getTopics()) {
       while ((partitions = consumer.partitionsFor(topic)) == null) {
