@@ -207,11 +207,10 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
                   lastCommitedOffsetAndMetadata);
 
           if (!started) {
-            started = true;
             setStartOffset(topicPartition);
           }
-
         }
+        started = true;
       }
     });
     try {
