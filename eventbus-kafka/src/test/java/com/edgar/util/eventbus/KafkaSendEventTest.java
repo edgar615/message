@@ -15,15 +15,14 @@ import java.util.concurrent.TimeUnit;
  */
 public class KafkaSendEventTest extends EventbusTest {
 
-  @Test
-  public void testSend() {
-    ProducerOptions options = new ProducerOptions();
-    options.setServers(server);
-    Eventbus eventbus = new EventbusImpl(options, null);
+  public static void main(String[] args) {
+    KafkaProducerOptions options = new KafkaProducerOptions();
+    options.setServers("10.11.0.31:9092");
+    EventProducer producer = new KafkaEventProducer(options);
     for (int i = 0; i < 10; i++) {
       Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
       Event event = Event.create("test", message, 1);
-      eventbus.send(event);
+      producer.send(event);
     }
     try {
       TimeUnit.SECONDS.sleep(3);
