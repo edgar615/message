@@ -224,10 +224,12 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
         for (ConsumerRecord<String, Event> record : records) {
           Event event = record.value();
-          LOGGER.info("<====== [{}] [{}] [{}] [{}] [{}]",
+          LOGGER.info("<====== [{}] [{},{},{}] [{}] [{}] [{}]",
                       event.head().id(),
-                      event.head().action(),
                       record.topic(),
+                      record.partition(),
+                      record.offset(),
+                      event.head().action(),
                       Helper.toHeadString(event),
                       Helper.toActionString(event));
           handle(event, () -> enqueue(record), () -> complete(record));

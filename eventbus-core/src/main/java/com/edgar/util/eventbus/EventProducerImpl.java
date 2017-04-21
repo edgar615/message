@@ -53,22 +53,6 @@ public abstract class EventProducerImpl implements EventProducer {
       Event event = future.event();
       long duration = Instant.now().getEpochSecond() - event.head().timestamp();
       metrics.sendEnd(future.succeeded(), duration);
-      if (future.succeeded()) {
-        LOGGER.info("======> [{}] [OK] [{}] [{}] [{}] [{}]",
-                    event.head().id(),
-                    event.head().to(),
-                    event.head().action(),
-                    Helper.toHeadString(event),
-                    Helper.toActionString(event));
-      } else {
-        LOGGER.error("======> [{}] [FAILED] [{}] [{}] [{}] [{}]",
-                     event.head().id(),
-                     event.head().to(),
-                     event.head().action(),
-                     Helper.toHeadString(event),
-                     Helper.toActionString(event),
-                     future.cause().getMessage());
-      }
       mark(event, future.succeeded() ? 1 : 2);
     };
   }
