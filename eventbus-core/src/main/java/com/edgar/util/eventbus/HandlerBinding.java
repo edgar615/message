@@ -2,6 +2,8 @@ package com.edgar.util.eventbus;
 
 import com.edgar.util.event.Event;
 
+import java.util.function.BiPredicate;
+
 /**
  * Created by Edgar on 2017/4/12.
  *
@@ -9,36 +11,17 @@ import com.edgar.util.event.Event;
  */
 class HandlerBinding {
 
-  private final String topic;
-
-  private final String resource;
+  private final BiPredicate<String, String> predicate;
 
   private final EventHandler eventHandler;
 
-  HandlerBinding(String topic, String resource, EventHandler eventHandler) {
-    this.topic = topic;
-    this.resource = resource;
+  HandlerBinding(BiPredicate<String, String> predicate, EventHandler eventHandler) {
+    this.predicate = predicate;
     this.eventHandler = eventHandler;
   }
 
   public boolean match(Event event) {
-    boolean topicMatch = true;
-    if (topic != null) {
-      topicMatch = topic.equals(event.head().to());
-    }
-    boolean resourceMatch = true;
-    if (resource != null) {
-      resourceMatch = resource.equals(event.action().resource());
-    }
-    return topicMatch && resourceMatch;
-  }
-
-  public String topic() {
-    return topic;
-  }
-
-  public String resource() {
-    return resource;
+    return predicate.test(event.head().to(), event.action().resource());
   }
 
   public EventHandler eventHandler() {

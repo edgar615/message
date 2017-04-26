@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.BiPredicate;
 
 /**
  * Created by Edgar on 2017/4/18.
@@ -59,8 +60,24 @@ public abstract class EventConsumerImpl implements EventConsumer {
   }
 
   @Override
+  public void consumer(BiPredicate<String, String> predicate, EventHandler handler) {
+    HandlerRegistration.instance().registerHandler(predicate, handler);
+  }
+
+  @Override
   public void consumer(String topic, String resource, EventHandler handler) {
-    HandlerRegistration.instance().registerHandler(topic, resource, handler);
+    final BiPredicate<String, String> predicate = (t, r) -> {
+      boolean topicMatch = true;
+      if (topic != null) {
+        topicMatch = topic.equals(t);
+      }
+      boolean resourceMatch = true;
+      if (resource != null) {
+        resourceMatch = resource.equals(r);
+      }
+      return topicMatch && resourceMatch;
+    };
+    consumer(predicate, handler);
   }
 
   protected void handle(Event event, Runnable before, Runnable after) {

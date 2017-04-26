@@ -4,6 +4,7 @@ import com.edgar.util.event.Event;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
 /**
@@ -23,8 +24,8 @@ public class HandlerRegistration {
     return INSTANCE;
   }
 
-  public void registerHandler(String topic, String resource, EventHandler handler) {
-    HandlerBinding binding = new HandlerBinding(topic, resource, handler);
+  public void registerHandler(BiPredicate<String, String> predicate, EventHandler handler) {
+    HandlerBinding binding = new HandlerBinding(predicate, handler);
     bindings.add(binding);
   }
 
