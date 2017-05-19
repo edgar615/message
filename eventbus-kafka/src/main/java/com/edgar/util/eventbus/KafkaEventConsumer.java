@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableMap;
 
 import com.edgar.util.concurrent.NamedThreadFactory;
 import com.edgar.util.event.Event;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -20,7 +19,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
@@ -166,6 +164,10 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
     }
   }
 
+  public void close() {
+    running = false;
+  }
+
   private void startConsumer() {
     consumer = new KafkaConsumer<>(options.consumerProps());
     List<PartitionInfo> partitions;
@@ -215,37 +217,38 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
     });
     try {
       while (running) {
-        ConsumerRecords<String, Event> records = consumer.poll(100);
-        if (records.count() > 0) {
-          LOGGER.info(
-                  "[consumer] [poll {} messages]",
-                  records.count());
-        }
+        try {
+          ConsumerRecords<String, Event> records = consumer.poll(100);
+          if (records.count() > 0) {
+            LOGGER.info(
+                    "[consumer] [poll {} messages]",
+                    records.count());
+          }
 
-        for (ConsumerRecord<String, Event> record : records) {
-          Event event = record.value();
-          LOGGER.info("<====== [{}] [{},{},{}] [{}] [{}] [{}]",
-                      event.head().id(),
-                      record.topic(),
-                      record.partition(),
-                      record.offset(),
-                      event.head().action(),
-                      Helper.toHeadString(event),
-                      Helper.toActionString(event));
-          handle(event, () -> enqueue(record), () -> complete(record));
+          for (ConsumerRecord<String, Event> record : records) {
+            Event event = record.value();
+            LOGGER.info("<====== [{}] [{},{},{}] [{}] [{}] [{}]",
+                        event.head().id(),
+                        record.topic(),
+                        record.partition(),
+                        record.offset(),
+                        event.head().action(),
+                        Helper.toHeadString(event),
+                        Helper.toActionString(event));
+            handle(event, () -> enqueue(record), () -> complete(record));
+          }
+          commit();
+        } catch (Exception e) {
+          LOGGER.error("[consumer] [poll ERROR]", e);
         }
-        commit();
 
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("[consumer] [ERROR]", e);
     } finally {
+      LOGGER.warn("[consumer] [CLOSE]");
       consumer.close();
     }
-  }
-
-  public void close() {
-    running = false;
   }
 
   private void setStartOffset(TopicPartition topicPartition) {
