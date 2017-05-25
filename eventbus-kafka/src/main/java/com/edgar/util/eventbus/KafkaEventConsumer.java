@@ -1,9 +1,7 @@
 package com.edgar.util.eventbus;
 
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 import com.edgar.util.concurrent.NamedThreadFactory;
 import com.edgar.util.event.Event;
@@ -17,6 +15,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -28,8 +27,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
 /**
  * kafka的consumer对象不是线程安全的，如果在不同的线程里使用consumer会抛出异常.
@@ -65,6 +64,12 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
   private final ExecutorService consumerExecutor;
 
+  private final AtomicLong eventCount = new AtomicLong(0);
+
+  private final AtomicBoolean pause = new AtomicBoolean(false);
+
+  private final Function<Event, Boolean> blackListFilter;
+
   /**
    * 正在处理的消息（不包括已经处理完成或者还在线程池排队的任务）
    */
@@ -76,16 +81,17 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
   private volatile boolean started = false;
 
-  private final AtomicLong eventCount = new AtomicLong(0);
-
-  private final AtomicBoolean pause = new AtomicBoolean(false);
-
   public KafkaEventConsumer(KafkaConsumerOptions options) {
     super(options);
     this.consumerExecutor =
             Executors.newFixedThreadPool(1, NamedThreadFactory.create("eventbus-consumer"));
     this.options = options;
     consumerExecutor.submit(this);
+    if (options.getBlackListFilter() == null) {
+      blackListFilter = e -> false;
+    } else {
+      blackListFilter = options.getBlackListFilter();
+    }
   }
 
   /**
@@ -148,17 +154,18 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
             ImmutableMap.copyOf(commited),
             (offsets, exception) -> {
               if (exception != null) {
-                LOGGER.error("[consumer] [commit: {}]", commited, exception);
-                exception.printStackTrace();
+                LOGGER.error("[consumer] [commit: {}]", commited, exception.getMessage(), exception);
               } else {
-                for (TopicPartition tp : offsets.keySet()) {
-                  OffsetAndMetadata data = offsets.get(tp);
-                  Set<RecordFuture> metas = process.get(tp);
-                  long count = metas.stream()
-                          .filter(m -> m.offset() < data.offset())
-                          .count();
-                  metas.removeIf(m -> m.offset() < data.offset());
-                  eventCount.accumulateAndGet(count,  (l, r) -> l - r);
+                synchronized (this) {
+                  for (TopicPartition tp : offsets.keySet()) {
+                    OffsetAndMetadata data = offsets.get(tp);
+                    Set<RecordFuture> metas = process.get(tp);
+                    long count = metas.stream()
+                            .filter(m -> m.offset() < data.offset())
+                            .count();
+                    metas.removeIf(m -> m.offset() < data.offset());
+                    eventCount.accumulateAndGet(count, (l, r) -> l - r);
+                  }
                 }
                 if (!offsets.isEmpty()) {
                   LOGGER.info("[consumer] [commit: {}] [{}]", offsets, eventCount);
@@ -238,26 +245,8 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
             LOGGER.info(
                     "[consumer] [poll {} messages]",
                     records.count());
-          } else {
-            LOGGER.debug(
-                    "[consumer] [poll {} messages]",
-                    records.count());
           }
-          int receivedCount = records.count();
-          long totalCount = eventCount.accumulateAndGet(receivedCount, (l, r) -> l + r);
-          if (totalCount > options.getMaxQuota()
-                  && pause.compareAndSet(false, true)) {
-              consumer.pause(Iterables.toArray(process.keySet(), TopicPartition.class));
-            LOGGER.info(
-                    "[consumer] [pause] [{}]",
-                    totalCount);
-          } else if (totalCount < options.getMaxQuota() / 2
-                  && pause.compareAndSet(true, false)) {
-            consumer.resume(Iterables.toArray(process.keySet(), TopicPartition.class));
-            LOGGER.info(
-                    "[consumer] [resume] [{}]",
-                    totalCount);
-          }
+          List<ConsumerRecord<String, Event>> recordList = new ArrayList<>();
           for (ConsumerRecord<String, Event> record : records) {
             Event event = record.value();
             LOGGER.info("<====== [{}] [{},{},{}] [{}] [{}] [{}]",
@@ -268,8 +257,16 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
                         event.head().action(),
                         Helper.toHeadString(event),
                         Helper.toActionString(event));
-            handle(event, () -> enqueue(record), () -> complete(record));
+            if (!blackListFilter.apply(event)) {
+              recordList.add(record);
+            } else {
+              LOGGER.info("---| [{}] [BLACKLIST]", event.head().id());
+            }
           }
+          ratelimit(recordList.size());
+          recordList.forEach(r -> {
+            handle(r.value(), () -> enqueue(r), () -> complete(r));
+          });
           commit();
         } catch (Exception e) {
           LOGGER.error("[consumer] [ERROR]", e);
@@ -280,6 +277,23 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
       LOGGER.error("[consumer] [ERROR]", e);
     } finally {
       LOGGER.warn("[consumer] [EXIT]");
+    }
+  }
+
+  private void ratelimit(int receivedCount) {
+    long totalCount = eventCount.accumulateAndGet(receivedCount, (l, r) -> l + r);
+    if (totalCount > options.getMaxQuota()
+        && pause.compareAndSet(false, true)) {
+      consumer.pause(Iterables.toArray(process.keySet(), TopicPartition.class));
+      LOGGER.info(
+              "[consumer] [pause] [{}]",
+              totalCount);
+    } else if (totalCount < options.getMaxQuota() / 2
+               && pause.compareAndSet(true, false)) {
+      consumer.resume(Iterables.toArray(process.keySet(), TopicPartition.class));
+      LOGGER.info(
+              "[consumer] [resume] [{}]",
+              totalCount);
     }
   }
 

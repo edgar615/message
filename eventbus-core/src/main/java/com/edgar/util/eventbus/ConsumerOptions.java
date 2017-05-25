@@ -1,5 +1,9 @@
 package com.edgar.util.eventbus;
 
+import com.edgar.util.event.Event;
+
+import java.util.function.Function;
+
 /**
  * Created by Edgar on 2016/5/17.
  *
@@ -34,6 +38,8 @@ public class ConsumerOptions {
 
   private Partitioner partitioner = null;
 
+  private Function<Event, Boolean> blackListFilter = null;
+
   private Metrics metrics = new DummyMetrics();
 
   public ConsumerOptions() {
@@ -52,6 +58,22 @@ public class ConsumerOptions {
    */
   public ConsumerOptions setMaxQuota(long maxQuota) {
     this.maxQuota = maxQuota;
+    return this;
+  }
+
+  public Function<Event, Boolean> getBlackListFilter() {
+    return blackListFilter;
+  }
+
+  /**
+   * 设置黑名单的过滤器，如果filter返回true，表示不处理这个事件
+   *
+   * @param filter
+   * @return
+   */
+  public ConsumerOptions setBlackListFilter(
+          Function<Event, Boolean> filter) {
+    this.blackListFilter = filter;
     return this;
   }
 

@@ -3,6 +3,7 @@ package com.edgar.util.eventbus;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
+import com.edgar.util.event.Event;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.TopicPartition;
 
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Created by Edgar on 2016/5/17.
@@ -215,6 +217,19 @@ public class KafkaConsumerOptions extends ConsumerOptions {
   @Override
   public KafkaConsumerOptions setMaxQuota(long maxQuota) {
     super.setMaxQuota(maxQuota);
+    return this;
+  }
+
+  /**
+   * 设置黑名单的过滤器，如果filter返回true，表示不处理这个事件
+   *
+   * @param filter
+   * @return
+   */
+  @Override
+  public KafkaConsumerOptions setBlackListFilter(
+          Function<Event, Boolean> filter) {
+    super.setBlackListFilter(filter);
     return this;
   }
 

@@ -89,29 +89,33 @@ public abstract class EventConsumerImpl implements EventConsumer {
   }
 
   private void doHandle(Event event, Runnable before, Runnable after) {
-    long start = Instant.now().getEpochSecond();
-    BlockedEventHolder holder = BlockedEventHolder.create(event, blockedCheckerMs);
-    if (checker != null) {
-      checker.register(holder);
-    }
-    metrics.consumerStart();
-    before.run();
     try {
-      List<EventHandler> handlers =
-              HandlerRegistration.instance()
-                      .getHandlers(event);
-      if (handlers == null || handlers.isEmpty()) {
-        LOGGER.info("---| [{}] [NO HANDLER]", event.head().id());
-      } else {
-        for (EventHandler handler : handlers) {
-          handler.handle(event);
-        }
+      long start = Instant.now().getEpochSecond();
+      BlockedEventHolder holder = BlockedEventHolder.create(event, blockedCheckerMs);
+      if (checker != null) {
+        checker.register(holder);
       }
+      metrics.consumerStart();
+      before.run();
+      try {
+        List<EventHandler> handlers =
+                HandlerRegistration.instance()
+                        .getHandlers(event);
+        if (handlers == null || handlers.isEmpty()) {
+          LOGGER.info("---| [{}] [NO HANDLER]", event.head().id());
+        } else {
+          for (EventHandler handler : handlers) {
+            handler.handle(event);
+          }
+        }
+      } catch (Exception e) {
+        LOGGER.error("---| [{}] [Failed]", event.head().id(), e);
+      }
+      metrics.consumerEnd(Instant.now().getEpochSecond() - start);
+      holder.completed();
+      after.run();
     } catch (Exception e) {
-      LOGGER.error("---| [{}] [Failed]", event.head().id(), e);
+      LOGGER.error("---| [{}] [ERROR]", event.head().id(), e);
     }
-    metrics.consumerEnd(Instant.now().getEpochSecond() - start);
-    holder.completed();
-    after.run();
   }
 }
