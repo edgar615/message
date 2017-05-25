@@ -77,16 +77,19 @@ public class KafkaProducerOptions extends ProducerOptions {
     return producerProps;
   }
 
+  @Override
   public KafkaProducerOptions setProducerStorage(ProducerStorage producerStorage) {
     super.setProducerStorage(producerStorage);
     return this;
   }
 
+  @Override
   public KafkaProducerOptions setFetchPendingPeriod(long fetchPendingPeriod) {
     super.setFetchPendingPeriod(fetchPendingPeriod);
     return this;
   }
 
+  @Override
   public KafkaProducerOptions setMetrics(Metrics metrics) {
     super.setMetrics(metrics);
     return this;
@@ -104,6 +107,17 @@ public class KafkaProducerOptions extends ProducerOptions {
    */
   public KafkaProducerOptions setPartitionClass(String partitionClass) {
     this.partitionClass = partitionClass;
+    return this;
+  }
+
+  /**
+   * 设置限流的最大配额，当未处理的事件超过配额时，需要拒绝发送
+   *
+   * @param maxQuota
+   * @return KafkaProducerOptions
+   */
+  public KafkaProducerOptions setMaxQuota(long maxQuota) {
+    super.setMaxQuota(maxQuota);
     return this;
   }
 

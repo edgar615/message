@@ -124,6 +124,7 @@ public class KafkaConsumerOptions extends ConsumerOptions {
    * @param blockedCheckerMs 最大阻塞时间
    * @return KafkaConsumerOptions
    */
+  @Override
   public KafkaConsumerOptions setBlockedCheckerMs(int blockedCheckerMs) {
     super.setBlockedCheckerMs(blockedCheckerMs);
     return this;
@@ -135,6 +136,7 @@ public class KafkaConsumerOptions extends ConsumerOptions {
    * @param workerPoolSize 线程池大小.
    * @return KafkaConsumerOptions
    */
+  @Override
   public KafkaConsumerOptions setWorkerPoolSize(int workerPoolSize) {
     super.setWorkerPoolSize(workerPoolSize);
     return this;
@@ -192,13 +194,28 @@ public class KafkaConsumerOptions extends ConsumerOptions {
     return this;
   }
 
+  @Override
   public KafkaConsumerOptions setMetrics(Metrics metrics) {
     super.setMetrics(metrics);
     return this;
   }
 
+  @Override
   public KafkaConsumerOptions setPartitioner(Partitioner partitioner) {
     super.setPartitioner(partitioner);
     return this;
   }
+
+  /**
+   * 设置限流的最大配额，当未处理的事件超过<code>maxQuota*quotaFactor</code>的时，需要暂停消费
+   *
+   * @param maxQuota
+   * @return
+   */
+  @Override
+  public KafkaConsumerOptions setMaxQuota(long maxQuota) {
+    super.setMaxQuota(maxQuota);
+    return this;
+  }
+
 }

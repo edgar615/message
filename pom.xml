@@ -7,7 +7,7 @@
     <groupId>com.edgar</groupId>
     <artifactId>eventbus</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <modules>
         <module>eventbus-core</module>
         <module>eventbus-kafka</module>

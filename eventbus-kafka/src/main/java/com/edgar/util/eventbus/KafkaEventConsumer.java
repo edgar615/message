@@ -1,6 +1,9 @@
 package com.edgar.util.eventbus;
 
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import com.edgar.util.concurrent.NamedThreadFactory;
 import com.edgar.util.event.Event;
@@ -24,6 +27,9 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * kafka的consumer对象不是线程安全的，如果在不同的线程里使用consumer会抛出异常.
@@ -69,6 +75,10 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
   private volatile boolean running = true;
 
   private volatile boolean started = false;
+
+  private final AtomicLong eventCount = new AtomicLong(0);
+
+  private final AtomicBoolean pause = new AtomicBoolean(false);
 
   public KafkaEventConsumer(KafkaConsumerOptions options) {
     super(options);
@@ -144,10 +154,14 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
                 for (TopicPartition tp : offsets.keySet()) {
                   OffsetAndMetadata data = offsets.get(tp);
                   Set<RecordFuture> metas = process.get(tp);
+                  long count = metas.stream()
+                          .filter(m -> m.offset() < data.offset())
+                          .count();
                   metas.removeIf(m -> m.offset() < data.offset());
+                  eventCount.accumulateAndGet(count,  (l, r) -> l - r);
                 }
                 if (!offsets.isEmpty()) {
-                  LOGGER.info("[consumer] [commit: {}]", offsets);
+                  LOGGER.info("[consumer] [commit: {}] [{}]", offsets, eventCount);
                 }
               }
             });
@@ -166,6 +180,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
   public void close() {
     running = false;
+    consumer.close();
   }
 
   private void startConsumer() {
@@ -223,8 +238,26 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
             LOGGER.info(
                     "[consumer] [poll {} messages]",
                     records.count());
+          } else {
+            LOGGER.debug(
+                    "[consumer] [poll {} messages]",
+                    records.count());
           }
-
+          int receivedCount = records.count();
+          long totalCount = eventCount.accumulateAndGet(receivedCount, (l, r) -> l + r);
+          if (totalCount > options.getMaxQuota()
+                  && pause.compareAndSet(false, true)) {
+              consumer.pause(Iterables.toArray(process.keySet(), TopicPartition.class));
+            LOGGER.info(
+                    "[consumer] [pause] [{}]",
+                    totalCount);
+          } else if (totalCount < options.getMaxQuota() / 2
+                  && pause.compareAndSet(true, false)) {
+            consumer.resume(Iterables.toArray(process.keySet(), TopicPartition.class));
+            LOGGER.info(
+                    "[consumer] [resume] [{}]",
+                    totalCount);
+          }
           for (ConsumerRecord<String, Event> record : records) {
             Event event = record.value();
             LOGGER.info("<====== [{}] [{},{},{}] [{}] [{}] [{}]",
@@ -239,15 +272,14 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
           }
           commit();
         } catch (Exception e) {
-          LOGGER.error("[consumer] [poll ERROR]", e);
+          LOGGER.error("[consumer] [ERROR]", e);
         }
 
       }
     } catch (Exception e) {
       LOGGER.error("[consumer] [ERROR]", e);
     } finally {
-      LOGGER.warn("[consumer] [CLOSE]");
-      consumer.close();
+      LOGGER.warn("[consumer] [EXIT]");
     }
   }
 

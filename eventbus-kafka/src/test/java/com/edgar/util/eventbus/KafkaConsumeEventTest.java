@@ -1,5 +1,6 @@
 package com.edgar.util.eventbus;
 
+import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,21 +17,24 @@ public class KafkaConsumeEventTest extends EventbusTest {
 
   public static void main(String[] args) {
 
-    String server = "10.11.0.31:9092";
+    String server = "test.ihorn.com.cn:9092";
     KafkaConsumerOptions options = new KafkaConsumerOptions();
     options.setServers(server)
-            .setGroup("test-consumer")
-            .addTopic("test");
+            .setGroup("test-b")
+            .addTopic("DeviceControlEvent_1_3")
+            .setMaxQuota(500)
+            .addStartingOffset(new TopicPartition("DeviceControlEvent_1_3", 0), 0l)
+        .setConsumerAutoOffsetRest("earliest");
     EventConsumer consumer = new KafkaEventConsumer(options);
     consumer.consumer(null, null, e -> {
-      logger.info("---| handle {}", e);
-      if (e.action().resource().equals("5")) {
-        try {
-          TimeUnit.SECONDS.sleep(5);
-        } catch (InterruptedException e1) {
-          e1.printStackTrace();
-        }
-      }
+//      logger.info("---| handle {}", e);
+//      if (e.action().resource().equals("5")) {
+//        try {
+//          TimeUnit.SECONDS.sleep(5);
+//        } catch (InterruptedException e1) {
+//          e1.printStackTrace();
+//        }
+//      }
     });
 //    eventbus.consumer("test", null, e -> {
 //      System.out.println("handle" + e);

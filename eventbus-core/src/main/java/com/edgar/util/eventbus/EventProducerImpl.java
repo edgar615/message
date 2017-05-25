@@ -37,7 +37,10 @@ public abstract class EventProducerImpl implements EventProducer {
 
   private final Callback callback;
 
+  private final long maxQuota;
+
   protected EventProducerImpl(ProducerOptions options) {
+    this.maxQuota = options.getMaxQuota();
     this.producerStorage = options.getProducerStorage();
     this.metrics = options.getMetrics();
     if (producerStorage != null) {
@@ -63,6 +66,16 @@ public abstract class EventProducerImpl implements EventProducer {
   public void send(Event event) {
     if (producerStorage != null) {
       producerStorage.checkAndSave(event);
+    }
+
+    if (queue.size() > maxQuota) {
+      LOGGER.info("---|  [{}] [THROTTLE] [{}] [{}] [{}] [{}]",
+                  event.head().id(),
+                  event.head().to(),
+                  event.head().action(),
+                  Helper.toHeadString(event),
+                  Helper.toActionString(event));
+      return;
     }
 
     Runnable command = () -> {
