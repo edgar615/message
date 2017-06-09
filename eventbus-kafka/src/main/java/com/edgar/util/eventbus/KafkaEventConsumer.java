@@ -173,7 +173,8 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
               }
             });
     //https://issues.apache.org/jira/browse/KAFKA-3412
-    consumer.poll(0);
+//    线上有个BUG：偶尔会跳过一条消息，猜测是这个方法引起，测试一段时间发现没有这个方法commitAsync也没有像以前一样报异常，先注释
+//    consumer.poll(0);
   }
 
   @Override
