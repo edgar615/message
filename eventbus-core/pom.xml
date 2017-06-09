@@ -5,11 +5,11 @@
     <parent>
         <artifactId>eventbus</artifactId>
         <groupId>com.edgar</groupId>
-        <version>1.0.1</version>
+        <version>1.0.4</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>eventbus--core</artifactId>
+    <artifactId>eventbus-core</artifactId>
 
 
     <dependencies>
