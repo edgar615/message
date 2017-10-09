@@ -4,7 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.edgar</groupId>
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>7</version>
+    </parent>
+
+    <groupId>com.github.edgar615</groupId>
     <artifactId>eventbus</artifactId>
     <packaging>pom</packaging>
     <version>1.0.4</version>
@@ -23,7 +29,7 @@
         <junit.version>4.12</junit.version>
         <awaitility.version>2.0.0</awaitility.version>
         <slf4j.version>1.7.14</slf4j.version>
-        <util.version>1.0.8</util.version>
+        <util.version>1.0.11</util.version>
 
         <metrics.version>3.2.0</metrics.version>
 
@@ -50,7 +56,7 @@
             </dependency>
 
             <dependency>
-                <groupId>com.edgar</groupId>
+                <groupId>com.github.edgar615</groupId>
                 <artifactId>util</artifactId>
                 <version>${util.version}</version>
             </dependency>
@@ -88,14 +94,14 @@
                                         <version>[3.0.0,)</version>
                                     </requireMavenVersion>
                                     <!-- 表示禁止使用的依赖-->
-                                    <bannedDependencies>
-                                        <!--是否检查传递性依赖(间接依赖)-->
+                                    <!--<bannedDependencies>
+                                        &lt;!&ndash;是否检查传递性依赖(间接依赖)&ndash;&gt;
                                         <searchTransitive>true</searchTransitive>
                                         <excludes>
                                             <exclude>org.apache.commons:commons-lang3</exclude>
                                         </excludes>
                                         <message>must use Guava，not commons-lang</message>
-                                    </bannedDependencies>
+                                    </bannedDependencies>-->
                                 </rules>
                             </configuration>
                         </execution>
@@ -128,8 +134,38 @@
                     <version>2.4</version>
                     <executions>
                         <execution>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>jar-no-fork</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>2.9.1</version>
+                    <configuration>
+                        <additionalparam>-Xdoclint:none</additionalparam>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <phase>package</phase>
                             <goals>
                                 <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>1.5</version>
+                    <executions>
+                        <execution>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>sign</goal>
                             </goals>
                         </execution>
                     </executions>
