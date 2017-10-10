@@ -36,8 +36,6 @@ public class ConsumerOptions {
    */
   private long maxQuota = DEFAULT_MAX_QUOTA;
 
-  private Partitioner partitioner = null;
-
   private Function<Event, Boolean> blackListFilter = null;
 
   private Metrics metrics = new DummyMetrics();
@@ -116,12 +114,4 @@ public class ConsumerOptions {
     return this;
   }
 
-  public Partitioner getPartitioner() {
-    return partitioner;
-  }
-
-  public ConsumerOptions setPartitioner(Partitioner partitioner) {
-    this.partitioner = partitioner;
-    return this;
-  }
 }

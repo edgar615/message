@@ -18,10 +18,10 @@ public class SerialConsumeEventTest extends EventbusTest {
     String server = "10.11.0.31:9092";
     KafkaConsumerOptions options = new KafkaConsumerOptions();
     options.setServers(server)
-            .setPartitioner(event -> Integer.parseInt(event.action().resource()) % 3)
             .setGroup("test-consumer")
             .addTopic("test");
-    EventConsumer consumer = new KafkaEventConsumer(options);
+    KafkaEventConsumer consumer = new KafkaEventConsumer(options);
+    consumer .setPartitioner(event -> Integer.parseInt(event.action().resource()) % 3);
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);
       if (e.action().resource().equals("5")) {

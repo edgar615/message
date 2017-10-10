@@ -28,10 +28,7 @@ public abstract class EventProducerImpl implements EventProducer {
   private final ExecutorService producerExecutor
           = Executors.newFixedThreadPool(1, NamedThreadFactory.create("eventbus-producer"));
 
-
   private final OrderQueue queue = new OrderQueue();
-
-  private final ProducerStorage producerStorage;
 
   private final Metrics metrics;
 
@@ -39,19 +36,14 @@ public abstract class EventProducerImpl implements EventProducer {
 
   private final long maxQuota;
 
+  private final long fetchPendingPeriod;
+
+  private ProducerStorage producerStorage;
+
   protected EventProducerImpl(ProducerOptions options) {
     this.maxQuota = options.getMaxQuota();
-    this.producerStorage = options.getProducerStorage();
+    this.fetchPendingPeriod = options.getFetchPendingPeriod();
     this.metrics = options.getMetrics();
-    if (producerStorage != null) {
-      Runnable scheduledCommand = () -> {
-        List<Event> pending = producerStorage.pendingList();
-        pending.forEach(e -> send(e));
-      };
-      long period = options.getFetchPendingPeriod();
-      scheduledExecutor.scheduleAtFixedRate(scheduledCommand, period, period, TimeUnit
-              .MILLISECONDS);
-    }
     this.callback = (future) -> {
       Event event = future.event();
       long duration = Instant.now().getEpochSecond() - event.head().timestamp();
@@ -61,6 +53,21 @@ public abstract class EventProducerImpl implements EventProducer {
   }
 
   public abstract EventFuture<Void> sendEvent(Event event);
+
+  public EventProducerImpl setProducerStorage(ProducerStorage producerStorage) {
+    this.producerStorage = producerStorage;
+    if (producerStorage != null) {
+      Runnable scheduledCommand = () -> {
+        List<Event> pending = producerStorage.pendingList();
+        pending.forEach(e -> send(e));
+      };
+      scheduledExecutor
+              .scheduleAtFixedRate(scheduledCommand, fetchPendingPeriod, fetchPendingPeriod,
+                                   TimeUnit
+                                           .MILLISECONDS);
+    }
+    return this;
+  }
 
   @Override
   public void send(Event event) {

@@ -3,8 +3,8 @@ package com.github.edgar615.util.eventbus;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
-import com.github.edgar615.util.event.Event;
 import com.github.edgar615.util.concurrent.NamedThreadFactory;
+import com.github.edgar615.util.event.Event;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -28,7 +28,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 
 /**
  * kafka的consumer对象不是线程安全的，如果在不同的线程里使用consumer会抛出异常.
@@ -68,8 +67,6 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
   private final AtomicBoolean pause = new AtomicBoolean(false);
 
-  private final Function<Event, Boolean> blackListFilter;
-
   /**
    * 正在处理的消息（不包括已经处理完成或者还在线程池排队的任务）
    */
@@ -87,11 +84,6 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
             Executors.newFixedThreadPool(1, NamedThreadFactory.create("eventbus-consumer"));
     this.options = options;
     consumerExecutor.submit(this);
-    if (options.getBlackListFilter() == null) {
-      blackListFilter = e -> false;
-    } else {
-      blackListFilter = options.getBlackListFilter();
-    }
   }
 
   /**

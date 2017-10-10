@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
 
 /**
  * Created by Edgar on 2017/4/18.
@@ -31,11 +32,12 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   private final StripedQueue queue;
 
-  private final Partitioner partitioner;
+  private Partitioner partitioner;
+
+  protected Function<Event, Boolean> blackListFilter = event -> false;
 
   EventConsumerImpl(ConsumerOptions options) {
     this.metrics = options.getMetrics();
-    this.partitioner = options.getPartitioner();
     this.workerExecutor = Executors.newFixedThreadPool(
             options.getWorkerPoolSize(),
             NamedThreadFactory.create("eventbus-worker"));
@@ -50,13 +52,22 @@ public abstract class EventConsumerImpl implements EventConsumer {
     } else {
       checker = null;
     }
+    queue = new StripedQueue(workerExecutor);
+  }
 
-    if (partitioner == null) {
-      queue = null;
+  public EventConsumerImpl setPartitioner(Partitioner partitioner) {
+    this.partitioner = partitioner;
+    return this;
+  }
+
+  public EventConsumerImpl setBlackListFilter(
+          Function<Event, Boolean> filter) {
+    if (filter== null) {
+      blackListFilter = e -> false;
     } else {
-      queue = new StripedQueue(workerExecutor);
+      blackListFilter = filter;
     }
-
+    return this;
   }
 
   @Override

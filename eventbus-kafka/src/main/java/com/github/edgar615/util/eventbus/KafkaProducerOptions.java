@@ -70,17 +70,11 @@ public class KafkaProducerOptions extends ProducerOptions {
     producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
                       "org.apache.kafka.common.serialization.StringSerializer");
     producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-                      "EventSerializer");
+                      "com.github.edgar615.util.eventbus.EventSerializer");
     if (!Strings.isNullOrEmpty(partitionClass)) {
       producerProps.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, partitionClass);
     }
     return producerProps;
-  }
-
-  @Override
-  public KafkaProducerOptions setProducerStorage(ProducerStorage producerStorage) {
-    super.setProducerStorage(producerStorage);
-    return this;
   }
 
   @Override

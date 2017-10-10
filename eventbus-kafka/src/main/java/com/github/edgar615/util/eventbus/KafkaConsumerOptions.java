@@ -75,7 +75,7 @@ public class KafkaConsumerOptions extends ConsumerOptions {
                  "org.apache.kafka.common.serialization.StringDeserializer");
     consumerProps
             .put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-                 "EventDeserializer");
+                 "com.github.edgar615.util.eventbus.EventDeserializer");
     return consumerProps;
   }
 
@@ -199,12 +199,6 @@ public class KafkaConsumerOptions extends ConsumerOptions {
   @Override
   public KafkaConsumerOptions setMetrics(Metrics metrics) {
     super.setMetrics(metrics);
-    return this;
-  }
-
-  @Override
-  public KafkaConsumerOptions setPartitioner(Partitioner partitioner) {
-    super.setPartitioner(partitioner);
     return this;
   }
 

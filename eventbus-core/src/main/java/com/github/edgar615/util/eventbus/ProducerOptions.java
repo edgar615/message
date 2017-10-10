@@ -23,8 +23,6 @@ public class ProducerOptions {
    */
   private long fetchPendingPeriod = DEFAULT_PERIOD;
 
-  private ProducerStorage producerStorage;
-
   public ProducerOptions() {
 
   }
@@ -50,15 +48,6 @@ public class ProducerOptions {
 
   public ProducerOptions setFetchPendingPeriod(long fetchPendingPeriod) {
     this.fetchPendingPeriod = fetchPendingPeriod;
-    return this;
-  }
-
-  public ProducerStorage getProducerStorage() {
-    return producerStorage;
-  }
-
-  public ProducerOptions setProducerStorage(ProducerStorage producerStorage) {
-    this.producerStorage = producerStorage;
     return this;
   }
 

@@ -37,8 +37,8 @@ public class SendEventTest {
   public void testStorage() {
     ProducerOptions options = new ProducerOptions();
     MockProducerStorage storage = new MockProducerStorage();
-    options.setProducerStorage(storage);
     BlockProducer producer = new BlockProducer(options, 0);
+    producer.setProducerStorage(storage);
     for (int i = 0; i < 10; i++) {
       if (i == 5) {
         Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
@@ -62,9 +62,8 @@ public class SendEventTest {
   public void testMark() {
     ProducerOptions options = new ProducerOptions();
     MockProducerStorage storage = new MockProducerStorage();
-    options.setProducerStorage(storage);
     RoundRobinProducer producer = new RoundRobinProducer(options, 0);
-
+    producer.setProducerStorage(storage);
     for (int i = 0; i < 10; i++) {
       if (i == 5) {
         Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
@@ -92,8 +91,8 @@ public class SendEventTest {
   public void testExpire() {
     ProducerOptions options = new ProducerOptions();
     MockProducerStorage storage = new MockProducerStorage();
-    options.setProducerStorage(storage);
     BlockProducer producer = new BlockProducer(options, 0);
+    producer.setProducerStorage(storage);
     for (int i = 0; i < 10; i++) {
       if (i % 2 == 0) {
         Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
@@ -130,10 +129,9 @@ public class SendEventTest {
   public void testPending() {
     ProducerOptions options = new ProducerOptions();
     MockProducerStorage storage = new MockProducerStorage();
-    options.setProducerStorage(storage);
     options.setFetchPendingPeriod(3000);
     BlockProducer producer = new BlockProducer(options, 3);
-
+    producer.setProducerStorage(storage);
     for (int i = 0; i < 10; i++) {
       Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
       Event event = Event.create("test", message);
