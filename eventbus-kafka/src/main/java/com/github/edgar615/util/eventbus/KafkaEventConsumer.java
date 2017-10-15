@@ -199,10 +199,6 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
       LOGGER.info("[consumer] [topic:{} is available] [partitions:{}]",
                   topic, partitions);
     }
-    //不起作用，尚不确定原因
-//    for (String pattern : options.getPatterns()) {
-//      consumer.subscribe(Pattern.compile(pattern), createListener());
-//    }
     consumer.subscribe(options.getTopics(), createListener());
     try {
       while (running) {

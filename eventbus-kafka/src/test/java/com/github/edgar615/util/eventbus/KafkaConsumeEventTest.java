@@ -19,9 +19,8 @@ public class KafkaConsumeEventTest extends EventbusTest {
     String server = "120.76.158.7:9092";
     KafkaConsumerOptions options = new KafkaConsumerOptions();
     options.setServers(server)
-            .setGroup("test-b")
-//            .addTopic("DeviceControlEvent_1_3")
-            .addPatterns("DeviceControlEvent.*")
+            .setGroup("test-c")
+            .addTopic("DeviceControlEvent_1_3")
             .setMaxQuota(500)
             .addStartingOffset(new TopicPartition("DeviceControlEvent_1_3", 0), 0l)
             .setBlackListFilter(e -> {
