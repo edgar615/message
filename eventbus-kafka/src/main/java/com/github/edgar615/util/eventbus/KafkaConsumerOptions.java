@@ -42,6 +42,11 @@ public class KafkaConsumerOptions extends ConsumerOptions {
   private final Set<String> topics = new HashSet<>();
 
   /**
+   * 使用正则的订阅
+   */
+  private final Set<String> patterns = new HashSet<>();
+
+  /**
    * 自动提交的间隔时间，默认值1000
    */
 //  private int consumerAutoCommitIntervalMs = DEFAULT_AUTO_COMMIT_INTERVAL_MS;
@@ -175,6 +180,21 @@ public class KafkaConsumerOptions extends ConsumerOptions {
    */
   public KafkaConsumerOptions addTopic(String topic) {
     this.topics.add(topic);
+    return this;
+  }
+
+  public Set<String> getPatterns() {
+    return patterns;
+  }
+
+  /**
+   * 设置订阅的主题(正则).
+   *
+   * @param pattern 主题
+   * @return KafkaConsumerOptions
+   */
+  public KafkaConsumerOptions addPatterns(String pattern) {
+    this.patterns.add(pattern);
     return this;
   }
 

@@ -16,11 +16,12 @@ public class KafkaConsumeEventTest extends EventbusTest {
 
   public static void main(String[] args) {
 
-    String server = "test.ihorn.com.cn:9092";
+    String server = "120.76.158.7:9092";
     KafkaConsumerOptions options = new KafkaConsumerOptions();
     options.setServers(server)
             .setGroup("test-b")
-            .addTopic("DeviceControlEvent_1_3")
+//            .addTopic("DeviceControlEvent_1_3")
+            .addPatterns("DeviceControlEvent.*")
             .setMaxQuota(500)
             .addStartingOffset(new TopicPartition("DeviceControlEvent_1_3", 0), 0l)
             .setBlackListFilter(e -> {
@@ -31,7 +32,7 @@ public class KafkaConsumeEventTest extends EventbusTest {
         .setConsumerAutoOffsetRest("earliest");
     EventConsumer consumer = new KafkaEventConsumer(options);
     consumer.consumer(null, null, e -> {
-//      logger.info("---| handle {}", e);
+      logger.info("---| handle {}", e);
 //      if (e.action().resource().equals("5")) {
 //        try {
 //          TimeUnit.SECONDS.sleep(5);

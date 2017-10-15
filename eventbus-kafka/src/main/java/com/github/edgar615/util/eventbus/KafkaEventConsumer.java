@@ -1,7 +1,6 @@
 package com.github.edgar615.util.eventbus;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.*;
 
 import com.github.edgar615.util.concurrent.NamedThreadFactory;
 import com.github.edgar615.util.event.Event;
@@ -28,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 /**
  * kafka的consumer对象不是线程安全的，如果在不同的线程里使用consumer会抛出异常.
@@ -199,37 +199,11 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
       LOGGER.info("[consumer] [topic:{} is available] [partitions:{}]",
                   topic, partitions);
     }
-
-    consumer.subscribe(options.getTopics(), new ConsumerRebalanceListener() {
-      @Override
-      public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-        LOGGER.info(
-                "[consumer] [onPartitionsRevoked] [partitions:{}]",
-                partitions);
-      }
-
-      @Override
-      public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-        Iterator<TopicPartition> topicPartitionIterator = partitions.iterator();
-        while (topicPartitionIterator.hasNext()) {
-          TopicPartition topicPartition = topicPartitionIterator.next();
-          long position = consumer.position(topicPartition);
-          OffsetAndMetadata lastCommitedOffsetAndMetadata = consumer.committed(topicPartition);
-          LOGGER.info(
-                  "[consumer] [onPartitionsAssigned] [topic:{}, parition:{}, offset:{}, "
-                  + "commited:{}]",
-                  topicPartition.topic(),
-                  topicPartition.partition(),
-                  position,
-                  lastCommitedOffsetAndMetadata);
-
-          if (!started) {
-            setStartOffset(topicPartition);
-          }
-        }
-        started = true;
-      }
-    });
+    //不起作用，尚不确定原因
+//    for (String pattern : options.getPatterns()) {
+//      consumer.subscribe(Pattern.compile(pattern), createListener());
+//    }
+    consumer.subscribe(options.getTopics(), createListener());
     try {
       while (running) {
         try {
@@ -273,17 +247,52 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
     }
   }
 
+  private ConsumerRebalanceListener createListener() {
+    return new ConsumerRebalanceListener() {
+      @Override
+      public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+        LOGGER.info(
+                "[consumer] [onPartitionsRevoked] [partitions:{}]",
+                partitions);
+      }
+
+      @Override
+      public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+        Iterator<TopicPartition> topicPartitionIterator = partitions.iterator();
+        while (topicPartitionIterator.hasNext()) {
+          TopicPartition topicPartition = topicPartitionIterator.next();
+          long position = consumer.position(topicPartition);
+          OffsetAndMetadata lastCommitedOffsetAndMetadata = consumer.committed(topicPartition);
+          LOGGER.info(
+                  "[consumer] [onPartitionsAssigned] [topic:{}, parition:{}, offset:{}, "
+                  + "commited:{}]",
+                  topicPartition.topic(),
+                  topicPartition.partition(),
+                  position,
+                  lastCommitedOffsetAndMetadata);
+
+          if (!started) {
+            setStartOffset(topicPartition);
+          }
+        }
+        started = true;
+      }
+    };
+  }
+
   private void ratelimit(int receivedCount) {
+    List<TopicPartition> partitions = new ArrayList<>();
+    partitions.addAll(process.keySet());
     long totalCount = eventCount.accumulateAndGet(receivedCount, (l, r) -> l + r);
     if (totalCount > options.getMaxQuota()
         && pause.compareAndSet(false, true)) {
-      consumer.pause(Iterables.toArray(process.keySet(), TopicPartition.class));
+      consumer.pause(partitions);
       LOGGER.info(
               "[consumer] [pause] [{}]",
               totalCount);
     } else if (totalCount < options.getMaxQuota() / 2
                && pause.compareAndSet(true, false)) {
-      consumer.resume(Iterables.toArray(process.keySet(), TopicPartition.class));
+      consumer.resume(partitions);
       LOGGER.info(
               "[consumer] [resume] [{}]",
               totalCount);
@@ -299,14 +308,14 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
               topicPartition.partition(),
               "none");
     } else if (startingOffset == 0) {
-      consumer.seekToBeginning(topicPartition);
+      consumer.seekToBeginning(Lists.newArrayList(topicPartition));
       LOGGER.info(
               "[consumer] [StartingOffset] [topic:{}, parition:{}, offset:{}]",
               topicPartition.topic(),
               topicPartition.partition(),
               "beginning");
     } else if (startingOffset == -1) {
-      consumer.seekToEnd(topicPartition);
+      consumer.seekToEnd(Lists.newArrayList(topicPartition));
       LOGGER.info(
               "[consumer] [StartingOffset] [topic:{}, parition:{}, offset:{}]",
               topicPartition.topic(),
