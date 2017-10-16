@@ -20,7 +20,8 @@ public class KafkaConsumeEventTest extends EventbusTest {
     KafkaConsumerOptions options = new KafkaConsumerOptions();
     options.setServers(server)
             .setGroup("test-c")
-            .addTopic("DeviceControlEvent_1_3")
+            .setPattern(".*")
+//            .addTopic("DeviceControlEvent_1_3")
             .setMaxQuota(500)
             .addStartingOffset(new TopicPartition("DeviceControlEvent_1_3", 0), 0l)
             .setBlackListFilter(e -> {

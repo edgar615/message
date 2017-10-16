@@ -42,6 +42,11 @@ public class KafkaConsumerOptions extends ConsumerOptions {
   private final Set<String> topics = new HashSet<>();
 
   /**
+   * 一个consumer只能定义一个pattern。只要指定了topics，pattern就不起作用
+   */
+  private String pattern;
+
+  /**
    * 自动提交的间隔时间，默认值1000
    */
 //  private int consumerAutoCommitIntervalMs = DEFAULT_AUTO_COMMIT_INTERVAL_MS;
@@ -175,6 +180,15 @@ public class KafkaConsumerOptions extends ConsumerOptions {
    */
   public KafkaConsumerOptions addTopic(String topic) {
     this.topics.add(topic);
+    return this;
+  }
+
+  public String getPattern() {
+    return pattern;
+  }
+
+  public KafkaConsumerOptions setPattern(String pattern) {
+    this.pattern = pattern;
     return this;
   }
 

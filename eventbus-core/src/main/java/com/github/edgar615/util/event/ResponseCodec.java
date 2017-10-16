@@ -8,6 +8,7 @@ import java.util.Map;
  *
  * @author Edgar  Date 2017/3/22
  */
+@Deprecated
 public class ResponseCodec implements EventActionCodec {
   @Override
   public EventAction decode(Map<String, Object> map) {

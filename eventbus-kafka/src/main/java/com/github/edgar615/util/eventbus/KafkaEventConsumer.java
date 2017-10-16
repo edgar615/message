@@ -1,6 +1,8 @@
 package com.github.edgar615.util.eventbus;
 
-import com.google.common.collect.*;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 import com.github.edgar615.util.concurrent.NamedThreadFactory;
 import com.github.edgar615.util.event.Event;
@@ -146,7 +148,8 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
             ImmutableMap.copyOf(commited),
             (offsets, exception) -> {
               if (exception != null) {
-                LOGGER.error("[consumer] [commit: {}]", commited, exception.getMessage(), exception);
+                LOGGER.error("[consumer] [commit: {}]", commited, exception.getMessage(),
+                             exception);
               } else {
                 synchronized (this) {
                   for (TopicPartition tp : offsets.keySet()) {
@@ -199,7 +202,19 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
       LOGGER.info("[consumer] [topic:{} is available] [partitions:{}]",
                   topic, partitions);
     }
-    consumer.subscribe(options.getTopics(), createListener());
+    if (options.getTopics().isEmpty()
+        && !Strings.isNullOrEmpty(options.getPattern())) {
+      LOGGER.info(
+              "[consumer] [subscribe pattern {}]",
+              options.getPattern());
+      consumer.subscribe(Pattern.compile(options.getPattern()), createListener());
+    } else {
+      LOGGER.info(
+              "[consumer] [subscribe topic {}]",
+              options.getTopics());
+      consumer.subscribe(options.getTopics(), createListener());
+    }
+
     try {
       while (running) {
         try {
