@@ -155,6 +155,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
                              exception);
               } else {
                 synchronized (this) {
+                  //删除已经处理的消息
                   for (TopicPartition tp : offsets.keySet()) {
                     OffsetAndMetadata data = offsets.get(tp);
                     Set<RecordFuture> metas = process.get(tp);
