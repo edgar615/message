@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -79,6 +80,8 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
   private volatile boolean running = true;
 
   private volatile boolean started = false;
+
+  private List<TopicPartition> partitionsAssigned = new CopyOnWriteArrayList<>();
 
   public KafkaEventConsumer(KafkaConsumerOptions options) {
     super(options);
@@ -269,21 +272,23 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
       @Override
       public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+        partitionsAssigned.clear();
         Iterator<TopicPartition> topicPartitionIterator = partitions.iterator();
         while (topicPartitionIterator.hasNext()) {
-          TopicPartition topicPartition = topicPartitionIterator.next();
-          long position = consumer.position(topicPartition);
-          OffsetAndMetadata lastCommitedOffsetAndMetadata = consumer.committed(topicPartition);
+          TopicPartition tp = topicPartitionIterator.next();
+          partitionsAssigned.add(new TopicPartition(tp.topic(), tp.partition()));
+          long position = consumer.position(tp);
+          OffsetAndMetadata lastCommitedOffsetAndMetadata = consumer.committed(tp);
           LOGGER.info(
                   "[consumer] [onPartitionsAssigned] [topic:{}, parition:{}, offset:{}, "
                   + "commited:{}]",
-                  topicPartition.topic(),
-                  topicPartition.partition(),
+                  tp.topic(),
+                  tp.partition(),
                   position,
                   lastCommitedOffsetAndMetadata);
 
           if (!started) {
-            setStartOffset(topicPartition);
+            setStartOffset(tp);
           }
         }
         started = true;
@@ -292,18 +297,16 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
   }
 
   private void ratelimit(int receivedCount) {
-    List<TopicPartition> partitions = new ArrayList<>();
-    partitions.addAll(process.keySet());
     long totalCount = eventCount.accumulateAndGet(receivedCount, (l, r) -> l + r);
     if (totalCount > options.getMaxQuota()
         && pause.compareAndSet(false, true)) {
-      consumer.pause(partitions);
+      consumer.pause(partitionsAssigned);
       LOGGER.info(
               "[consumer] [pause] [{}]",
               totalCount);
-    } else if (totalCount < options.getMaxQuota() / 2
+    } else if (totalCount <= options.getMaxQuota() / 2
                && pause.compareAndSet(true, false)) {
-      consumer.resume(partitions);
+      consumer.resume(partitionsAssigned);
       LOGGER.info(
               "[consumer] [resume] [{}]",
               totalCount);

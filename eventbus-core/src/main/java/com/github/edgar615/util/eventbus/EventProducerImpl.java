@@ -3,6 +3,8 @@ package com.github.edgar615.util.eventbus;
 import com.github.edgar615.util.concurrent.NamedThreadFactory;
 import com.github.edgar615.util.concurrent.OrderQueue;
 import com.github.edgar615.util.event.Event;
+import com.github.edgar615.util.exception.DefaultErrorCode;
+import com.github.edgar615.util.exception.SystemException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,8 +73,9 @@ public abstract class EventProducerImpl implements EventProducer {
 
   @Override
   public void send(Event event) {
+    boolean persisted = false;
     if (producerStorage != null) {
-      producerStorage.checkAndSave(event);
+      persisted = producerStorage.checkAndSave(event);
     }
 
     if (queue.size() > maxQuota) {
@@ -82,7 +85,13 @@ public abstract class EventProducerImpl implements EventProducer {
                   event.head().action(),
                   Helper.toHeadString(event),
                   Helper.toActionString(event));
-      return;
+      //持久化的消息，就认为成功，可以直接返回，未持久化的消息拒绝
+      if (persisted) {
+        return;
+      } else {
+        throw SystemException.create(DefaultErrorCode.TOO_MANY_REQ)
+                .set("maxQuota", maxQuota);
+      }
     }
 
     Runnable command = () -> {

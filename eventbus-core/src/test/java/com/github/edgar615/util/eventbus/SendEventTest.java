@@ -9,6 +9,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Edgar on 2017/3/22.
@@ -31,6 +32,49 @@ public class SendEventTest {
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
+  }
+
+  @Test
+  public void testMaxQuota() {
+    ProducerOptions options = new ProducerOptions()
+            .setMaxQuota(5);
+    EventProducer producer = new BlockProducer(options, 5);
+    AtomicInteger succeed = new AtomicInteger();
+    AtomicInteger failed = new AtomicInteger();
+    for (int i = 0; i < 11; i++) {
+      try {
+        Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
+        Event event = Event.create("test", message);
+        producer.send(event);
+        succeed.incrementAndGet();
+      } catch (Exception e) {
+        e.printStackTrace();
+        failed.incrementAndGet();
+      }
+    }
+    Assert.assertTrue(succeed.get() < 11);
+  }
+
+  @Test
+  public void testMaxQuotaWithPersist() {
+    MockProducerStorage storage = new MockProducerStorage();
+    ProducerOptions options = new ProducerOptions()
+            .setMaxQuota(5);
+    EventProducer producer = new BlockProducer(options, 5).setProducerStorage(storage);
+    AtomicInteger succeed = new AtomicInteger();
+    AtomicInteger failed = new AtomicInteger();
+    for (int i = 0; i < 11; i++) {
+      try {
+        Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
+        Event event = Event.create("test", message);
+        producer.send(event);
+        succeed.incrementAndGet();
+      } catch (Exception e) {
+        e.printStackTrace();
+        failed.incrementAndGet();
+      }
+    }
+    Assert.assertEquals(succeed.get(), 11);
   }
 
   @Test
