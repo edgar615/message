@@ -25,4 +25,6 @@ public interface EventFuture<T> {
   static <T> EventFuture<T> future(Event event) {
     return new EventFutureImpl<>(event);
   }
+
+  void complete();
 }

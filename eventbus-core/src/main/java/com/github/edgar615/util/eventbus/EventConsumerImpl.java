@@ -7,10 +7,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 
@@ -30,11 +32,16 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   private final Metrics metrics;
 
-  private final StripedQueue queue;
+  private long maxQuota;
 
-  private Partitioner partitioner;
+  /**
+   * 任务列表
+   */
+  private final LinkedList<Event> events = new LinkedList<>();
 
   protected Function<Event, Boolean> blackListFilter = event -> false;
+
+  private volatile boolean pause = false;
 
   EventConsumerImpl(ConsumerOptions options) {
     this.metrics = options.getMetrics();
@@ -52,17 +59,12 @@ public abstract class EventConsumerImpl implements EventConsumer {
     } else {
       checker = null;
     }
-    queue = new StripedQueue(workerExecutor);
-  }
-
-  public EventConsumerImpl setPartitioner(Partitioner partitioner) {
-    this.partitioner = partitioner;
-    return this;
+    maxQuota = options.getMaxQuota();
   }
 
   public EventConsumerImpl setBlackListFilter(
           Function<Event, Boolean> filter) {
-    if (filter== null) {
+    if (filter == null) {
       blackListFilter = e -> false;
     } else {
       blackListFilter = filter;
@@ -91,42 +93,78 @@ public abstract class EventConsumerImpl implements EventConsumer {
     consumer(predicate, handler);
   }
 
-  protected void handle(Event event, Runnable before, Runnable after) {
-    if (partitioner != null) {
-      queue.add(partitioner.partition(event), () -> doHandle(event, before, after));
-    } else {
-      workerExecutor.submit(() -> doHandle(event, before, after));
+  /**
+   * 入队，如果入队后队列中的任务数量超过了最大数量，暂停消息的读取
+   *
+   * @param event
+   * @return 如果队列中的长度超过最大数量，返回false
+   */
+  protected synchronized boolean enqueue(Event event) {
+    events.add(event);
+
+    if (this.events.size() >= maxQuota) {
+      pause();
+      return false;
     }
+    return true;
   }
 
-  private void doHandle(Event event, Runnable before, Runnable after) {
-    try {
-      long start = Instant.now().getEpochSecond();
-      BlockedEventHolder holder = BlockedEventHolder.create(event, blockedCheckerMs);
-      if (checker != null) {
-        checker.register(holder);
-      }
-      metrics.consumerStart();
-      before.run();
+  private void handle(Event event, EventFuture<Void> completeFuture) {
+    workerExecutor.execute(() -> {
       try {
-        List<EventHandler> handlers =
-                HandlerRegistration.instance()
-                        .getHandlers(event);
-        if (handlers == null || handlers.isEmpty()) {
-          LOGGER.info("---| [{}] [NO HANDLER]", event.head().id());
-        } else {
-          for (EventHandler handler : handlers) {
-            handler.handle(event);
-          }
+        long start = Instant.now().getEpochSecond();
+        BlockedEventHolder holder = BlockedEventHolder.create(event, blockedCheckerMs);
+        if (checker != null) {
+          checker.register(holder);
         }
+        metrics.consumerStart();
+        try {
+          List<EventHandler> handlers =
+                  HandlerRegistration.instance()
+                          .getHandlers(event);
+          if (handlers == null || handlers.isEmpty()) {
+            LOGGER.info("---| [{}] [NO HANDLER]", event.head().id());
+          } else {
+            for (EventHandler handler : handlers) {
+              handler.handle(event);
+            }
+          }
+        } catch (Exception e) {
+          LOGGER.error("---| [{}] [Failed]", event.head().id(), e);
+        }
+        metrics.consumerEnd(Instant.now().getEpochSecond() - start);
+        holder.completed();
+        completeFuture.complete();
       } catch (Exception e) {
-        LOGGER.error("---| [{}] [Failed]", event.head().id(), e);
+        LOGGER.error("---| [{}] [ERROR]", event.head().id(), e);
       }
-      metrics.consumerEnd(Instant.now().getEpochSecond() - start);
-      holder.completed();
-      after.run();
-    } catch (Exception e) {
-      LOGGER.error("---| [{}] [ERROR]", event.head().id(), e);
-    }
+    });
   }
+
+  /**
+   * 暂停入队
+   */
+  public void pause() {
+    pause = true;
+  }
+
+  /**
+   * 回复入队
+   */
+  public void resume() {
+    pause = false;
+  }
+
+  public void complete(Event event) {
+  }
+
+  protected synchronized boolean enqueue(List<Event> events) {
+    events.addAll(events);
+    if (this.events.size() >= maxQuota) {
+      pause();
+      return false;
+    }
+    return true;
+  }
+
 }

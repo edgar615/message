@@ -47,6 +47,11 @@ class EventFutureImpl<T> implements EventFuture<T> {
   }
 
   @Override
+  public void complete() {
+    complete(null);
+  }
+
+  @Override
   public Event event() {
     return event;
   }

@@ -1,6 +1,7 @@
 package com.github.edgar615.util.eventbus;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
@@ -16,14 +17,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * kafka的consumer对象不是线程安全的，如果在不同的线程里使用consumer会抛出异常.
@@ -66,15 +61,6 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
   private final ExecutorService consumerExecutor;
 
-  private final AtomicLong eventCount = new AtomicLong(0);
-
-  private final AtomicBoolean pause = new AtomicBoolean(false);
-
-  /**
-   * 正在处理的消息（不包括已经处理完成或者还在线程池排队的任务）
-   */
-  private Map<TopicPartition, TreeSet<RecordFuture>> process = new HashMap<>();
-
   private KafkaConsumer<String, Event> consumer;
 
   private volatile boolean running = true;
@@ -92,88 +78,26 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
   }
 
   /**
-   * 将消息标记为完成.
-   *
-   * @param record
-   */
-  private synchronized void complete(ConsumerRecord<String, Event> record) {
-    TopicPartition tp = new TopicPartition(record.topic(), record.partition());
-    Set<RecordFuture> metas = process.get(tp);
-    metas.stream()
-            .filter(m -> m.offset() == record.offset())
-            .forEach(m -> m.completed());
-  }
-
-  /**
-   * 将消息入队
-   *
-   * @param record
-   */
-  private synchronized void enqueue(ConsumerRecord<String, Event> record) {
-    TopicPartition tp = new TopicPartition(record.topic(), record.partition());
-    RecordFuture meta = RecordFuture.create(record);
-    if (process.containsKey(tp)) {
-      Set<RecordFuture> metas = process.get(tp);
-      metas.add(meta);
-    } else {
-      TreeSet<RecordFuture> metas = new TreeSet<>();
-      metas.add(meta);
-      process.put(tp, metas);
-    }
-  }
-
-  /**
    * commit完成的消息
    */
-  private synchronized void commit() {
-    if (process.isEmpty()) {
+  private synchronized void commit(ConsumerRecords<String, Event> records) {
+    //没有自动判断offset来提交
+    if (records.isEmpty()) {
       return;
     }
-    Map<TopicPartition, OffsetAndMetadata> commited = new HashMap<>();
-    for (TopicPartition tp : process.keySet()) {
-      long offset = -1;
-      Set<RecordFuture> metas = process.get(tp);
-      for (RecordFuture meta : metas) {
-        if (meta.isCompleted()) {
-          offset = meta.offset();
-        } else {
-          break;
-        }
-      }
-      if (offset > -1) {
-        commited.put(tp, new OffsetAndMetadata(offset + 1));
-      }
-    }
-    if (commited.isEmpty()) {
-      return;
-    }
-    consumer.commitAsync(
-            ImmutableMap.copyOf(commited),
-            (offsets, exception) -> {
-              if (exception != null) {
-                LOGGER.error("[consumer] [commit: {}]", commited, exception.getMessage(),
-                             exception);
-              } else {
-                synchronized (this) {
-                  //删除已经处理的消息
-                  for (TopicPartition tp : offsets.keySet()) {
-                    OffsetAndMetadata data = offsets.get(tp);
-                    Set<RecordFuture> metas = process.get(tp);
-                    long count = metas.stream()
-                            .filter(m -> m.offset() < data.offset())
-                            .count();
-                    metas.removeIf(m -> m.offset() < data.offset());
-                    eventCount.accumulateAndGet(count, (l, r) -> l - r);
+    if (!options.isConsumerAutoCommit()) {
+      consumer.commitAsync(
+              (offsets, exception) -> {
+                if (exception != null) {
+                  LOGGER.error("[consumer] [commit: {}]", offsets, exception.getMessage(),
+                          exception);
+                } else {
+                  if (!offsets.isEmpty()) {
+                    LOGGER.info("[consumer] [commit: {}]", offsets);
                   }
                 }
-                if (!offsets.isEmpty()) {
-                  LOGGER.info("[consumer] [commit: {}] [{}]", offsets, eventCount);
-                }
-              }
-            });
-    //https://issues.apache.org/jira/browse/KAFKA-3412
-//    线上有个BUG：偶尔会跳过一条消息，猜测是这个方法引起，测试一段时间发现没有这个方法commitAsync也没有像以前一样报异常，先注释
-//    consumer.poll(0);
+              });
+    }
   }
 
   @Override
@@ -197,17 +121,17 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
       while ((partitions = consumer.partitionsFor(topic)) == null) {
         try {
           LOGGER.info("[consumer] [topic {} since no metadata is available, wait 5s]",
-                      topic);
+                  topic);
           TimeUnit.SECONDS.sleep(5);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
       LOGGER.info("[consumer] [topic:{} is available] [partitions:{}]",
-                  topic, partitions);
+              topic, partitions);
     }
     if (options.getTopics().isEmpty()
-        && !Strings.isNullOrEmpty(options.getPattern())) {
+            && !Strings.isNullOrEmpty(options.getPattern())) {
       LOGGER.info(
               "[consumer] [subscribe pattern {}]",
               options.getPattern());
@@ -228,28 +152,26 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
                     "[consumer] [poll {} messages]",
                     records.count());
           }
-          List<ConsumerRecord<String, Event>> recordList = new ArrayList<>();
+          List<Event> events = new ArrayList<>();
+          //将读取的消息全部写入队列
           for (ConsumerRecord<String, Event> record : records) {
             Event event = record.value();
             LOGGER.info("<====== [{}] [{},{},{}] [{}] [{}] [{}]",
-                        event.head().id(),
-                        record.topic(),
-                        record.partition(),
-                        record.offset(),
-                        event.head().action(),
-                        Helper.toHeadString(event),
-                        Helper.toActionString(event));
-            if (!blackListFilter.apply(event)) {
-              recordList.add(record);
-            } else {
-              LOGGER.info("---| [{}] [BLACKLIST]", event.head().id());
-            }
+                    event.head().id(),
+                    record.topic(),
+                    record.partition(),
+                    record.offset(),
+                    event.head().action(),
+                    Helper.toHeadString(event),
+                    Helper.toActionString(event));
+            events.add(event);
           }
-          ratelimit(recordList.size());
-          recordList.forEach(r -> {
-            handle(r.value(), () -> enqueue(r), () -> complete(r));
-          });
-          commit();
+          events.stream().filter(e -> blackListFilter.apply(e))
+                  .forEach(e -> LOGGER.info("---| [{}] [BLACKLIST]", e.head().id()));
+          List<Event> enqueEvents = events.stream().filter(e -> !blackListFilter.apply(e))
+                  .collect(Collectors.toList());
+          enqueue(enqueEvents);
+          commit(records);
         } catch (Exception e) {
           LOGGER.error("[consumer] [ERROR]", e);
         }
@@ -282,7 +204,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
           OffsetAndMetadata lastCommitedOffsetAndMetadata = consumer.committed(tp);
           LOGGER.info(
                   "[consumer] [onPartitionsAssigned] [topic:{}, parition:{}, offset:{}, "
-                  + "commited:{}]",
+                          + "commited:{}]",
                   tp.topic(),
                   tp.partition(),
                   position,
@@ -296,22 +218,17 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
       }
     };
   }
-
-  private void ratelimit(int receivedCount) {
-    long totalCount = eventCount.accumulateAndGet(receivedCount, (l, r) -> l + r);
-    if (totalCount > options.getMaxQuota()
-        && pause.compareAndSet(false, true)) {
-      consumer.pause(partitionsAssigned);
-      LOGGER.info(
-              "[consumer] [pause] [{}]",
-              totalCount);
-    } else if (totalCount <= options.getMaxQuota() / 2
-               && pause.compareAndSet(true, false)) {
-      consumer.resume(partitionsAssigned);
-      LOGGER.info(
-              "[consumer] [resume] [{}]",
-              totalCount);
-    }
+  public void pause() {
+    super.pause();
+    consumer.pause(partitionsAssigned);
+    LOGGER.info(
+            "[consumer] [pause]");
+  }
+  public void resume() {
+    super.resume();
+    consumer.resume(partitionsAssigned);
+    LOGGER.info(
+            "[consumer] [resume]");
   }
 
   private void setStartOffset(TopicPartition topicPartition) {
