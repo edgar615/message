@@ -1,6 +1,9 @@
 package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.event.Event;
+import com.github.edgar615.util.log.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -13,6 +16,7 @@ import java.util.function.Function;
  * 事件的队列，队列的长度有consumer控制，入队不阻塞，出队阻塞
  */
 public class SequentialEventQueue implements EventQueue {
+  private static final Logger LOGGER = LoggerFactory.getLogger(EventQueue.class);
   /**
    * 任务列表
    */
@@ -48,6 +52,11 @@ public class SequentialEventQueue implements EventQueue {
     registry.add(extractId(x));
     //重新计算下一个可以出队的元素
     takeElement = next();
+    Log.create(LOGGER)
+            .setLogType("eventbus")
+            .setEvent("dequeue")
+            .setTraceId(x.head().id())
+            .debug();
     return x;
   }
 
@@ -64,6 +73,11 @@ public class SequentialEventQueue implements EventQueue {
         && takeElement == null) {
       takeElement = event;
     }
+    Log.create(LOGGER)
+            .setLogType("eventbus")
+            .setEvent("enqueue")
+            .setTraceId(event.head().id())
+            .debug();
   }
 
   @Override
@@ -81,6 +95,13 @@ public class SequentialEventQueue implements EventQueue {
         takeElement = event;
         break;
       }
+    }
+    if (LOGGER.isDebugEnabled()) {
+      events.forEach(e -> Log.create(LOGGER)
+              .setLogType("eventbus")
+              .setEvent("enqueue")
+              .setTraceId(e.head().id())
+              .debug());
     }
   }
 

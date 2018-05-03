@@ -116,6 +116,10 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
     consumer.close();
   }
 
+  public void subscribe(String topic) {
+    consumer.subscribe(Lists.newArrayList(topic), createListener());
+  }
+
   private void startConsumer() {
     consumer = new KafkaConsumer<>(options.consumerProps());
     List<PartitionInfo> partitions;

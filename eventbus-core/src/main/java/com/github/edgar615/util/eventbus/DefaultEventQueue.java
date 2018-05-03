@@ -1,11 +1,13 @@
 package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.event.Event;
+import com.github.edgar615.util.log.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
  * Created by Edgar on 2018/5/3.
@@ -13,6 +15,8 @@ import java.util.concurrent.ConcurrentSkipListSet;
  * @author Edgar  Date 2018/5/3
  */
 public class DefaultEventQueue implements EventQueue {
+  private static final Logger LOGGER = LoggerFactory.getLogger(EventQueue.class);
+
   /**
    * 任务列表
    */
@@ -29,7 +33,13 @@ public class DefaultEventQueue implements EventQueue {
     while (elements.isEmpty()) {
       wait();
     }
-    return next();
+    Event e =  next();
+    Log.create(LOGGER)
+            .setLogType("eventbus")
+            .setEvent("dequeue")
+            .setTraceId(e.head().id())
+            .debug();
+    return e;
   }
 
   @Override
@@ -40,6 +50,11 @@ public class DefaultEventQueue implements EventQueue {
       notifyAll();
     }
     elements.add(event);
+    Log.create(LOGGER)
+            .setLogType("eventbus")
+            .setEvent("enqueue")
+            .setTraceId(event.head().id())
+            .debug();
   }
 
   @Override
@@ -50,6 +65,14 @@ public class DefaultEventQueue implements EventQueue {
       notifyAll();
     }
     elements.addAll(events);
+    if (LOGGER.isDebugEnabled()) {
+      events.forEach(e -> Log.create(LOGGER)
+              .setLogType("eventbus")
+              .setEvent("enqueue")
+              .setTraceId(e.head().id())
+              .debug());
+    }
+
   }
 
   @Override

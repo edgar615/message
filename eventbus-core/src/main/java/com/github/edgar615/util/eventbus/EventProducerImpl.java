@@ -5,6 +5,7 @@ import com.github.edgar615.util.concurrent.OrderQueue;
 import com.github.edgar615.util.event.Event;
 import com.github.edgar615.util.exception.DefaultErrorCode;
 import com.github.edgar615.util.exception.SystemException;
+import com.github.edgar615.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +26,7 @@ public abstract class EventProducerImpl implements EventProducer {
 
   private final ScheduledExecutorService scheduledExecutor =
           Executors.newSingleThreadScheduledExecutor(
-                  NamedThreadFactory.create("eventbus-schedule"));
+                  NamedThreadFactory.create("eventbus-scheduler"));
 
   private final ExecutorService producerExecutor
           = Executors.newFixedThreadPool(1, NamedThreadFactory.create("eventbus-producer"));
@@ -65,8 +66,8 @@ public abstract class EventProducerImpl implements EventProducer {
       };
       scheduledExecutor
               .scheduleAtFixedRate(scheduledCommand, fetchPendingPeriod, fetchPendingPeriod,
-                                   TimeUnit
-                                           .MILLISECONDS);
+                      TimeUnit
+                              .MILLISECONDS);
     }
     return this;
   }
@@ -79,12 +80,16 @@ public abstract class EventProducerImpl implements EventProducer {
     }
 
     if (queue.size() > maxQuota) {
-      LOGGER.info("---|  [{}] [THROTTLE] [{}] [{}] [{}] [{}]",
-                  event.head().id(),
-                  event.head().to(),
-                  event.head().action(),
-                  Helper.toHeadString(event),
-                  Helper.toActionString(event));
+      Log.create(LOGGER)
+              .setLogType("eventbus-producer")
+              .setEvent("THROTTLE")
+              .setTraceId(event.head().id())
+              .setMessage("[{}] [{}] [{}] [{}]")
+              .addArg(event.head().to())
+              .addArg(event.head().action())
+              .addArg(Helper.toHeadString(event))
+              .addArg(Helper.toActionString(event))
+              .info();
       //持久化的消息，就认为成功，可以直接返回，未持久化的消息拒绝
       if (persisted) {
         return;
@@ -97,13 +102,17 @@ public abstract class EventProducerImpl implements EventProducer {
     Runnable command = () -> {
       long current = Instant.now().getEpochSecond();
       if (event.head().duration() > 0
-          && current > event.head().timestamp() + event.head().duration()) {
-        LOGGER.info("---|  [{}] [EXPIRE] [{}] [{}] [{}] [{}]",
-                    event.head().id(),
-                    event.head().to(),
-                    event.head().action(),
-                    Helper.toHeadString(event),
-                    Helper.toActionString(event));
+              && current > event.head().timestamp() + event.head().duration()) {
+        Log.create(LOGGER)
+                .setLogType("eventbus-producer")
+                .setEvent("EXPIRE")
+                .setTraceId(event.head().id())
+                .setMessage("[{}] [{}] [{}] [{}]")
+                .addArg(event.head().to())
+                .addArg(event.head().action())
+                .addArg(Helper.toHeadString(event))
+                .addArg(Helper.toActionString(event))
+                .info();
         mark(event, 3);
       } else {
         sendEvent(event)
@@ -119,12 +128,21 @@ public abstract class EventProducerImpl implements EventProducer {
     try {
       if (producerStorage != null && producerStorage.shouldStorage(event)) {
         producerStorage.mark(event, status);
+        Log.create(LOGGER)
+                .setLogType("eventbus-producer")
+                .setEvent("mark")
+                .addData("status", status)
+                .setTraceId(event.head().id())
+                .debug();
       }
     } catch (Exception e) {
-      LOGGER.warn("---| [{}] [FAILED] [mark:{}] [{}]",
-                  event.head().id(),
-                  status,
-                  e.getMessage());
+      Log.create(LOGGER)
+              .setLogType("eventbus-producer")
+              .setEvent("mark.failed")
+              .addData("status", status)
+              .setTraceId(event.head().id())
+              .setMessage(e.getMessage())
+              .warn();
     }
   }
 }

@@ -2,6 +2,7 @@ package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.concurrent.NamedThreadFactory;
 import com.github.edgar615.util.event.Event;
+import com.github.edgar615.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,22 +134,41 @@ public abstract class EventConsumerImpl implements EventConsumer {
                   HandlerRegistration.instance()
                           .getHandlers(event);
           if (handlers == null || handlers.isEmpty()) {
-            LOGGER.info("---| [{}] [NO HANDLER]", event.head().id());
+            Log.create(LOGGER)
+                    .setLogType("eventbus-consumer")
+                    .setEvent("handle")
+                    .setTraceId(event.head().id())
+                    .setMessage("NO HANDLER")
+                    .warn();
           } else {
             for (EventHandler handler : handlers) {
               handler.handle(event);
             }
           }
         } catch (Exception e) {
-          LOGGER.error("---| [{}] [Failed]", event.head().id(), e);
+          Log.create(LOGGER)
+                  .setLogType("eventbus-consumer")
+                  .setEvent("handle")
+                  .setTraceId(event.head().id())
+                  .setThrowable(e)
+                  .error();
         }
         metrics.consumerEnd(Instant.now().getEpochSecond() - start);
         holder.completed();
 //        completeFuture.complete();
       } catch (InterruptedException e) {
-        LOGGER.error("---| [Failed]", e);
+        Log.create(LOGGER)
+                .setLogType("eventbus-consumer")
+                .setEvent("handle")
+                .setThrowable(e)
+                .error();
       } catch (Exception e) {
-        LOGGER.error("---| [{}] [ERROR]", event.head().id(), e);
+        Log.create(LOGGER)
+                .setLogType("eventbus")
+                .setEvent("handle")
+                .setTraceId(event.head().id())
+                .setThrowable(e)
+                .error();
       }
     });
   }

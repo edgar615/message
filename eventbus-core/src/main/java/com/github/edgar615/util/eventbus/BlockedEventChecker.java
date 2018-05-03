@@ -1,5 +1,6 @@
 package com.github.edgar615.util.eventbus;
 
+import com.github.edgar615.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,8 +26,12 @@ class BlockedEventChecker {
         map.keySet().stream()
                 .filter(r -> !r.isCompleted())
                 .filter(r -> r.duration() > r.maxExecTime())
-                .forEach(r -> LOGGER.warn("---| [{}] [blocked {}ms]",
-                                          r.event().head().id(), r.duration()));
+                .forEach(r -> Log.create(LOGGER)
+                        .setLogType("eventbus")
+                        .setTraceId(r.event().head().id())
+                        .setEvent("event.blocked")
+                        .addData("duration", r.duration())
+                        .warn());
       }
     }, interval, interval, TimeUnit.MILLISECONDS);
 
