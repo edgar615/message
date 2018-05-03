@@ -34,7 +34,7 @@ public class KafkaConsumerOptions extends ConsumerOptions {
   /**
    * 是否自动提交，默认值false
    */
-  private final boolean consumerAutoCommit = DEFAULT_AUTO_COMMIT;
+  private boolean consumerAutoCommit = DEFAULT_AUTO_COMMIT;
 
   /**
    * 订阅的主题
@@ -149,6 +149,11 @@ public class KafkaConsumerOptions extends ConsumerOptions {
     return this;
   }
 
+  public KafkaConsumerOptions setConsumerAutoCommit(boolean consumerAutoCommit) {
+    this.consumerAutoCommit = consumerAutoCommit;
+    return this;
+  }
+
   public boolean isConsumerAutoCommit() {
     return consumerAutoCommit;
   }
@@ -223,7 +228,7 @@ public class KafkaConsumerOptions extends ConsumerOptions {
    * @return
    */
   @Override
-  public KafkaConsumerOptions setMaxQuota(long maxQuota) {
+  public KafkaConsumerOptions setMaxQuota(int maxQuota) {
     super.setMaxQuota(maxQuota);
     return this;
   }
@@ -238,6 +243,19 @@ public class KafkaConsumerOptions extends ConsumerOptions {
   public KafkaConsumerOptions setBlackListFilter(
           Function<Event, Boolean> filter) {
     super.setBlackListFilter(filter);
+    return this;
+  }
+
+  /**
+   * 根据某个标识符，将事件按顺序处理
+   *
+   * @param identificationExtractor
+   * @return KafkaConsumerOptions
+   */
+  @Override
+  public KafkaConsumerOptions setIdentificationExtractor(
+          Function<Event, String> identificationExtractor) {
+    super.setIdentificationExtractor(identificationExtractor);
     return this;
   }
 

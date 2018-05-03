@@ -22,7 +22,7 @@ public class SeekToBeginningConsumeEventTest extends EventbusTest {
             .setGroup("test-consumer")
             .addTopic("test");
     KafkaEventConsumer consumer = new KafkaEventConsumer(options);
-    consumer.setPartitioner(event -> Integer.parseInt(event.action().resource()) % 3);
+//    consumer.setPartitioner(event -> Integer.parseInt(event.action().resource()) % 3);
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);
       if (e.action().resource().equals("5")) {

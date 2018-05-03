@@ -28,6 +28,9 @@ public class EventDeserializer implements Deserializer<Event> {
         return null;
       } else {
         Map<String, Object> map = mapper.readValue(data, Map.class);
+        //在event中追加__topic表示这个事件是从那个主题读取的
+        Map<String, Object> head = (Map<String, Object>) map.get("head");
+        head.put("__topic", topic);
         return Event.fromMap(map);
       }
     } catch (Exception e) {

@@ -69,6 +69,8 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
   private List<TopicPartition> partitionsAssigned = new CopyOnWriteArrayList<>();
 
+  private volatile boolean pause = false;
+
   public KafkaEventConsumer(KafkaConsumerOptions options) {
     super(options);
     this.consumerExecutor =
@@ -172,6 +174,13 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
                   .collect(Collectors.toList());
           enqueue(enqueEvents);
           commit(records);
+          //暂停和回复
+          if (isFull() && !pause) {
+            pause();
+          }
+          if (!isFull() && pause) {
+            resume();
+          }
         } catch (Exception e) {
           LOGGER.error("[consumer] [ERROR]", e);
         }
@@ -219,14 +228,14 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
     };
   }
   public void pause() {
-    super.pause();
     consumer.pause(partitionsAssigned);
+    pause = true;
     LOGGER.info(
             "[consumer] [pause]");
   }
   public void resume() {
-    super.resume();
     consumer.resume(partitionsAssigned);
+    pause = false;
     LOGGER.info(
             "[consumer] [resume]");
   }

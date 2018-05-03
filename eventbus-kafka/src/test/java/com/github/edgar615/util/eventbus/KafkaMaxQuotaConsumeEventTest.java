@@ -22,6 +22,7 @@ public class KafkaMaxQuotaConsumeEventTest extends EventbusTest {
     KafkaConsumerOptions options = new KafkaConsumerOptions();
     options.setServers(server)
             .setGroup("test-c")
+            .setConsumerAutoCommit(false)
 //            .setPattern(".*")
             .addTopic("DeviceControlEvent_1_3")
             .setMaxQuota(1);

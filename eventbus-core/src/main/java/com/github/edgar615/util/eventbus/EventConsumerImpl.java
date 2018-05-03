@@ -1,18 +1,15 @@
 package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.concurrent.NamedThreadFactory;
-import com.github.edgar615.util.concurrent.StripedQueue;
 import com.github.edgar615.util.event.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 
@@ -32,22 +29,23 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   private final Metrics metrics;
 
-  private long maxQuota;
-
-  /**
-   * 任务列表
-   */
-  private final LinkedList<Event> events = new LinkedList<>();
+  private final EventQueue eventQueue;
 
   protected Function<Event, Boolean> blackListFilter = event -> false;
 
-  private volatile boolean pause = false;
+  private int maxQuota;
 
   EventConsumerImpl(ConsumerOptions options) {
     this.metrics = options.getMetrics();
-    this.workerExecutor = Executors.newFixedThreadPool(
-            options.getWorkerPoolSize(),
-            NamedThreadFactory.create("eventbus-worker"));
+    this.workerExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
+                                                       NamedThreadFactory.create
+                                                               ("eventbus-worker"));
+    if (options.getIdentificationExtractor() == null) {
+      eventQueue = new DefaultEventQueue(options.getMaxQuota());
+    } else {
+      eventQueue = new SequentialEventQueue(options.getIdentificationExtractor(),
+                                            options.getMaxQuota());
+    }
     this.blockedCheckerMs = options.getBlockedCheckerMs();
     if (options.getBlockedCheckerMs() > 0) {
       ScheduledExecutorService scheduledExecutor =
@@ -60,6 +58,31 @@ public abstract class EventConsumerImpl implements EventConsumer {
       checker = null;
     }
     maxQuota = options.getMaxQuota();
+  }
+
+  /**
+   * 入队，如果入队后队列中的任务数量超过了最大数量，暂停消息的读取
+   *
+   * @param event
+   * @return 如果队列中的长度超过最大数量，返回false
+   */
+  protected synchronized void enqueue(Event event) {
+    //先入队
+    eventQueue.enqueue(event);
+    //提交任务，这里只是创建了一个runnable交由线程池处理，而这个runnable并不一定真正的处理的是当前的event（根据队列的实现来）
+    handle();
+  }
+
+  protected synchronized boolean isFull() {
+    return eventQueue.size() >= maxQuota;
+  }
+
+  protected synchronized void enqueue(List<Event> events) {
+    eventQueue.enqueue(events);
+    //提交任务
+    for (Event event : events) {
+      handle();
+    }
   }
 
   public EventConsumerImpl setBlackListFilter(
@@ -93,25 +116,12 @@ public abstract class EventConsumerImpl implements EventConsumer {
     consumer(predicate, handler);
   }
 
-  /**
-   * 入队，如果入队后队列中的任务数量超过了最大数量，暂停消息的读取
-   *
-   * @param event
-   * @return 如果队列中的长度超过最大数量，返回false
-   */
-  protected synchronized boolean enqueue(Event event) {
-    events.add(event);
 
-    if (this.events.size() >= maxQuota) {
-      pause();
-      return false;
-    }
-    return true;
-  }
-
-  private void handle(Event event, EventFuture<Void> completeFuture) {
+  private void handle() {
     workerExecutor.execute(() -> {
+      Event event = null;
       try {
+        event = eventQueue.dequeue();
         long start = Instant.now().getEpochSecond();
         BlockedEventHolder holder = BlockedEventHolder.create(event, blockedCheckerMs);
         if (checker != null) {
@@ -134,37 +144,13 @@ public abstract class EventConsumerImpl implements EventConsumer {
         }
         metrics.consumerEnd(Instant.now().getEpochSecond() - start);
         holder.completed();
-        completeFuture.complete();
+//        completeFuture.complete();
+      } catch (InterruptedException e) {
+        LOGGER.error("---| [Failed]", e);
       } catch (Exception e) {
         LOGGER.error("---| [{}] [ERROR]", event.head().id(), e);
       }
     });
-  }
-
-  /**
-   * 暂停入队
-   */
-  public void pause() {
-    pause = true;
-  }
-
-  /**
-   * 回复入队
-   */
-  public void resume() {
-    pause = false;
-  }
-
-  public void complete(Event event) {
-  }
-
-  protected synchronized boolean enqueue(List<Event> events) {
-    events.addAll(events);
-    if (this.events.size() >= maxQuota) {
-      pause();
-      return false;
-    }
-    return true;
   }
 
 }

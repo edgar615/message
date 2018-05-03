@@ -34,9 +34,11 @@ public class ConsumerOptions {
   /**
    * 最大配额，当未处理的事件超过配额时，需要暂停消费
    */
-  private long maxQuota = DEFAULT_MAX_QUOTA;
+  private int maxQuota = DEFAULT_MAX_QUOTA;
 
   private Function<Event, Boolean> blackListFilter = null;
+
+  private Function<Event, String> identificationExtractor = null;
 
   private Metrics metrics = new DummyMetrics();
 
@@ -44,7 +46,7 @@ public class ConsumerOptions {
 
   }
 
-  public long getMaxQuota() {
+  public int getMaxQuota() {
     return maxQuota;
   }
 
@@ -54,7 +56,7 @@ public class ConsumerOptions {
    * @param maxQuota
    * @return
    */
-  public ConsumerOptions setMaxQuota(long maxQuota) {
+  public ConsumerOptions setMaxQuota(int maxQuota) {
     this.maxQuota = maxQuota;
     return this;
   }
@@ -98,7 +100,7 @@ public class ConsumerOptions {
    * 设置worker线程池的大小，该线程池主要用户处理事件的业务逻辑
    *
    * @param workerPoolSize 线程池大小.
-   * @return EventbusOptions
+   * @return ConsumerOptions
    */
   public ConsumerOptions setWorkerPoolSize(int workerPoolSize) {
     this.workerPoolSize = workerPoolSize;
@@ -114,4 +116,19 @@ public class ConsumerOptions {
     return this;
   }
 
+  public Function<Event, String> getIdentificationExtractor() {
+    return identificationExtractor;
+  }
+
+  /**
+   * 根据某个标识符，将事件按顺序处理
+   *
+   * @param identificationExtractor
+   * @return ConsumerOptions
+   */
+  public ConsumerOptions setIdentificationExtractor(
+          Function<Event, String> identificationExtractor) {
+    this.identificationExtractor = identificationExtractor;
+    return this;
+  }
 }

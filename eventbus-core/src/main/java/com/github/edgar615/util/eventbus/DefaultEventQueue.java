@@ -1,48 +1,67 @@
 package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.event.Event;
-import com.google.common.base.Preconditions;
 
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 
+/**
+ * Created by Edgar on 2018/5/3.
+ *
+ * @author Edgar  Date 2018/5/3
+ */
 public class DefaultEventQueue implements EventQueue {
   /**
    * 任务列表
    */
-  private final LinkedList<Event> events = new LinkedList<>();
+  private final LinkedList<Event> elements = new LinkedList<>();
 
   private final int limit;
 
-  public DefaultEventQueue() {
-    this.limit = Integer.MAX_VALUE;
-  }
-
   public DefaultEventQueue(int limit) {
-    Preconditions.checkArgument(limit > 0);
     this.limit = limit;
   }
 
   @Override
-  public synchronized Event dequeue() {
-    return events.poll();
+  public synchronized Event dequeue() throws InterruptedException {
+    while (elements.isEmpty()) {
+      wait();
+    }
+    return next();
   }
 
   @Override
-  public synchronized boolean enqueue(Event event) {
-    events.add(event);
-    if (this.events.size() >= limit) {
-      return false;
+  public synchronized void enqueue(Event event) {
+    //唤醒等待出队的线程，如果队空或者下一个出队元素为null，说明可能会有出队线程在等待唤醒
+    if (elements.isEmpty()) {
+      //唤醒出队
+      notifyAll();
     }
-    return true;
+    elements.add(event);
+  }
+
+  @Override
+  public synchronized void enqueue(List<Event> events) {
+    //唤醒等待出队的线程，如果队空或者下一个出队元素为null，说明可能会有出队线程在等待唤醒
+    if (elements.isEmpty()) {
+      //唤醒出队
+      notifyAll();
+    }
+    elements.addAll(events);
   }
 
   @Override
   public synchronized void complete(Event event) {
-    //do nothing
   }
 
   @Override
   public synchronized int size() {
-    return limit;
+    return elements.size();
+  }
+
+  private Event next() {
+    return elements.poll();
   }
 }
