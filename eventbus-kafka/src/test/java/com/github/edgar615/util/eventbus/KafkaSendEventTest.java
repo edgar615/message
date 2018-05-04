@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class KafkaSendEventTest extends EventbusTest {
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws InterruptedException {
     KafkaProducerOptions options = new KafkaProducerOptions();
     options.setServers("120.76.158.7:9092");
     EventProducer producer = new KafkaEventProducer(options);
@@ -22,6 +22,7 @@ public class KafkaSendEventTest extends EventbusTest {
       Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
       Event event = Event.create("DeviceControlEvent_1_3", message, 1);
       producer.send(event);
+//      TimeUnit.SECONDS.sleep(1);
     }
     try {
       TimeUnit.SECONDS.sleep(3);

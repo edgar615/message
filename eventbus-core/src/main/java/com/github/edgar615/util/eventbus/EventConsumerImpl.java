@@ -36,6 +36,8 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   private int maxQuota;
 
+  protected volatile boolean running = true;
+
   EventConsumerImpl(ConsumerOptions options) {
     this.metrics = options.getMetrics();
     this.workerExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
@@ -59,6 +61,24 @@ public abstract class EventConsumerImpl implements EventConsumer {
       checker = null;
     }
     maxQuota = options.getMaxQuota();
+    //注册一个关闭钩子
+//    一个shutdown hook就是一个初始化但没有启动的线程。 当虚拟机开始执行关闭程序时，它会启动所有已注册的shutdown hook（不按先后顺序）并且并发执行。
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      @Override
+      public void run() {
+        close();
+      }
+    });
+  }
+
+  public void close() {
+    //关闭消息订阅
+    running = false;
+    Log.create(LOGGER)
+            .setLogType("eventbus-consumer")
+            .setEvent("close")
+            .info();
+    workerExecutor.shutdown();
   }
 
   /**
@@ -76,6 +96,10 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   protected synchronized boolean isFull() {
     return eventQueue.size() >= maxQuota;
+  }
+
+  protected synchronized int size() {
+    return eventQueue.size();
   }
 
   protected synchronized void enqueue(List<Event> events) {
@@ -162,6 +186,8 @@ public abstract class EventConsumerImpl implements EventConsumer {
                 .setEvent("handle")
                 .setThrowable(e)
                 .error();
+//        因此中断一个运行在线程池中的任务可以起到双重效果，一是取消任务，二是通知执行线程线程池正要关闭。如果任务生吞中断请求，则 worker 线程将不知道有一个被请求的中断，从而耽误应用程序或服务的关闭
+        Thread.currentThread().interrupt();
       } catch (Exception e) {
         Log.create(LOGGER)
                 .setLogType("eventbus")

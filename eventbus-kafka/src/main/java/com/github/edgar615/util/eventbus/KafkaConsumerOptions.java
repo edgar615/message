@@ -23,23 +23,25 @@ import java.util.function.Function;
  */
 public class KafkaConsumerOptions extends ConsumerOptions {
 
-  private static final boolean DEFAULT_AUTO_COMMIT = false;
+  private static final boolean DEFAULT_AUTO_COMMIT = true;
 
   private static final int DEFAULT_SESSION_TIMEOUT_MS = 30000;
 
   private static final String DEFAULT_SERVERS = "localhost:9092";
 
-  private static final String DEFAULT_AUTO_OFFSET_RESET = "latest";
+  private static final String DEFAULT_AUTO_OFFSET_RESET = "earliest";
 
-  /**
-   * 是否自动提交，默认值false
-   */
-  private boolean consumerAutoCommit = DEFAULT_AUTO_COMMIT;
+  private static final int DEFAULT_MAX_POLL_RECORDS = 500;
 
   /**
    * 订阅的主题
    */
   private final Set<String> topics = new HashSet<>();
+
+  /**
+   * 是否自动提交，默认值false
+   */
+  private boolean consumerAutoCommit = DEFAULT_AUTO_COMMIT;
 
   /**
    * 一个consumer只能定义一个pattern。只要指定了topics，pattern就不起作用
@@ -58,6 +60,8 @@ public class KafkaConsumerOptions extends ConsumerOptions {
 
   private String consumerAutoOffsetReset = DEFAULT_AUTO_OFFSET_RESET;
 
+  private int maxPollRecords = DEFAULT_MAX_POLL_RECORDS;
+
   private String servers = DEFAULT_SERVERS;
 
   private String group;
@@ -75,6 +79,7 @@ public class KafkaConsumerOptions extends ConsumerOptions {
     consumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, consumerAutoCommit);
     consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, consumerAutoOffsetReset);
     consumerProps.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, consumerSessionTimeoutMs);
+    consumerProps.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, maxPollRecords);
     consumerProps
             .put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
                  "org.apache.kafka.common.serialization.StringDeserializer");
@@ -125,6 +130,23 @@ public class KafkaConsumerOptions extends ConsumerOptions {
     return this;
   }
 
+  public int getMaxPollRecords() {
+    return maxPollRecords;
+  }
+
+  /**
+   * 设置一次poll的最大数量
+   *
+   * @param maxPollRecords 最大数量
+   * @return KafkaConsumerOptions
+   */
+  public KafkaConsumerOptions setMaxPollRecords(int maxPollRecords) {
+    if (maxPollRecords > 0) {
+      this.maxPollRecords = maxPollRecords;
+    }
+    return this;
+  }
+
   /**
    * 设置blockedCheckerMs，如果超过blockedCheckerMs仍然未被处理完的事件会打印警告日志.
    *
@@ -149,13 +171,13 @@ public class KafkaConsumerOptions extends ConsumerOptions {
     return this;
   }
 
+  public boolean isConsumerAutoCommit() {
+    return consumerAutoCommit;
+  }
+
   public KafkaConsumerOptions setConsumerAutoCommit(boolean consumerAutoCommit) {
     this.consumerAutoCommit = consumerAutoCommit;
     return this;
-  }
-
-  public boolean isConsumerAutoCommit() {
-    return consumerAutoCommit;
   }
 
   public int getConsumerSessionTimeoutMs() {

@@ -1,12 +1,12 @@
 package com.github.edgar615.util.eventbus;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import com.github.edgar615.util.concurrent.NamedThreadFactory;
 import com.github.edgar615.util.event.Event;
+import com.github.edgar615.util.log.Log;
+import com.github.edgar615.util.log.LogType;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -17,13 +17,14 @@ import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -63,13 +64,13 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
   private KafkaConsumer<String, Event> consumer;
 
-  private volatile boolean running = true;
-
   private volatile boolean started = false;
 
   private List<TopicPartition> partitionsAssigned = new CopyOnWriteArrayList<>();
 
   private volatile boolean pause = false;
+
+  private static final String LOG_TYPE = "eventbus-consumer";
 
   public KafkaEventConsumer(KafkaConsumerOptions options) {
     super(options);
@@ -91,11 +92,19 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
       consumer.commitAsync(
               (offsets, exception) -> {
                 if (exception != null) {
-                  LOGGER.error("[consumer] [commit: {}]", offsets, exception.getMessage(),
-                          exception);
+                  Log.create(LOGGER)
+                          .setLogType(LOG_TYPE)
+                          .setEvent("commit")
+                          .addData("offsets", offsets)
+                          .setThrowable(exception)
+                          .error();
                 } else {
                   if (!offsets.isEmpty()) {
-                    LOGGER.info("[consumer] [commit: {}]", offsets);
+                    Log.create(LOGGER)
+                            .setLogType(LOG_TYPE)
+                            .setEvent("commit")
+                            .addData("offsets", offsets)
+                            .info();
                   }
                 }
               });
@@ -107,13 +116,12 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
     try {
       startConsumer();
     } catch (Exception e) {
-      LOGGER.error("[consumer] [Starting]", e);
+      Log.create(LOGGER)
+              .setLogType(LOG_TYPE)
+              .setEvent("start.failed")
+              .setThrowable(e)
+              .error();
     }
-  }
-
-  public void close() {
-    running = false;
-    consumer.close();
   }
 
   public void subscribe(String topic) {
@@ -126,26 +134,39 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
     for (String topic : options.getTopics()) {
       while ((partitions = consumer.partitionsFor(topic)) == null) {
         try {
-          LOGGER.info("[consumer] [topic {} since no metadata is available, wait 5s]",
-                  topic);
+          Log.create(LOGGER)
+                  .setLogType(LOG_TYPE)
+                  .setEvent("metadata.unavailable")
+                  .addData("topic", topic)
+                  .setMessage("wait 5s")
+                  .info();
           TimeUnit.SECONDS.sleep(5);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
-      LOGGER.info("[consumer] [topic:{} is available] [partitions:{}]",
-              topic, partitions);
+      Log.create(LOGGER)
+              .setLogType(LOG_TYPE)
+              .setEvent("metadata.available")
+              .addData("topic", topic)
+              .addData("partitions", partitions)
+              .setMessage("wait 5s")
+              .info();
     }
     if (options.getTopics().isEmpty()
             && !Strings.isNullOrEmpty(options.getPattern())) {
-      LOGGER.info(
-              "[consumer] [subscribe pattern {}]",
-              options.getPattern());
+      Log.create(LOGGER)
+              .setLogType(LOG_TYPE)
+              .setEvent("subscribe")
+              .addData("pattern", options.getPattern())
+              .info();
       consumer.subscribe(Pattern.compile(options.getPattern()), createListener());
     } else {
-      LOGGER.info(
-              "[consumer] [subscribe topic {}]",
-              options.getTopics());
+      Log.create(LOGGER)
+              .setLogType(LOG_TYPE)
+              .setEvent("subscribe")
+              .addData("topics", options.getTopics())
+              .info();
       consumer.subscribe(options.getTopics(), createListener());
     }
 
@@ -154,46 +175,71 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
         try {
           ConsumerRecords<String, Event> records = consumer.poll(100);
           if (records.count() > 0) {
-            LOGGER.info(
-                    "[consumer] [poll {} messages]",
-                    records.count());
+            Log.create(LOGGER)
+                    .setLogType(LOG_TYPE)
+                    .setEvent("poll")
+                    .addData("count", records.count())
+                    .info();
           }
           List<Event> events = new ArrayList<>();
           //将读取的消息全部写入队列
           for (ConsumerRecord<String, Event> record : records) {
             Event event = record.value();
-            LOGGER.info("<====== [{}] [{},{},{}] [{}] [{}] [{}]",
-                    event.head().id(),
-                    record.topic(),
-                    record.partition(),
-                    record.offset(),
-                    event.head().action(),
-                    Helper.toHeadString(event),
-                    Helper.toActionString(event));
+            Log.create(LOGGER)
+                    .setLogType(LogType.MR)
+                    .setEvent("kafka")
+                    .setTraceId(event.head().id())
+                    .setMessage("[{},{},{}] [{}] [{}] [{}]")
+                    .addArg(record.topic())
+                    .addArg(record.partition())
+                    .addArg(record.offset())
+                    .addArg(event.head().action())
+                    .addArg(Helper.toHeadString(event))
+                    .addArg(Helper.toActionString(event))
+                    .info();
             events.add(event);
           }
           events.stream().filter(e -> blackListFilter.apply(e))
-                  .forEach(e -> LOGGER.info("---| [{}] [BLACKLIST]", e.head().id()));
+                  .forEach(e -> Log.create(LOGGER)
+                          .setLogType(LOG_TYPE)
+                          .setEvent("BLACKLIST")
+                          .setTraceId(e.head().id())
+                          .info());
           List<Event> enqueEvents = events.stream().filter(e -> !blackListFilter.apply(e))
                   .collect(Collectors.toList());
           enqueue(enqueEvents);
           commit(records);
-          //暂停和回复
-          if (isFull() && !pause) {
-            pause();
-          }
-          if (!isFull() && pause) {
-            resume();
+          //暂停和恢复
+          if (pause) {
+            if (!isFull()) {
+              resume();
+            }
+          } else {
+            if (isFull()) {
+              pause();
+            }
           }
         } catch (Exception e) {
-          LOGGER.error("[consumer] [ERROR]", e);
+          Log.create(LOGGER)
+                  .setLogType(LOG_TYPE)
+                  .setEvent("ERROR")
+                  .setThrowable(e)
+                  .error();
         }
 
       }
     } catch (Exception e) {
-      LOGGER.error("[consumer] [ERROR]", e);
+      Log.create(LOGGER)
+              .setLogType(LOG_TYPE)
+              .setEvent("ERROR")
+              .setThrowable(e)
+              .error();
     } finally {
-      LOGGER.warn("[consumer] [EXIT]");
+      consumer.close();
+      Log.create(LOGGER)
+              .setLogType(LOG_TYPE)
+              .setEvent("consumer.exited")
+              .info();
     }
   }
 
@@ -201,9 +247,11 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
     return new ConsumerRebalanceListener() {
       @Override
       public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-        LOGGER.info(
-                "[consumer] [onPartitionsRevoked] [partitions:{}]",
-                partitions);
+        Log.create(LOGGER)
+                .setLogType(LOG_TYPE)
+                .setEvent("onPartitionsRevoked")
+                .addData("partitions", partitions)
+                .info();
       }
 
       @Override
@@ -215,13 +263,15 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
           partitionsAssigned.add(new TopicPartition(tp.topic(), tp.partition()));
           long position = consumer.position(tp);
           OffsetAndMetadata lastCommitedOffsetAndMetadata = consumer.committed(tp);
-          LOGGER.info(
-                  "[consumer] [onPartitionsAssigned] [topic:{}, parition:{}, offset:{}, "
-                          + "commited:{}]",
-                  tp.topic(),
-                  tp.partition(),
-                  position,
-                  lastCommitedOffsetAndMetadata);
+          Log.create(LOGGER)
+                  .setLogType(LOG_TYPE)
+                  .setEvent("onPartitionsAssigned")
+                  .addData("topic", tp.topic())
+                  .addData("partition", tp.partition())
+                  .addData("offset", position)
+                  .addData("partitions", partitions)
+                  .addData("commited", lastCommitedOffsetAndMetadata)
+                  .info();
 
           if (!started) {
             setStartOffset(tp);
@@ -234,45 +284,57 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
   public void pause() {
     consumer.pause(partitionsAssigned);
     pause = true;
-    LOGGER.info(
-            "[consumer] [pause]");
+    Log.create(LOGGER)
+            .setLogType(LOG_TYPE)
+            .setEvent("pause")
+            .info();
   }
   public void resume() {
     consumer.resume(partitionsAssigned);
     pause = false;
-    LOGGER.info(
-            "[consumer] [resume]");
+    Log.create(LOGGER)
+            .setLogType(LOG_TYPE)
+            .setEvent("resume")
+            .info();
   }
 
-  private void setStartOffset(TopicPartition topicPartition) {
-    long startingOffset = options.getStartingOffset(topicPartition);
+  private void setStartOffset(TopicPartition tp) {
+    long startingOffset = options.getStartingOffset(tp);
     if (startingOffset == -2) {
-      LOGGER.info(
-              "[consumer] [StartingOffset] [topic:{}, parition:{}, offset:{}]",
-              topicPartition.topic(),
-              topicPartition.partition(),
-              "none");
+      Log.create(LOGGER)
+              .setLogType(LOG_TYPE)
+              .setEvent("StartingOffset")
+              .addData("topic", tp.topic())
+              .addData("partition", tp.partition())
+              .addData("offset", "none")
+              .info();
     } else if (startingOffset == 0) {
-      consumer.seekToBeginning(Lists.newArrayList(topicPartition));
-      LOGGER.info(
-              "[consumer] [StartingOffset] [topic:{}, parition:{}, offset:{}]",
-              topicPartition.topic(),
-              topicPartition.partition(),
-              "beginning");
+      consumer.seekToBeginning(Lists.newArrayList(tp));
+      Log.create(LOGGER)
+              .setLogType(LOG_TYPE)
+              .setEvent("StartingOffset")
+              .addData("topic", tp.topic())
+              .addData("partition", tp.partition())
+              .addData("offset", "beginning")
+              .info();
     } else if (startingOffset == -1) {
-      consumer.seekToEnd(Lists.newArrayList(topicPartition));
-      LOGGER.info(
-              "[consumer] [StartingOffset] [topic:{}, parition:{}, offset:{}]",
-              topicPartition.topic(),
-              topicPartition.partition(),
-              "end");
+      consumer.seekToEnd(Lists.newArrayList(tp));
+      Log.create(LOGGER)
+              .setLogType(LOG_TYPE)
+              .setEvent("StartingOffset")
+              .addData("topic", tp.topic())
+              .addData("partition", tp.partition())
+              .addData("offset", "end")
+              .info();
     } else {
-      consumer.seek(topicPartition, startingOffset);
-      LOGGER.info(
-              "[consumer] [StartingOffset] [topic:{}, parition:{}, offset:{}]",
-              topicPartition.topic(),
-              topicPartition.partition(),
-              startingOffset);
+      consumer.seek(tp, startingOffset);
+      Log.create(LOGGER)
+              .setLogType(LOG_TYPE)
+              .setEvent("StartingOffset")
+              .addData("topic", tp.topic())
+              .addData("partition", tp.partition())
+              .addData("offset", startingOffset)
+              .info();
     }
   }
 }

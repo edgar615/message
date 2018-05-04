@@ -5,6 +5,8 @@ import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Created by Edgar on 2017/3/22.
  *
@@ -20,10 +22,11 @@ public class KafkaConsumeEventTest extends EventbusTest {
     KafkaConsumerOptions options = new KafkaConsumerOptions();
     options.setServers(server)
             .setGroup("test-c")
-            .setPattern(".*")
-//            .addTopic("DeviceControlEvent_1_3")
-            .setMaxQuota(500)
-            .addStartingOffset(new TopicPartition("DeviceControlEvent_1_3", 0), 0l)
+//            .setPattern(".*")
+            .addTopic("DeviceControlEvent_1_3")
+            .setMaxPollRecords(1)
+            .setMaxQuota(5)
+//            .addStartingOffset(new TopicPartition("DeviceControlEvent_1_3", 0), 0l)
             .setBlackListFilter(e -> {
               Message message  = (Message) e.action();
               String id = (String) message.content().get("id");
@@ -33,13 +36,14 @@ public class KafkaConsumeEventTest extends EventbusTest {
     EventConsumer consumer = new KafkaEventConsumer(options);
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);
-//      if (e.action().resource().equals("5")) {
-//        try {
-//          TimeUnit.SECONDS.sleep(5);
-//        } catch (InterruptedException e1) {
-//          e1.printStackTrace();
-//        }
-//      }
+      int r = Integer.parseInt(e.action().resource());
+      if (r % 5 == 0) {
+        try {
+          TimeUnit.SECONDS.sleep(100);
+        } catch (InterruptedException e1) {
+          e1.printStackTrace();
+        }
+      }
     });
 //    eventbus.consumer("test", null, e -> {
 //      System.out.println("handle" + e);
