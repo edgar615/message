@@ -10,7 +10,6 @@ import java.util.Map;
  *
  * @author Edgar  Date 2016/4/18
  */
-@Deprecated
 class RequestImpl implements Request {
   private final Map<String, Object> content;
 

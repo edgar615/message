@@ -45,6 +45,14 @@ public class KafkaConsumeEventTest extends EventbusTest {
         }
       }
     });
+    try {
+      TimeUnit.SECONDS.sleep(30);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+    consumer.close();
+
+    System.out.println(consumer.metrics());
 //    eventbus.consumer("test", null, e -> {
 //      System.out.println("handle" + e);
 //    });

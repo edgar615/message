@@ -7,7 +7,6 @@ import java.util.Map;
  *
  * @author Edgar  Date 2017/3/8
  */
-@Deprecated
 public interface Request extends EventAction {
 
   String TYPE = "request";

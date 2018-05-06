@@ -1,5 +1,8 @@
 package com.github.edgar615.util.eventbus;
 
+import com.github.edgar615.util.metrics.DummyMetrics;
+import com.github.edgar615.util.metrics.Metrics;
+
 /**
  * Producer的配置属性.
  *
@@ -15,8 +18,6 @@ public class ProducerOptions {
    * 最大配额，当未处理的事件超过配额时，需要拒绝发送
    */
   private long maxQuota = DEFAULT_MAX_QUOTA;
-
-  private Metrics metrics = new DummyMetrics();
 
   /**
    * 从存储层查询待发送事件的间隔，单位毫秒
@@ -48,15 +49,6 @@ public class ProducerOptions {
 
   public ProducerOptions setFetchPendingPeriod(long fetchPendingPeriod) {
     this.fetchPendingPeriod = fetchPendingPeriod;
-    return this;
-  }
-
-  public Metrics getMetrics() {
-    return metrics;
-  }
-
-  public ProducerOptions setMetrics(Metrics metrics) {
-    this.metrics = metrics;
     return this;
   }
 }

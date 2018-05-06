@@ -171,7 +171,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
     }
 
     try {
-      while (running) {
+      while (isRunning()) {
         try {
           ConsumerRecords<String, Event> records = consumer.poll(100);
           if (records.count() > 0) {
@@ -336,5 +336,11 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
               .addData("offset", startingOffset)
               .info();
     }
+  }
+
+  @Override
+  public void close() {
+    super.close();
+    consumerExecutor.shutdown();
   }
 }

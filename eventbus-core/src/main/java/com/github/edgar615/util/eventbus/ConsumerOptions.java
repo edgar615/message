@@ -1,6 +1,8 @@
 package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.event.Event;
+import com.github.edgar615.util.metrics.DummyMetrics;
+import com.github.edgar615.util.metrics.Metrics;
 
 import java.util.function.Function;
 
@@ -39,8 +41,6 @@ public class ConsumerOptions {
   private Function<Event, Boolean> blackListFilter = null;
 
   private Function<Event, String> identificationExtractor = null;
-
-  private Metrics metrics = new DummyMetrics();
 
   public ConsumerOptions() {
 
@@ -104,15 +104,6 @@ public class ConsumerOptions {
    */
   public ConsumerOptions setWorkerPoolSize(int workerPoolSize) {
     this.workerPoolSize = workerPoolSize;
-    return this;
-  }
-
-  public Metrics getMetrics() {
-    return metrics;
-  }
-
-  public ConsumerOptions setMetrics(Metrics metrics) {
-    this.metrics = metrics;
     return this;
   }
 

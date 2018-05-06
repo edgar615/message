@@ -11,7 +11,6 @@ import java.util.Map;
  *
  * @author Edgar  Date 2016/4/18
  */
-@Deprecated
 class ResponseImpl implements Response {
   /**
    * 0 成功非0失败

@@ -19,8 +19,6 @@ public class KafkaEventProducer extends EventProducerImpl {
 
   private Producer<String, Event> producer;
 
-  private static final String LOG_TYPE = "eventbus-producer";
-
   public KafkaEventProducer(KafkaProducerOptions options) {
     super(options);
     producer = new KafkaProducer<>(options.toProps());
@@ -65,5 +63,11 @@ public class KafkaEventProducer extends EventProducerImpl {
       }
     });
     return future;
+  }
+
+  @Override
+  public void close() {
+    super.close();
+    producer.close();
   }
 }

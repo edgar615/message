@@ -1,5 +1,6 @@
 package com.github.edgar615.util.eventbus;
 
+import com.github.edgar615.util.metrics.Metrics;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
@@ -234,12 +235,6 @@ public class KafkaConsumerOptions extends ConsumerOptions {
 
   public KafkaConsumerOptions setServers(String servers) {
     this.servers = servers;
-    return this;
-  }
-
-  @Override
-  public KafkaConsumerOptions setMetrics(Metrics metrics) {
-    super.setMetrics(metrics);
     return this;
   }
 

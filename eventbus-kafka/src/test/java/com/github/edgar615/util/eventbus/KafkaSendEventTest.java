@@ -29,6 +29,10 @@ public class KafkaSendEventTest extends EventbusTest {
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
+
+    producer.close();
+
+    System.out.println(producer.metrics());
   }
 
 }

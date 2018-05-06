@@ -3,14 +3,19 @@ package com.github.edgar615.util.eventbus;
 import com.github.edgar615.util.concurrent.NamedThreadFactory;
 import com.github.edgar615.util.event.Event;
 import com.github.edgar615.util.log.Log;
+import com.github.edgar615.util.metrics.ConsumerMetrics;
+import com.github.edgar615.util.metrics.DummyMetrics;
+import com.github.edgar615.util.metrics.Metrics;
+import com.github.edgar615.util.metrics.ProducerMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.Map;
+import java.util.ServiceLoader;
+import java.util.concurrent.*;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 
@@ -24,11 +29,13 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   private final ExecutorService workerExecutor;
 
+  private final ScheduledExecutorService scheduledExecutor;
+
   private final BlockedEventChecker checker;
 
   private final int blockedCheckerMs;
 
-  private final Metrics metrics;
+  private final ConsumerMetrics metrics;
 
   private final EventQueue eventQueue;
 
@@ -36,41 +43,40 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   private int maxQuota;
 
-  protected volatile boolean running = true;
+  private volatile boolean running = true;
+
 
   EventConsumerImpl(ConsumerOptions options) {
-    this.metrics = options.getMetrics();
+    this.metrics = createMetrics();
     this.workerExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
-                                                       NamedThreadFactory.create
-                                                               ("eventbus-worker"));
+            NamedThreadFactory.create
+                    ("eventbus-worker"));
     if (options.getIdentificationExtractor() == null) {
-      eventQueue = new DefaultEventQueue(options.getMaxQuota());
+      this.eventQueue = new DefaultEventQueue(options.getMaxQuota());
     } else {
-      eventQueue = new SequentialEventQueue(options.getIdentificationExtractor(),
-                                            options.getMaxQuota());
+      this.eventQueue = new SequentialEventQueue(options.getIdentificationExtractor(),
+              options.getMaxQuota());
     }
     this.blockedCheckerMs = options.getBlockedCheckerMs();
     if (options.getBlockedCheckerMs() > 0) {
-      ScheduledExecutorService scheduledExecutor =
+      this.scheduledExecutor =
               Executors.newSingleThreadScheduledExecutor(
                       NamedThreadFactory.create("eventbus-blocker-checker"));
-      checker = BlockedEventChecker
+      this.checker = BlockedEventChecker
               .create(options.getBlockedCheckerMs(),
                       scheduledExecutor);
     } else {
       checker = null;
+      this.scheduledExecutor = null;
     }
     maxQuota = options.getMaxQuota();
     //注册一个关闭钩子
 //    一个shutdown hook就是一个初始化但没有启动的线程。 当虚拟机开始执行关闭程序时，它会启动所有已注册的shutdown hook（不按先后顺序）并且并发执行。
-    Runtime.getRuntime().addShutdownHook(new Thread() {
-      @Override
-      public void run() {
-        close();
-      }
-    });
+    Runtime.getRuntime().addShutdownHook(createHookTask());
   }
 
+
+  @Override
   public void close() {
     //关闭消息订阅
     running = false;
@@ -79,6 +85,9 @@ public abstract class EventConsumerImpl implements EventConsumer {
             .setEvent("close")
             .info();
     workerExecutor.shutdown();
+    if (scheduledExecutor != null) {
+      scheduledExecutor.shutdown();
+    }
   }
 
   /**
@@ -92,6 +101,49 @@ public abstract class EventConsumerImpl implements EventConsumer {
     eventQueue.enqueue(event);
     //提交任务，这里只是创建了一个runnable交由线程池处理，而这个runnable并不一定真正的处理的是当前的event（根据队列的实现来）
     handle();
+  }
+
+  private ConsumerMetrics createMetrics() {
+    ServiceLoader<ConsumerMetrics> metrics = ServiceLoader.load(ConsumerMetrics.class);
+    Iterator<ConsumerMetrics> iterator = metrics.iterator();
+    if (!iterator.hasNext()) {
+      return new DummyMetrics();
+    } else {
+      return iterator.next();
+    }
+  }
+
+  private Thread createHookTask() {
+    return new Thread() {
+      @Override
+      public void run() {
+        close();
+        //等待任务处理完成
+        ThreadPoolExecutor poolExecutor = (ThreadPoolExecutor) workerExecutor;
+        long start = System.currentTimeMillis();
+        while (poolExecutor.getTaskCount() - poolExecutor.getCompletedTaskCount() > 0) {
+          try {
+            TimeUnit.SECONDS.sleep(1);
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+          Log.create(LOGGER)
+                  .setLogType("eventbus-consumer")
+                  .setEvent("close.waiting")
+                  .addData("remaing", poolExecutor.getTaskCount() - poolExecutor.getCompletedTaskCount())
+                  .addData("duration", System.currentTimeMillis() - start)
+                  .info();
+        }
+        Log.create(LOGGER)
+                .setLogType("eventbus-consumer")
+                .setEvent("closed")
+                .info();
+      }
+    };
+  }
+
+  protected boolean isRunning() {
+    return running;
   }
 
   protected synchronized boolean isFull() {
@@ -110,15 +162,11 @@ public abstract class EventConsumerImpl implements EventConsumer {
     }
   }
 
-  public EventConsumerImpl setBlackListFilter(
-          Function<Event, Boolean> filter) {
-    if (filter == null) {
-      blackListFilter = e -> false;
-    } else {
-      blackListFilter = filter;
-    }
-    return this;
+  @Override
+  public Map<String, Object> metrics() {
+    return metrics.metrics();
   }
+
 
   @Override
   public void consumer(BiPredicate<String, String> predicate, EventHandler handler) {

@@ -2,6 +2,8 @@ package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.event.Event;
 
+import java.util.Map;
+
 /**
  * <b>发布事件</b>.
  * <p>
@@ -46,4 +48,8 @@ import com.github.edgar615.util.event.Event;
  */
 public interface EventProducer {
   void send(Event event);
+
+  void close();
+
+  Map<String, Object> metrics();
 }

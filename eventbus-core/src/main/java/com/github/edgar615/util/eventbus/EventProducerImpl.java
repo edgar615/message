@@ -6,15 +6,16 @@ import com.github.edgar615.util.event.Event;
 import com.github.edgar615.util.exception.DefaultErrorCode;
 import com.github.edgar615.util.exception.SystemException;
 import com.github.edgar615.util.log.Log;
+import com.github.edgar615.util.metrics.DummyMetrics;
+import com.github.edgar615.util.metrics.Metrics;
+import com.github.edgar615.util.metrics.ProducerMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by Edgar on 2017/4/19.
@@ -33,7 +34,7 @@ public abstract class EventProducerImpl implements EventProducer {
 
   private final OrderQueue queue = new OrderQueue();
 
-  private final Metrics metrics;
+  private final ProducerMetrics metrics;
 
   private final Callback callback;
 
@@ -46,13 +47,14 @@ public abstract class EventProducerImpl implements EventProducer {
   protected EventProducerImpl(ProducerOptions options) {
     this.maxQuota = options.getMaxQuota();
     this.fetchPendingPeriod = options.getFetchPendingPeriod();
-    this.metrics = options.getMetrics();
+    this.metrics = createMetrics();
     this.callback = (future) -> {
       Event event = future.event();
       long duration = Instant.now().getEpochSecond() - event.head().timestamp();
       metrics.sendEnd(future.succeeded(), duration);
       mark(event, future.succeeded() ? 1 : 2);
     };
+    Runtime.getRuntime().addShutdownHook(createHookTask());
   }
 
   public abstract EventFuture<Void> sendEvent(Event event);
@@ -122,6 +124,56 @@ public abstract class EventProducerImpl implements EventProducer {
     };
     queue.execute(command, producerExecutor);
     metrics.sendEnqueue();
+  }
+
+  @Override
+  public void close() {
+    producerExecutor.shutdown();
+    scheduledExecutor.shutdown();
+  }
+
+  @Override
+  public Map<String, Object> metrics() {
+    return metrics.metrics();
+  }
+
+  private ProducerMetrics createMetrics() {
+    ServiceLoader<ProducerMetrics> metrics = ServiceLoader.load(ProducerMetrics.class);
+    Iterator<ProducerMetrics> iterator = metrics.iterator();
+    if (!iterator.hasNext()) {
+      return new DummyMetrics();
+    } else {
+      return iterator.next();
+    }
+  }
+
+  private Thread createHookTask() {
+    return new Thread() {
+      @Override
+      public void run() {
+        close();
+        //等待任务处理完成
+        ThreadPoolExecutor poolExecutor = (ThreadPoolExecutor) producerExecutor;
+        long start = System.currentTimeMillis();
+        while (poolExecutor.getTaskCount() - poolExecutor.getCompletedTaskCount() > 0) {
+          try {
+            TimeUnit.SECONDS.sleep(1);
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+          Log.create(LOGGER)
+                  .setLogType("eventbus-producer")
+                  .setEvent("close.waiting")
+                  .addData("remaing", poolExecutor.getTaskCount() - poolExecutor.getCompletedTaskCount())
+                  .addData("duration", System.currentTimeMillis() - start)
+                  .info();
+        }
+        Log.create(LOGGER)
+                .setLogType("eventbus-producer")
+                .setEvent("closed")
+                .info();
+      }
+    };
   }
 
   private void mark(Event event, int status) {

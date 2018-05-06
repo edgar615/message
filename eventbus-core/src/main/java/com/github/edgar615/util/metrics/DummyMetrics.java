@@ -1,5 +1,8 @@
-package com.github.edgar615.util.eventbus;
+package com.github.edgar615.util.metrics;
 
+import com.github.edgar615.util.metrics.Metrics;
+
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -7,7 +10,7 @@ import java.util.Map;
  *
  * @author Edgar  Date 2017/3/29
  */
-public class DummyMetrics implements Metrics {
+public class DummyMetrics implements ProducerMetrics, ConsumerMetrics {
   @Override
   public void sendEnqueue() {
 
@@ -35,6 +38,6 @@ public class DummyMetrics implements Metrics {
 
   @Override
   public Map<String, Object> metrics() {
-    return null;
+    return new HashMap<>();
   }
 }

@@ -1,5 +1,6 @@
 package com.github.edgar615.util.eventbus;
 
+import com.github.edgar615.util.metrics.Metrics;
 import com.google.common.base.Strings;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -80,12 +81,6 @@ public class KafkaProducerOptions extends ProducerOptions {
   @Override
   public KafkaProducerOptions setFetchPendingPeriod(long fetchPendingPeriod) {
     super.setFetchPendingPeriod(fetchPendingPeriod);
-    return this;
-  }
-
-  @Override
-  public KafkaProducerOptions setMetrics(Metrics metrics) {
-    super.setMetrics(metrics);
     return this;
   }
 
