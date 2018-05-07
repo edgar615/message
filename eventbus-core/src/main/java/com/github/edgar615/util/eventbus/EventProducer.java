@@ -52,4 +52,6 @@ public interface EventProducer {
   void close();
 
   Map<String, Object> metrics();
+
+  long waitForSend();
 }

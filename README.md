@@ -238,3 +238,42 @@ consumer方法并未对handler的绑定做去重处理，如果同时绑定了�
   eventConsumer.consumer(null, null, handler2) 表示所有的消息
 
 那么to=DeviceChangeEvent的消息，会同时被handler1和handler2执行
+
+# 关闭钩子
+有时候停止应用的时候，应用内部的队列可能还有未处理完成的任务，所以需要一个平滑关闭的过程。
+示例：
+```
+   Runtime.getRuntime().addShutdownHook(new Thread() {
+      @Override
+      public void run() {
+        producer.close();
+        //等待任务处理完成
+        long start = System.currentTimeMillis();
+        while (producer.waitForSend() > 0) {
+          try {
+            TimeUnit.SECONDS.sleep(1);
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    });
+```
+
+```
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      @Override
+      public void run() {
+        consumer.close();
+        //等待任务处理完成
+        long start = System.currentTimeMillis();
+        while (consumer.waitForHandle() > 0) {
+          try {
+            TimeUnit.SECONDS.sleep(1);
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    });
+```

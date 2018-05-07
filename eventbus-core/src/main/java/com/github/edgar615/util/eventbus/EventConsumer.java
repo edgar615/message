@@ -16,4 +16,6 @@ public interface EventConsumer {
   void consumer(BiPredicate<String, String> predicate, EventHandler handler);
 
   void consumer(String topic, String resource, EventHandler handler);
+
+  long waitForHandle();
 }

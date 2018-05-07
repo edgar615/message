@@ -31,8 +31,8 @@
         <awaitility.version>2.0.0</awaitility.version>
         <slf4j.version>1.7.14</slf4j.version>
         <util.version>1.0.18.beta3</util.version>
-
         <metrics.version>3.2.0</metrics.version>
+        <logback.vesion>1.1.2</logback.vesion>
 
     </properties>
 
@@ -54,6 +54,12 @@
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback.vesion}</version>
+                <scope>test</scope>
             </dependency>
 
             <dependency>

@@ -7,15 +7,20 @@ import com.github.edgar615.util.exception.DefaultErrorCode;
 import com.github.edgar615.util.exception.SystemException;
 import com.github.edgar615.util.log.Log;
 import com.github.edgar615.util.metrics.DummyMetrics;
-import com.github.edgar615.util.metrics.Metrics;
 import com.github.edgar615.util.metrics.ProducerMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.stream.Collectors;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.ServiceLoader;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Edgar on 2017/4/19.
@@ -54,7 +59,6 @@ public abstract class EventProducerImpl implements EventProducer {
       metrics.sendEnd(future.succeeded(), duration);
       mark(event, future.succeeded() ? 1 : 2);
     };
-    Runtime.getRuntime().addShutdownHook(createHookTask());
   }
 
   public abstract EventFuture<Void> sendEvent(Event event);
@@ -147,33 +151,10 @@ public abstract class EventProducerImpl implements EventProducer {
     }
   }
 
-  private Thread createHookTask() {
-    return new Thread() {
-      @Override
-      public void run() {
-        close();
-        //等待任务处理完成
-        ThreadPoolExecutor poolExecutor = (ThreadPoolExecutor) producerExecutor;
-        long start = System.currentTimeMillis();
-        while (poolExecutor.getTaskCount() - poolExecutor.getCompletedTaskCount() > 0) {
-          try {
-            TimeUnit.SECONDS.sleep(1);
-          } catch (InterruptedException e) {
-            e.printStackTrace();
-          }
-          Log.create(LOGGER)
-                  .setLogType("eventbus-producer")
-                  .setEvent("close.waiting")
-                  .addData("remaing", poolExecutor.getTaskCount() - poolExecutor.getCompletedTaskCount())
-                  .addData("duration", System.currentTimeMillis() - start)
-                  .info();
-        }
-        Log.create(LOGGER)
-                .setLogType("eventbus-producer")
-                .setEvent("closed")
-                .info();
-      }
-    };
+  @Override
+  public long waitForSend() {
+    ThreadPoolExecutor poolExecutor = (ThreadPoolExecutor) producerExecutor;
+    return poolExecutor.getTaskCount() - poolExecutor.getCompletedTaskCount();
   }
 
   private void mark(Event event, int status) {

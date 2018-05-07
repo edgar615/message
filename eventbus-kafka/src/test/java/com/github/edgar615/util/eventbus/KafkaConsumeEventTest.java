@@ -1,7 +1,6 @@
 package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.event.Message;
-import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,11 +27,11 @@ public class KafkaConsumeEventTest extends EventbusTest {
             .setMaxQuota(5)
 //            .addStartingOffset(new TopicPartition("DeviceControlEvent_1_3", 0), 0l)
             .setBlackListFilter(e -> {
-              Message message  = (Message) e.action();
+              Message message = (Message) e.action();
               String id = (String) message.content().get("id");
               return "accf23ea2f39".equalsIgnoreCase(id);
             })
-        .setConsumerAutoOffsetRest("earliest");
+            .setConsumerAutoOffsetRest("earliest");
     EventConsumer consumer = new KafkaEventConsumer(options);
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);

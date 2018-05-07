@@ -32,6 +32,7 @@ public class SendEventTest {
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
+    producer.close();
   }
 
   @Test
@@ -53,6 +54,7 @@ public class SendEventTest {
       }
     }
     Assert.assertTrue(succeed.get() < 11);
+    producer.close();
   }
 
   @Test
@@ -75,6 +77,7 @@ public class SendEventTest {
       }
     }
     Assert.assertEquals(succeed.get(), 11);
+    producer.close();
   }
 
   @Test
@@ -100,6 +103,7 @@ public class SendEventTest {
             .filter(e -> e.head().ext("status").equalsIgnoreCase("1"))
             .count();
     Assert.assertEquals(9, count);
+    producer.close();
   }
 
   @Test
@@ -129,6 +133,7 @@ public class SendEventTest {
             .filter(e -> e.head().ext("status").equalsIgnoreCase("2"))
             .count();
     Assert.assertEquals(4, count);
+    producer.close();
   }
 
   @Test
@@ -167,6 +172,7 @@ public class SendEventTest {
             .filter(e -> e.head().ext("status").equalsIgnoreCase("3"))
             .count();
     Assert.assertEquals(5, count);
+    producer.close();
   }
 
   @Test
@@ -189,5 +195,6 @@ public class SendEventTest {
       e.printStackTrace();
     }
     Assert.assertEquals(20, storage.getEvents().size());
+    producer.close();
   }
 }

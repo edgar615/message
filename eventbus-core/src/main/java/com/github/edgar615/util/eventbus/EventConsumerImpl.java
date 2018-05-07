@@ -5,8 +5,6 @@ import com.github.edgar615.util.event.Event;
 import com.github.edgar615.util.log.Log;
 import com.github.edgar615.util.metrics.ConsumerMetrics;
 import com.github.edgar615.util.metrics.DummyMetrics;
-import com.github.edgar615.util.metrics.Metrics;
-import com.github.edgar615.util.metrics.ProducerMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +13,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 
@@ -70,9 +71,6 @@ public abstract class EventConsumerImpl implements EventConsumer {
       this.scheduledExecutor = null;
     }
     maxQuota = options.getMaxQuota();
-    //注册一个关闭钩子
-//    一个shutdown hook就是一个初始化但没有启动的线程。 当虚拟机开始执行关闭程序时，它会启动所有已注册的shutdown hook（不按先后顺序）并且并发执行。
-    Runtime.getRuntime().addShutdownHook(createHookTask());
   }
 
 
@@ -113,33 +111,10 @@ public abstract class EventConsumerImpl implements EventConsumer {
     }
   }
 
-  private Thread createHookTask() {
-    return new Thread() {
-      @Override
-      public void run() {
-        close();
-        //等待任务处理完成
-        ThreadPoolExecutor poolExecutor = (ThreadPoolExecutor) workerExecutor;
-        long start = System.currentTimeMillis();
-        while (poolExecutor.getTaskCount() - poolExecutor.getCompletedTaskCount() > 0) {
-          try {
-            TimeUnit.SECONDS.sleep(1);
-          } catch (InterruptedException e) {
-            e.printStackTrace();
-          }
-          Log.create(LOGGER)
-                  .setLogType("eventbus-consumer")
-                  .setEvent("close.waiting")
-                  .addData("remaing", poolExecutor.getTaskCount() - poolExecutor.getCompletedTaskCount())
-                  .addData("duration", System.currentTimeMillis() - start)
-                  .info();
-        }
-        Log.create(LOGGER)
-                .setLogType("eventbus-consumer")
-                .setEvent("closed")
-                .info();
-      }
-    };
+  @Override
+  public long waitForHandle() {
+    ThreadPoolExecutor poolExecutor = (ThreadPoolExecutor) workerExecutor;
+    return poolExecutor.getTaskCount() - poolExecutor.getCompletedTaskCount();
   }
 
   protected boolean isRunning() {
