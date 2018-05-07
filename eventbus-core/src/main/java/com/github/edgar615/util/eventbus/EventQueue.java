@@ -11,6 +11,17 @@ import java.util.List;
  */
 public interface EventQueue {
 
+  /**
+   * 不阻塞，如果没有合适的event，返回null
+   * @return
+   */
+  Event poll();
+
+  /**
+   * 如果没有合适的event，阻塞线程
+   * @return
+   * @throws InterruptedException
+   */
   Event dequeue() throws InterruptedException;
 
   void enqueue(Event event);

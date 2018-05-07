@@ -17,6 +17,7 @@ import java.util.function.Function;
  */
 public class SequentialEventQueue implements EventQueue {
   private static final Logger LOGGER = LoggerFactory.getLogger(EventQueue.class);
+
   /**
    * 任务列表
    */
@@ -40,24 +41,22 @@ public class SequentialEventQueue implements EventQueue {
   }
 
   @Override
+  public synchronized Event poll() {
+    if (elements.isEmpty() || takeElement == null) {
+      return null;
+    }
+    return taskNextElement();
+
+  }
+
+  @Override
   public synchronized Event dequeue() throws InterruptedException {
     //如果队列为空，或者下一个出队元素为null，阻塞出队
     while (elements.isEmpty() || takeElement == null) {
       wait();
     }
     //从队列中删除元素
-    Event x = takeElement;
-    elements.remove(x);
-    //将元素加入注册表
-    registry.add(extractId(x));
-    //重新计算下一个可以出队的元素
-    takeElement = next();
-    Log.create(LOGGER)
-            .setLogType("eventbus")
-            .setEvent("dequeue")
-            .setTraceId(x.head().id())
-            .debug();
-    return x;
+    return taskNextElement();
   }
 
   @Override
@@ -117,6 +116,21 @@ public class SequentialEventQueue implements EventQueue {
   @Override
   public synchronized int size() {
     return elements.size();
+  }
+
+  private Event taskNextElement() {//从队列中删除元素
+    Event x = takeElement;
+    elements.remove(x);
+    //将元素加入注册表
+    registry.add(extractId(x));
+    //重新计算下一个可以出队的元素
+    takeElement = next();
+    Log.create(LOGGER)
+            .setLogType("eventbus")
+            .setEvent("dequeue")
+            .setTraceId(x.head().id())
+            .debug();
+    return x;
   }
 
   private String extractId(Event event) {

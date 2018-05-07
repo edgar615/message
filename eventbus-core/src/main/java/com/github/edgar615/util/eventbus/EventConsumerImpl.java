@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -46,17 +47,16 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   private volatile boolean running = true;
 
-
   EventConsumerImpl(ConsumerOptions options) {
     this.metrics = createMetrics();
     this.workerExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
-            NamedThreadFactory.create
-                    ("eventbus-worker"));
+                                                       NamedThreadFactory.create
+                                                               ("eventbus-worker"));
     if (options.getIdentificationExtractor() == null) {
       this.eventQueue = new DefaultEventQueue(options.getMaxQuota());
     } else {
       this.eventQueue = new SequentialEventQueue(options.getIdentificationExtractor(),
-              options.getMaxQuota());
+                                                 options.getMaxQuota());
     }
     this.blockedCheckerMs = options.getBlockedCheckerMs();
     if (options.getBlockedCheckerMs() > 0) {
@@ -73,6 +73,18 @@ public abstract class EventConsumerImpl implements EventConsumer {
     maxQuota = options.getMaxQuota();
   }
 
+  protected synchronized void enqueue(List<Event> events) {
+    eventQueue.enqueue(events);
+    //提交任务
+    for (Event event : events) {
+      CompletableFuture<Event> completableFuture = handle();
+      completableFuture.thenAccept(e -> {
+        if (e != null) {
+          eventQueue.complete(e);
+        }
+      });
+    }
+  }
 
   @Override
   public void close() {
@@ -81,33 +93,11 @@ public abstract class EventConsumerImpl implements EventConsumer {
     Log.create(LOGGER)
             .setLogType("eventbus-consumer")
             .setEvent("close")
+            .addData("remaining", waitForHandle())
             .info();
     workerExecutor.shutdown();
     if (scheduledExecutor != null) {
       scheduledExecutor.shutdown();
-    }
-  }
-
-  /**
-   * 入队，如果入队后队列中的任务数量超过了最大数量，暂停消息的读取
-   *
-   * @param event
-   * @return 如果队列中的长度超过最大数量，返回false
-   */
-  protected synchronized void enqueue(Event event) {
-    //先入队
-    eventQueue.enqueue(event);
-    //提交任务，这里只是创建了一个runnable交由线程池处理，而这个runnable并不一定真正的处理的是当前的event（根据队列的实现来）
-    handle();
-  }
-
-  private ConsumerMetrics createMetrics() {
-    ServiceLoader<ConsumerMetrics> metrics = ServiceLoader.load(ConsumerMetrics.class);
-    Iterator<ConsumerMetrics> iterator = metrics.iterator();
-    if (!iterator.hasNext()) {
-      return new DummyMetrics();
-    } else {
-      return iterator.next();
     }
   }
 
@@ -117,31 +107,10 @@ public abstract class EventConsumerImpl implements EventConsumer {
     return poolExecutor.getTaskCount() - poolExecutor.getCompletedTaskCount();
   }
 
-  protected boolean isRunning() {
-    return running;
-  }
-
-  protected synchronized boolean isFull() {
-    return eventQueue.size() >= maxQuota;
-  }
-
-  protected synchronized int size() {
-    return eventQueue.size();
-  }
-
-  protected synchronized void enqueue(List<Event> events) {
-    eventQueue.enqueue(events);
-    //提交任务
-    for (Event event : events) {
-      handle();
-    }
-  }
-
   @Override
   public Map<String, Object> metrics() {
     return metrics.metrics();
   }
-
 
   @Override
   public void consumer(BiPredicate<String, String> predicate, EventHandler handler) {
@@ -164,9 +133,48 @@ public abstract class EventConsumerImpl implements EventConsumer {
     consumer(predicate, handler);
   }
 
+  /**
+   * 入队，如果入队后队列中的任务数量超过了最大数量，暂停消息的读取
+   *
+   * @param event
+   * @return 如果队列中的长度超过最大数量，返回false
+   */
+  protected void enqueue(Event event) {
+    //先入队
+    eventQueue.enqueue(event);
+    //提交任务，这里只是创建了一个runnable交由线程池处理，而这个runnable并不一定真正的处理的是当前的event（根据队列的实现来）
+    CompletableFuture<Event> completableFuture = handle();
+    completableFuture.thenAccept(e -> {
+      if (e != null) {
+        eventQueue.complete(e);
+      }
+    });
+  }
 
-  private void handle() {
-    workerExecutor.execute(() -> {
+  protected boolean isFull() {
+    return eventQueue.size() >= maxQuota;
+  }
+
+  protected int size() {
+    return eventQueue.size();
+  }
+
+  protected boolean isRunning() {
+    return running;
+  }
+
+  private ConsumerMetrics createMetrics() {
+    ServiceLoader<ConsumerMetrics> metrics = ServiceLoader.load(ConsumerMetrics.class);
+    Iterator<ConsumerMetrics> iterator = metrics.iterator();
+    if (!iterator.hasNext()) {
+      return new DummyMetrics();
+    } else {
+      return iterator.next();
+    }
+  }
+
+  protected CompletableFuture<Event> handle() {
+    return CompletableFuture.supplyAsync(() -> {
       Event event = null;
       try {
         event = eventQueue.dequeue();
@@ -176,40 +184,31 @@ public abstract class EventConsumerImpl implements EventConsumer {
           checker.register(holder);
         }
         metrics.consumerStart();
-        try {
-          List<EventHandler> handlers =
-                  HandlerRegistration.instance()
-                          .getHandlers(event);
-          if (handlers == null || handlers.isEmpty()) {
-            Log.create(LOGGER)
-                    .setLogType("eventbus-consumer")
-                    .setEvent("handle")
-                    .setTraceId(event.head().id())
-                    .setMessage("NO HANDLER")
-                    .warn();
-          } else {
-            for (EventHandler handler : handlers) {
-              handler.handle(event);
-            }
-          }
-        } catch (Exception e) {
+        List<EventHandler> handlers =
+                HandlerRegistration.instance()
+                        .getHandlers(event);
+        if (handlers == null || handlers.isEmpty()) {
           Log.create(LOGGER)
                   .setLogType("eventbus-consumer")
                   .setEvent("handle")
                   .setTraceId(event.head().id())
-                  .setThrowable(e)
-                  .error();
+                  .setMessage("NO HANDLER")
+                  .warn();
+        } else {
+          for (EventHandler handler : handlers) {
+            handler.handle(event);
+          }
         }
-        metrics.consumerEnd(Instant.now().getEpochSecond() - start);
         holder.completed();
-//        completeFuture.complete();
+        metrics.consumerEnd(Instant.now().getEpochSecond() - start);
       } catch (InterruptedException e) {
         Log.create(LOGGER)
                 .setLogType("eventbus-consumer")
                 .setEvent("handle")
                 .setThrowable(e)
                 .error();
-//        因此中断一个运行在线程池中的任务可以起到双重效果，一是取消任务，二是通知执行线程线程池正要关闭。如果任务生吞中断请求，则 worker 线程将不知道有一个被请求的中断，从而耽误应用程序或服务的关闭
+//        因此中断一个运行在线程池中的任务可以起到双重效果，一是取消任务，二是通知执行线程线程池正要关闭。如果任务生吞中断请求，则 worker
+// 线程将不知道有一个被请求的中断，从而耽误应用程序或服务的关闭
         Thread.currentThread().interrupt();
       } catch (Exception e) {
         Log.create(LOGGER)
@@ -219,7 +218,8 @@ public abstract class EventConsumerImpl implements EventConsumer {
                 .setThrowable(e)
                 .error();
       }
-    });
+      return event;
+    }, workerExecutor);
   }
 
 }

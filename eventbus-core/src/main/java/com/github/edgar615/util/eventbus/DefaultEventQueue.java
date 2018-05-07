@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Created by Edgar on 2018/5/3.
@@ -33,13 +32,7 @@ public class DefaultEventQueue implements EventQueue {
     while (elements.isEmpty()) {
       wait();
     }
-    Event e =  next();
-    Log.create(LOGGER)
-            .setLogType("eventbus")
-            .setEvent("dequeue")
-            .setTraceId(e.head().id())
-            .debug();
-    return e;
+    return taskNextElement();
   }
 
   @Override
@@ -82,6 +75,24 @@ public class DefaultEventQueue implements EventQueue {
   @Override
   public synchronized int size() {
     return elements.size();
+  }
+
+  @Override
+  public Event poll() {
+    if (elements.isEmpty()) {
+      return null;
+    }
+    return taskNextElement();
+  }
+
+  private Event taskNextElement() {
+    Event e = next();
+    Log.create(LOGGER)
+            .setLogType("eventbus")
+            .setEvent("dequeue")
+            .setTraceId(e.head().id())
+            .debug();
+    return e;
   }
 
   private Event next() {
