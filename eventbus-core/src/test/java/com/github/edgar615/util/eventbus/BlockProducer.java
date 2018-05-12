@@ -14,7 +14,11 @@ public class BlockProducer extends EventProducerImpl {
   private final int block;
 
   public BlockProducer(ProducerOptions options, int block) {
-    super(options);
+    this(options, null, block);
+  }
+
+  public BlockProducer(ProducerOptions options, ProducerStorage storage, int block) {
+    super(options, storage);
     this.block = block;
   }
 

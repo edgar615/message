@@ -25,8 +25,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * kafka的consumer对象不是线程安全的，如果在不同的线程里使用consumer会抛出异常.
@@ -58,6 +58,8 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(KafkaEventConsumer.class);
 
+  private static final String LOG_TYPE = "eventbus-consumer";
+
   private final KafkaConsumerOptions options;
 
   private final ExecutorService consumerExecutor;
@@ -70,13 +72,18 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
 
   private volatile boolean pause = false;
 
-  private static final String LOG_TYPE = "eventbus-consumer";
-
   public KafkaEventConsumer(KafkaConsumerOptions options) {
-    super(options);
+    this(options, null, null, null);
+
+  }
+
+  public KafkaEventConsumer(KafkaConsumerOptions options, ConsumerStorage consumerStorage,
+                            Function<Event, String> identificationExtractor,
+                            Function<Event, Boolean> blackListFilter) {
+    super(options, consumerStorage, identificationExtractor, blackListFilter);
+    this.options = options;
     this.consumerExecutor =
             Executors.newFixedThreadPool(1, NamedThreadFactory.create("eventbus-consumer"));
-    this.options = options;
     consumerExecutor.submit(this);
   }
 
@@ -114,7 +121,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
   @Override
   public void run() {
     try {
-      startConsumer();
+      startKafkaConsumer();
     } catch (Exception e) {
       Log.create(LOGGER)
               .setLogType(LOG_TYPE)
@@ -128,7 +135,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
     consumer.subscribe(Lists.newArrayList(topic), createListener());
   }
 
-  private void startConsumer() {
+  public void startKafkaConsumer() {
     consumer = new KafkaConsumer<>(options.consumerProps());
     List<PartitionInfo> partitions;
     for (String topic : options.getTopics()) {
@@ -154,7 +161,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
               .info();
     }
     if (options.getTopics().isEmpty()
-            && !Strings.isNullOrEmpty(options.getPattern())) {
+        && !Strings.isNullOrEmpty(options.getPattern())) {
       Log.create(LOGGER)
               .setLogType(LOG_TYPE)
               .setEvent("subscribe")
@@ -199,15 +206,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
                     .info();
             events.add(event);
           }
-          events.stream().filter(e -> blackListFilter.apply(e))
-                  .forEach(e -> Log.create(LOGGER)
-                          .setLogType(LOG_TYPE)
-                          .setEvent("BLACKLIST")
-                          .setTraceId(e.head().id())
-                          .info());
-          List<Event> enqueEvents = events.stream().filter(e -> !blackListFilter.apply(e))
-                  .collect(Collectors.toList());
-          enqueue(enqueEvents);
+          enqueue(events);
           commit(records);
           //暂停和恢复
           if (pause) {
@@ -241,6 +240,30 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
               .setEvent("consumer.exited")
               .info();
     }
+  }
+
+  public void pause() {
+    consumer.pause(partitionsAssigned);
+    pause = true;
+    Log.create(LOGGER)
+            .setLogType(LOG_TYPE)
+            .setEvent("pause")
+            .info();
+  }
+
+  public void resume() {
+    consumer.resume(partitionsAssigned);
+    pause = false;
+    Log.create(LOGGER)
+            .setLogType(LOG_TYPE)
+            .setEvent("resume")
+            .info();
+  }
+
+  @Override
+  public void close() {
+    super.close();
+    consumerExecutor.shutdown();
   }
 
   private ConsumerRebalanceListener createListener() {
@@ -281,22 +304,6 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
       }
     };
   }
-  public void pause() {
-    consumer.pause(partitionsAssigned);
-    pause = true;
-    Log.create(LOGGER)
-            .setLogType(LOG_TYPE)
-            .setEvent("pause")
-            .info();
-  }
-  public void resume() {
-    consumer.resume(partitionsAssigned);
-    pause = false;
-    Log.create(LOGGER)
-            .setLogType(LOG_TYPE)
-            .setEvent("resume")
-            .info();
-  }
 
   private void setStartOffset(TopicPartition tp) {
     long startingOffset = options.getStartingOffset(tp);
@@ -336,11 +343,5 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
               .addData("offset", startingOffset)
               .info();
     }
-  }
-
-  @Override
-  public void close() {
-    super.close();
-    consumerExecutor.shutdown();
   }
 }

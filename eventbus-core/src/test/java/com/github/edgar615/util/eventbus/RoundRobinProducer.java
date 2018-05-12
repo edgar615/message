@@ -16,8 +16,8 @@ public class RoundRobinProducer extends EventProducerImpl {
 
   private final int block;
 
-  public RoundRobinProducer(ProducerOptions options, int block) {
-    super(options);
+  public RoundRobinProducer(ProducerOptions options, ProducerStorage storage, int block) {
+    super(options, storage);
     this.block = block;
   }
 

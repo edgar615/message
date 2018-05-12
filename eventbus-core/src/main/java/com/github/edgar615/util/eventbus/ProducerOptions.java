@@ -1,8 +1,5 @@
 package com.github.edgar615.util.eventbus;
 
-import com.github.edgar615.util.metrics.DummyMetrics;
-import com.github.edgar615.util.metrics.Metrics;
-
 /**
  * Producer的配置属性.
  *

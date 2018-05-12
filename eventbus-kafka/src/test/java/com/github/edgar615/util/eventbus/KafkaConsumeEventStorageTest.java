@@ -1,6 +1,5 @@
 package com.github.edgar615.util.eventbus;
 
-import com.github.edgar615.util.event.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,9 +11,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author Edgar  Date 2017/3/22
  */
-public class KafkaConsumeEventTest extends EventbusTest {
+public class KafkaConsumeEventStorageTest extends EventbusTest {
 
-  private static Logger logger = LoggerFactory.getLogger(KafkaConsumeEventTest.class);
+  private static Logger logger = LoggerFactory.getLogger(KafkaConsumeEventStorageTest.class);
 
   public static void main(String[] args) {
 
@@ -27,22 +26,15 @@ public class KafkaConsumeEventTest extends EventbusTest {
             .setMaxPollRecords(1)
             .setMaxQuota(5)
             .setConsumerAutoOffsetRest("earliest");
-    EventConsumer consumer = new KafkaEventConsumer(options);
+    MockConsumerStorage storage = new MockConsumerStorage();
+    EventConsumer consumer = new KafkaEventConsumer(options, storage, null, null);
     AtomicInteger count = new AtomicInteger();
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);
       count.incrementAndGet();
-      int r = Integer.parseInt(e.action().resource());
-      if (r % 5 == 0) {
-        try {
-          TimeUnit.SECONDS.sleep(3);
-        } catch (InterruptedException e1) {
-          e1.printStackTrace();
-        }
-      }
     });
     try {
-      TimeUnit.SECONDS.sleep(30);
+      TimeUnit.SECONDS.sleep(10);
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
@@ -56,6 +48,7 @@ public class KafkaConsumeEventTest extends EventbusTest {
     System.out.println(consumer.metrics());
     System.out.println(consumer.metrics().get("eventbus.consumer.completed"));
     System.out.println(count);
+    System.out.println(storage.getEvents().size());
 //    eventbus.consumer("test", null, e -> {
 //      System.out.println("handle" + e);
 //    });

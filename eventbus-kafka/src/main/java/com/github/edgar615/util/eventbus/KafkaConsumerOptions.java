@@ -1,10 +1,8 @@
 package com.github.edgar615.util.eventbus;
 
-import com.github.edgar615.util.metrics.Metrics;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
-import com.github.edgar615.util.event.Event;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.TopicPartition;
 
@@ -15,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * Created by Edgar on 2016/5/17.
@@ -250,30 +247,5 @@ public class KafkaConsumerOptions extends ConsumerOptions {
     return this;
   }
 
-  /**
-   * 设置黑名单的过滤器，如果filter返回true，表示不处理这个事件
-   *
-   * @param filter
-   * @return
-   */
-  @Override
-  public KafkaConsumerOptions setBlackListFilter(
-          Function<Event, Boolean> filter) {
-    super.setBlackListFilter(filter);
-    return this;
-  }
-
-  /**
-   * 根据某个标识符，将事件按顺序处理
-   *
-   * @param identificationExtractor
-   * @return KafkaConsumerOptions
-   */
-  @Override
-  public KafkaConsumerOptions setIdentificationExtractor(
-          Function<Event, String> identificationExtractor) {
-    super.setIdentificationExtractor(identificationExtractor);
-    return this;
-  }
 
 }

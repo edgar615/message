@@ -1,11 +1,5 @@
 package com.github.edgar615.util.eventbus;
 
-import com.github.edgar615.util.event.Event;
-import com.github.edgar615.util.metrics.DummyMetrics;
-import com.github.edgar615.util.metrics.Metrics;
-
-import java.util.function.Function;
-
 /**
  * Created by Edgar on 2016/5/17.
  *
@@ -38,10 +32,6 @@ public class ConsumerOptions {
    */
   private int maxQuota = DEFAULT_MAX_QUOTA;
 
-  private Function<Event, Boolean> blackListFilter = null;
-
-  private Function<Event, String> identificationExtractor = null;
-
   public ConsumerOptions() {
 
   }
@@ -58,22 +48,6 @@ public class ConsumerOptions {
    */
   public ConsumerOptions setMaxQuota(int maxQuota) {
     this.maxQuota = maxQuota;
-    return this;
-  }
-
-  public Function<Event, Boolean> getBlackListFilter() {
-    return blackListFilter;
-  }
-
-  /**
-   * 设置黑名单的过滤器，如果filter返回true，表示不处理这个事件
-   *
-   * @param filter
-   * @return
-   */
-  public ConsumerOptions setBlackListFilter(
-          Function<Event, Boolean> filter) {
-    this.blackListFilter = filter;
     return this;
   }
 
@@ -104,22 +78,6 @@ public class ConsumerOptions {
    */
   public ConsumerOptions setWorkerPoolSize(int workerPoolSize) {
     this.workerPoolSize = workerPoolSize;
-    return this;
-  }
-
-  public Function<Event, String> getIdentificationExtractor() {
-    return identificationExtractor;
-  }
-
-  /**
-   * 根据某个标识符，将事件按顺序处理
-   *
-   * @param identificationExtractor
-   * @return ConsumerOptions
-   */
-  public ConsumerOptions setIdentificationExtractor(
-          Function<Event, String> identificationExtractor) {
-    this.identificationExtractor = identificationExtractor;
     return this;
   }
 }

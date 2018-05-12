@@ -62,7 +62,7 @@ public class SendEventTest {
     MockProducerStorage storage = new MockProducerStorage();
     ProducerOptions options = new ProducerOptions()
             .setMaxQuota(5);
-    EventProducer producer = new BlockProducer(options, 5).setProducerStorage(storage);
+    EventProducer producer = new BlockProducer(options, storage, 5);
     AtomicInteger succeed = new AtomicInteger();
     AtomicInteger failed = new AtomicInteger();
     for (int i = 0; i < 11; i++) {
@@ -84,8 +84,7 @@ public class SendEventTest {
   public void testStorage() {
     ProducerOptions options = new ProducerOptions();
     MockProducerStorage storage = new MockProducerStorage();
-    BlockProducer producer = new BlockProducer(options, 0);
-    producer.setProducerStorage(storage);
+    BlockProducer producer = new BlockProducer(options, storage, 0);
     for (int i = 0; i < 10; i++) {
       if (i == 5) {
         Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
@@ -110,8 +109,7 @@ public class SendEventTest {
   public void testMark() {
     ProducerOptions options = new ProducerOptions();
     MockProducerStorage storage = new MockProducerStorage();
-    RoundRobinProducer producer = new RoundRobinProducer(options, 0);
-    producer.setProducerStorage(storage);
+    RoundRobinProducer producer = new RoundRobinProducer(options, storage, 0);
     for (int i = 0; i < 10; i++) {
       if (i == 5) {
         Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
@@ -140,8 +138,7 @@ public class SendEventTest {
   public void testExpire() {
     ProducerOptions options = new ProducerOptions();
     MockProducerStorage storage = new MockProducerStorage();
-    BlockProducer producer = new BlockProducer(options, 0);
-    producer.setProducerStorage(storage);
+    BlockProducer producer = new BlockProducer(options, storage, 0);
     for (int i = 0; i < 10; i++) {
       if (i % 2 == 0) {
         Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
@@ -180,8 +177,7 @@ public class SendEventTest {
     ProducerOptions options = new ProducerOptions();
     MockProducerStorage storage = new MockProducerStorage();
     options.setFetchPendingPeriod(3000);
-    BlockProducer producer = new BlockProducer(options, 3);
-    producer.setProducerStorage(storage);
+    BlockProducer producer = new BlockProducer(options,  storage, 3);
     for (int i = 0; i < 10; i++) {
       Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
       Event event = Event.create("test", message);

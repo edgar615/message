@@ -47,11 +47,31 @@ import java.util.Map;
  * @author Edgar  Date 2017/4/19
  */
 public interface EventProducer {
+
+  /**
+   * 发送消息.
+   * 这个方法会将消息放入一个内部队列，然后按顺序发送消息.
+   *
+   * @param event
+   */
   void send(Event event);
 
+  /**
+   * 关闭
+   */
   void close();
 
+  /**
+   * 返回度量指标
+   *
+   * @return
+   */
   Map<String, Object> metrics();
 
+  /**
+   * 等待被发送的消息
+   *
+   * @return
+   */
   long waitForSend();
 }

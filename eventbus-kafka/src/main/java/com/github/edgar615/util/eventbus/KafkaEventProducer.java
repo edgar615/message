@@ -20,10 +20,13 @@ public class KafkaEventProducer extends EventProducerImpl {
   private Producer<String, Event> producer;
 
   public KafkaEventProducer(KafkaProducerOptions options) {
-    super(options);
-    producer = new KafkaProducer<>(options.toProps());
+    this(options, null);
   }
 
+  public KafkaEventProducer(KafkaProducerOptions options, ProducerStorage producerStorage) {
+    super(options, producerStorage);
+    producer = new KafkaProducer<>(options.toProps());
+  }
 
   @Override
   public EventFuture<Void> sendEvent(Event event) {

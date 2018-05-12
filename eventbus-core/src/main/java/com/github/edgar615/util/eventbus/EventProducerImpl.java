@@ -49,7 +49,13 @@ public abstract class EventProducerImpl implements EventProducer {
 
   private ProducerStorage producerStorage;
 
+//  private volatile boolean running = false;
+
   protected EventProducerImpl(ProducerOptions options) {
+    this(options, null);
+  }
+
+  protected EventProducerImpl(ProducerOptions options, ProducerStorage producerStorage) {
     this.maxQuota = options.getMaxQuota();
     this.fetchPendingPeriod = options.getFetchPendingPeriod();
     this.metrics = createMetrics();
@@ -59,24 +65,12 @@ public abstract class EventProducerImpl implements EventProducer {
       metrics.sendEnd(future.succeeded(), duration);
       mark(event, future.succeeded() ? 1 : 2);
     };
+    if (producerStorage != null) {
+      registerStorage(producerStorage);
+    }
   }
 
   public abstract EventFuture<Void> sendEvent(Event event);
-
-  public EventProducerImpl setProducerStorage(ProducerStorage producerStorage) {
-    this.producerStorage = producerStorage;
-    if (producerStorage != null) {
-      Runnable scheduledCommand = () -> {
-        List<Event> pending = producerStorage.pendingList();
-        pending.forEach(e -> send(e));
-      };
-      scheduledExecutor
-              .scheduleAtFixedRate(scheduledCommand, fetchPendingPeriod, fetchPendingPeriod,
-                      TimeUnit
-                              .MILLISECONDS);
-    }
-    return this;
-  }
 
   @Override
   public void send(Event event) {
@@ -108,7 +102,7 @@ public abstract class EventProducerImpl implements EventProducer {
     Runnable command = () -> {
       long current = Instant.now().getEpochSecond();
       if (event.head().duration() > 0
-              && current > event.head().timestamp() + event.head().duration()) {
+          && current > event.head().timestamp() + event.head().duration()) {
         Log.create(LOGGER)
                 .setLogType("eventbus-producer")
                 .setEvent("EXPIRE")
@@ -141,6 +135,37 @@ public abstract class EventProducerImpl implements EventProducer {
     return metrics.metrics();
   }
 
+  @Override
+  public long waitForSend() {
+    ThreadPoolExecutor poolExecutor = (ThreadPoolExecutor) producerExecutor;
+    return poolExecutor.getTaskCount() - poolExecutor.getCompletedTaskCount();
+  }
+
+  /**
+   * 注册消息的持久化
+   *
+   * @param producerStorage
+   * @return
+   */
+  private EventProducerImpl registerStorage(ProducerStorage producerStorage) {
+    //生产者不像消费者有一个线程在启动
+//    if (running) {
+//      throw new UnsupportedOperationException("producer has been started");
+//    }
+    this.producerStorage = producerStorage;
+    if (producerStorage != null) {
+      Runnable scheduledCommand = () -> {
+        List<Event> pending = producerStorage.pendingList();
+        pending.forEach(e -> send(e));
+      };
+      scheduledExecutor
+              .scheduleAtFixedRate(scheduledCommand, fetchPendingPeriod, fetchPendingPeriod,
+                                   TimeUnit
+                                           .MILLISECONDS);
+    }
+    return this;
+  }
+
   private ProducerMetrics createMetrics() {
     ServiceLoader<ProducerMetrics> metrics = ServiceLoader.load(ProducerMetrics.class);
     Iterator<ProducerMetrics> iterator = metrics.iterator();
@@ -149,12 +174,6 @@ public abstract class EventProducerImpl implements EventProducer {
     } else {
       return iterator.next();
     }
-  }
-
-  @Override
-  public long waitForSend() {
-    ThreadPoolExecutor poolExecutor = (ThreadPoolExecutor) producerExecutor;
-    return poolExecutor.getTaskCount() - poolExecutor.getCompletedTaskCount();
   }
 
   private void mark(Event event, int status) {
