@@ -243,7 +243,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
   }
 
   public void pause() {
-    consumer.pause(partitionsAssigned);
+    consumer.pause(partitionsAssigned.toArray(new TopicPartition[partitionsAssigned.size()]));
     pause = true;
     Log.create(LOGGER)
             .setLogType(LOG_TYPE)
@@ -252,7 +252,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
   }
 
   public void resume() {
-    consumer.resume(partitionsAssigned);
+    consumer.resume(partitionsAssigned.toArray(new TopicPartition[partitionsAssigned.size()]));
     pause = false;
     Log.create(LOGGER)
             .setLogType(LOG_TYPE)
@@ -316,7 +316,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
               .addData("offset", "none")
               .info();
     } else if (startingOffset == 0) {
-      consumer.seekToBeginning(Lists.newArrayList(tp));
+      consumer.seekToBeginning(tp);
       Log.create(LOGGER)
               .setLogType(LOG_TYPE)
               .setEvent("StartingOffset")
@@ -325,7 +325,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
               .addData("offset", "beginning")
               .info();
     } else if (startingOffset == -1) {
-      consumer.seekToEnd(Lists.newArrayList(tp));
+      consumer.seekToEnd(tp);
       Log.create(LOGGER)
               .setLogType(LOG_TYPE)
               .setEvent("StartingOffset")
