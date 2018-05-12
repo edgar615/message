@@ -242,6 +242,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
     }
   }
 
+  @Override
   public void pause() {
     consumer.pause(partitionsAssigned);
     pause = true;
@@ -251,6 +252,7 @@ public class KafkaEventConsumer extends EventConsumerImpl implements Runnable {
             .info();
   }
 
+  @Override
   public void resume() {
     consumer.resume(partitionsAssigned);
     pause = false;

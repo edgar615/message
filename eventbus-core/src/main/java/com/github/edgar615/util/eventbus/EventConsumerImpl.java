@@ -148,19 +148,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
     eventQueue.enqueue(enqueEvents);
     //只提交任务不属于黑名单的消息
     for (Event event : enqueEvents) {
-      CompletableFuture<EventFuture<Event>> completableFuture = handle();
-      completableFuture.thenAccept(e -> {
-        if (e != null) {
-          eventQueue.complete(e.event());
-          if (consumerStorage != null && consumerStorage.shouldStorage(e.event())) {
-            if (e.succeeded()) {
-              consumerStorage.mark(e.event(), 1);
-            } else {
-              consumerStorage.mark(e.event(), 2);
-            }
-          }
-        }
-      });
+      handle();
     }
   }
 
@@ -171,25 +159,30 @@ public abstract class EventConsumerImpl implements EventConsumer {
    * @return 如果队列中的长度超过最大数量，返回false
    */
   protected void enqueue(Event event) {
+    if (consumerStorage != null && consumerStorage.shouldStorage(event)
+            && consumerStorage.isConsumed(event)) {
+      Log.create(LOGGER)
+              .setLogType("event-consumer")
+              .setEvent("RepeatedConsumer")
+              .setTraceId(event.head().id())
+              .info();
+      return;
+    }
+    if (blackListFilter != null &&blackListFilter.apply(event)) {
+      Log.create(LOGGER)
+              .setLogType("event-consumer")
+              .setEvent("blacklist")
+              .setTraceId(event.head().id())
+              .info();
+      if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
+        consumerStorage.mark(event, 3);
+      }
+      return;
+    }
     //先入队
     eventQueue.enqueue(event);
-    if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
-      consumerStorage.mark(event, 1);
-    }
     //提交任务，这里只是创建了一个runnable交由线程池处理，而这个runnable并不一定真正的处理的是当前的event（根据队列的实现来）
-    CompletableFuture<EventFuture<Event>> completableFuture = handle();
-    completableFuture.thenAccept(e -> {
-      if (e != null) {
-        eventQueue.complete(e.event());
-        if (consumerStorage != null && consumerStorage.shouldStorage(e.event())) {
-          if (e.succeeded()) {
-            consumerStorage.mark(e.event(), 1);
-          } else {
-            consumerStorage.mark(e.event(), 2);
-          }
-        }
-      }
-    });
+    handle();
   }
 
   protected boolean isFull() {
@@ -204,8 +197,8 @@ public abstract class EventConsumerImpl implements EventConsumer {
     return running;
   }
 
-  protected CompletableFuture<EventFuture<Event>> handle() {
-    return CompletableFuture.supplyAsync(() -> {
+  private final void handle() {
+    workerExecutor.submit(() -> {
       Event event = null;
       try {
         event = eventQueue.dequeue();
@@ -232,9 +225,10 @@ public abstract class EventConsumerImpl implements EventConsumer {
         }
         holder.completed();
         metrics.consumerEnd(Instant.now().getEpochSecond() - start);
-        EventFuture eventFuture = EventFuture.future(event);
-        eventFuture.complete(event);
-        return eventFuture;
+        eventQueue.complete(event);
+        if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
+          consumerStorage.mark(event, 1);
+        }
       } catch (InterruptedException e) {
         Log.create(LOGGER)
                 .setLogType("eventbus-consumer")
@@ -244,9 +238,6 @@ public abstract class EventConsumerImpl implements EventConsumer {
 //        因此中断一个运行在线程池中的任务可以起到双重效果，一是取消任务，二是通知执行线程线程池正要关闭。如果任务生吞中断请求，则 worker
 // 线程将不知道有一个被请求的中断，从而耽误应用程序或服务的关闭
         Thread.currentThread().interrupt();
-        EventFuture eventFuture = EventFuture.future(event);
-        eventFuture.fail(e);
-        return eventFuture;
       } catch (Exception e) {
         Log.create(LOGGER)
                 .setLogType("eventbus")
@@ -254,11 +245,11 @@ public abstract class EventConsumerImpl implements EventConsumer {
                 .setTraceId(event.head().id())
                 .setThrowable(e)
                 .error();
-        EventFuture eventFuture = EventFuture.future(event);
-        eventFuture.fail(e);
-        return eventFuture;
+        if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
+          consumerStorage.mark(event, 2);
+        }
       }
-    }, workerExecutor);
+    });
   }
 
   /**

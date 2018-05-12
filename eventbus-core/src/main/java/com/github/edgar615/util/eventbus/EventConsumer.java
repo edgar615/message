@@ -1,10 +1,7 @@
 package com.github.edgar615.util.eventbus;
 
-import com.github.edgar615.util.event.Event;
-
 import java.util.Map;
 import java.util.function.BiPredicate;
-import java.util.function.Function;
 
 /**
  * Created by Edgar on 2017/4/18.
@@ -12,6 +9,16 @@ import java.util.function.Function;
  * @author Edgar  Date 2017/4/18
  */
 public interface EventConsumer {
+
+  /**
+   * 暂停读取消息
+   */
+  void pause();
+
+  /**
+   * 恢复读取消息
+   */
+  void resume();
 
   /**
    * 关闭

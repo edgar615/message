@@ -4,6 +4,6 @@ import com.github.edgar615.util.event.Event;
 
 public interface EventHandler {
 
-  void handle(Event event);
+  void handle(Event event) throws InterruptedException;
 
 }

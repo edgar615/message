@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author Edgar  Date 2017/3/22
  */
-public class SendEventTest {
+public class ProducerTest {
 
   @Test
   public void testSend() {
