@@ -13,7 +13,7 @@
     <groupId>com.github.edgar615</groupId>
     <artifactId>eventbus</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.8</version>
+    <version>1.0.9</version>
     <modules>
         <module>eventbus-core</module>
         <module>eventbus-kafka</module>
@@ -21,7 +21,7 @@
     </modules>
 
     <properties>
-        <release.version>1.0.8</release.version>
+        <release.version>1.0.9</release.version>
         <argLine>-Dfile.encoding=UTF-8</argLine>
         <java.version>1.8</java.version>
         <java.encoding>UTF-8</java.encoding>
