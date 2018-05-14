@@ -32,16 +32,18 @@ public abstract class EventProducerImpl implements EventProducer {
 
   private final ScheduledExecutorService scheduledExecutor =
           Executors.newSingleThreadScheduledExecutor(
-                  NamedThreadFactory.create("eventbus-scheduler"));
+                  NamedThreadFactory.create("eventbus-producer-scheduler"));
 
   private final ExecutorService producerExecutor
           = Executors.newFixedThreadPool(1, NamedThreadFactory.create("eventbus-producer"));
+
+  private final ExecutorService workExecutor;
 
   private final OrderQueue queue = new OrderQueue();
 
   private final ProducerMetrics metrics;
 
-  private final Callback callback;
+  private final EventCallback callback;
 
   private final long maxQuota;
 
@@ -66,16 +68,23 @@ public abstract class EventProducerImpl implements EventProducer {
       mark(event, future.succeeded() ? 1 : 2);
     };
     if (producerStorage != null) {
+      //只有开启持久化时才启动工作线程
       registerStorage(producerStorage);
+      workExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
+                                                  NamedThreadFactory.create
+                                                          ("eventbus-producer-worker"));
+    } else {
+      workExecutor = null;
     }
   }
 
-  public abstract EventFuture<Void> sendEvent(Event event);
+  public abstract EventFuture sendEvent(Event event);
 
   @Override
   public void send(Event event) {
     boolean persisted = false;
     if (producerStorage != null) {
+      //与调用方在同一个线程处理
       persisted = producerStorage.checkAndSave(event);
     }
 
@@ -128,6 +137,9 @@ public abstract class EventProducerImpl implements EventProducer {
   public void close() {
     producerExecutor.shutdown();
     scheduledExecutor.shutdown();
+    if (workExecutor != null) {
+      workExecutor.shutdown();
+    }
   }
 
   @Override
@@ -179,13 +191,16 @@ public abstract class EventProducerImpl implements EventProducer {
   private void mark(Event event, int status) {
     try {
       if (producerStorage != null && producerStorage.shouldStorage(event)) {
-        producerStorage.mark(event, status);
-        Log.create(LOGGER)
-                .setLogType("eventbus-producer")
-                .setEvent("mark")
-                .addData("status", status)
-                .setTraceId(event.head().id())
-                .debug();
+        //使用一个工作线程来存储
+        workExecutor.submit(() -> {
+          producerStorage.mark(event, status);
+          Log.create(LOGGER)
+                  .setLogType("eventbus-producer")
+                  .setEvent("mark")
+                  .addData("status", status)
+                  .setTraceId(event.head().id())
+                  .debug();
+        });
       }
     } catch (Exception e) {
       Log.create(LOGGER)

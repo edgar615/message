@@ -9,6 +9,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CompletableFuture;
+
 /**
  * Created by Edgar on 2017/4/19.
  *
@@ -29,8 +31,8 @@ public class KafkaEventProducer extends EventProducerImpl {
   }
 
   @Override
-  public EventFuture<Void> sendEvent(Event event) {
-    EventFuture<Void> future = EventFuture.future(event);
+  public EventFuture sendEvent(Event event) {
+    EventFuture future = EventFuture.future(event);
     ProducerRecord<String, Event> record =
             new ProducerRecord<>(event.head().to(), event);
     producer.send(record, (metadata, exception) -> {
@@ -47,7 +49,7 @@ public class KafkaEventProducer extends EventProducerImpl {
                 .addArg(Helper.toHeadString(event))
                 .addArg(Helper.toActionString(event))
                 .info();
-        future.complete(null);
+        future.complete();
       } else {
         Log.create(LOGGER)
                 .setLogType(LogType.MS)

@@ -5,8 +5,8 @@ package com.github.edgar615.util.eventbus;
  *
  * @author Edgar  Date 2017/3/24
  */
-public interface Callback<T> {
+public interface EventCallback {
 
-  void onCallBack(EventFuture<T> future);
+  void onCallBack(EventFuture future);
 
 }

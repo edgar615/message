@@ -200,4 +200,15 @@ public class KafkaProducerOptions extends ProducerOptions {
     return this;
   }
 
+  /**
+   * 设置worker线程池的大小，该线程池主要用户处理事件的业务逻辑
+   *
+   * @param workerPoolSize 线程池大小.
+   * @return KafkaProducerOptions
+   */
+  public KafkaProducerOptions setWorkerPoolSize(int workerPoolSize) {
+    super.setWorkerPoolSize(workerPoolSize);
+    return this;
+  }
+
 }

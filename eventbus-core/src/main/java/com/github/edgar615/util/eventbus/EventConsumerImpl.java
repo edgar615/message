@@ -13,9 +13,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.ServiceLoader;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -62,7 +60,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
     this.metrics = createMetrics();
     this.workerExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
                                                        NamedThreadFactory.create
-                                                               ("eventbus-worker"));
+                                                               ("eventbus-consumer-worker"));
     this.blockedCheckerMs = options.getBlockedCheckerMs();
     if (options.getBlockedCheckerMs() > 0) {
       this.scheduledExecutor =
@@ -88,6 +86,48 @@ public abstract class EventConsumerImpl implements EventConsumer {
     } else {
       this.eventQueue = new SequentialEventQueue(identificationExtractor, options.getMaxQuota());
     }
+  }
+
+  private final void handle() {
+    workerExecutor.submit(() -> {
+      Event event = null;
+      try {
+        event = eventQueue.dequeue();
+        long start = Instant.now().getEpochSecond();
+        BlockedEventHolder holder = BlockedEventHolder.create(event.head().id(), blockedCheckerMs);
+        if (checker != null) {
+          checker.register(holder);
+        }
+        metrics.consumerStart();
+        doHandle(event);
+        holder.completed();
+        long duration = Instant.now().getEpochSecond() - start;
+        metrics.consumerEnd(duration);
+        eventQueue.complete(event);
+        Log.create(LOGGER)
+                .setLogType("eventbus-consumer")
+                .setEvent("complete")
+                .setTraceId(event.head().id())
+                .addData("duration", duration)
+                .info();
+      } catch (InterruptedException e) {
+        Log.create(LOGGER)
+                .setLogType("eventbus-consumer")
+                .setEvent("handle")
+                .setThrowable(e)
+                .error();
+//        因此中断一个运行在线程池中的任务可以起到双重效果，一是取消任务，二是通知执行线程线程池正要关闭。如果任务生吞中断请求，则 worker
+// 线程将不知道有一个被请求的中断，从而耽误应用程序或服务的关闭
+        Thread.currentThread().interrupt();
+      } catch (Exception e) {
+        Log.create(LOGGER)
+                .setLogType("eventbus")
+                .setEvent("handle")
+                .setTraceId(event.head().id())
+                .setThrowable(e)
+                .error();
+      }
+    });
   }
 
   @Override
@@ -160,7 +200,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
    */
   protected void enqueue(Event event) {
     if (consumerStorage != null && consumerStorage.shouldStorage(event)
-            && consumerStorage.isConsumed(event)) {
+        && consumerStorage.isConsumed(event)) {
       Log.create(LOGGER)
               .setLogType("event-consumer")
               .setEvent("RepeatedConsumer")
@@ -168,7 +208,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
               .info();
       return;
     }
-    if (blackListFilter != null &&blackListFilter.apply(event)) {
+    if (blackListFilter != null && blackListFilter.apply(event)) {
       Log.create(LOGGER)
               .setLogType("event-consumer")
               .setEvent("blacklist")
@@ -197,59 +237,37 @@ public abstract class EventConsumerImpl implements EventConsumer {
     return running;
   }
 
-  private final void handle() {
-    workerExecutor.submit(() -> {
-      Event event = null;
-      try {
-        event = eventQueue.dequeue();
-        long start = Instant.now().getEpochSecond();
-        BlockedEventHolder holder = BlockedEventHolder.create(event, blockedCheckerMs);
-        if (checker != null) {
-          checker.register(holder);
-        }
-        metrics.consumerStart();
-        List<EventHandler> handlers =
-                HandlerRegistration.instance()
-                        .getHandlers(event);
-        if (handlers == null || handlers.isEmpty()) {
-          Log.create(LOGGER)
-                  .setLogType("eventbus-consumer")
-                  .setEvent("handle")
-                  .setTraceId(event.head().id())
-                  .setMessage("NO HANDLER")
-                  .warn();
-        } else {
-          for (EventHandler handler : handlers) {
-            handler.handle(event);
-          }
-        }
-        holder.completed();
-        metrics.consumerEnd(Instant.now().getEpochSecond() - start);
-        eventQueue.complete(event);
-        if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
-          consumerStorage.mark(event, 1);
-        }
-      } catch (InterruptedException e) {
+  private void doHandle(Event event) {
+    try {
+      List<EventHandler> handlers =
+              HandlerRegistration.instance()
+                      .getHandlers(event);
+      if (handlers == null || handlers.isEmpty()) {
         Log.create(LOGGER)
                 .setLogType("eventbus-consumer")
                 .setEvent("handle")
-                .setThrowable(e)
-                .error();
-//        因此中断一个运行在线程池中的任务可以起到双重效果，一是取消任务，二是通知执行线程线程池正要关闭。如果任务生吞中断请求，则 worker
-// 线程将不知道有一个被请求的中断，从而耽误应用程序或服务的关闭
-        Thread.currentThread().interrupt();
-      } catch (Exception e) {
-        Log.create(LOGGER)
-                .setLogType("eventbus")
-                .setEvent("handle")
                 .setTraceId(event.head().id())
-                .setThrowable(e)
-                .error();
-        if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
-          consumerStorage.mark(event, 2);
+                .setMessage("NO HANDLER")
+                .warn();
+      } else {
+        for (EventHandler handler : handlers) {
+          handler.handle(event);
         }
       }
-    });
+      if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
+        consumerStorage.mark(event, 1);
+      }
+    } catch (Exception e) {
+      Log.create(LOGGER)
+              .setLogType("eventbus")
+              .setEvent("handle")
+              .setTraceId(event.head().id())
+              .setThrowable(e)
+              .error();
+      if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
+        consumerStorage.mark(event, 2);
+      }
+    }
   }
 
   /**

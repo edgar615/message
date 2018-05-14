@@ -2,19 +2,17 @@ package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.event.Event;
 
-public interface EventFuture<T> {
-
-  Event event();
+public interface EventFuture {
 
   boolean isComplete();
 
-  EventFuture<T> setCallback(Callback<T> callback);
+  EventFuture setCallback(EventCallback callback);
 
-  void complete(T result);
+  void complete();
 
   void fail(Throwable throwable);
 
-  T result();
+  Event event();
 
   Throwable cause();
 
@@ -22,9 +20,10 @@ public interface EventFuture<T> {
 
   boolean failed();
 
-  static <T> EventFuture<T> future(Event event) {
-    return new EventFutureImpl<>(event);
+  long duration();
+
+  static EventFuture future(Event event) {
+    return new EventFutureImpl(event);
   }
 
-  void complete();
 }

@@ -22,7 +22,7 @@ public class RoundRobinProducer extends EventProducerImpl {
   }
 
   @Override
-  public EventFuture<Void> sendEvent(Event event) {
+  public EventFuture sendEvent(Event event) {
     if (block > 0) {
       try {
         TimeUnit.SECONDS.sleep(block);
@@ -30,9 +30,9 @@ public class RoundRobinProducer extends EventProducerImpl {
         e.printStackTrace();
       }
     }
-    EventFuture<Void> future = EventFuture.future(event);
+    EventFuture future = EventFuture.future(event);
     if (seq.getAndIncrement() % 2 == 0) {
-      future.complete(null);
+      future.complete();
     } else {
       future.fail(new RuntimeException("failed"));
     }

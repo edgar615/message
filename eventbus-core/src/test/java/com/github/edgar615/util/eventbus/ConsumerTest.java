@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ConsumerTest {
 
   @Test
-  public void testConsumer() {
+  public void testConsumer() throws InterruptedException {
     ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(5)
             .setMaxQuota(10);
     AtomicInteger count = new AtomicInteger();
@@ -33,6 +33,7 @@ public class ConsumerTest {
       Event event = Event.create("DeviceControlEvent_1_3", message, 1);
       mockConsumer.pollEvent(event);
     }
+    TimeUnit.SECONDS.sleep(3);
     Awaitility.await().until(() -> count.get() == 100);
   }
 
@@ -100,7 +101,11 @@ public class ConsumerTest {
     MockConsumer mockConsumer = new MockConsumer(options, null, e -> e.action().resource(),null);
     mockConsumer.consumer((t, r) -> true, e -> {
       System.out.println(Thread.currentThread() + ":" + e.action().resource());
-      TimeUnit.MILLISECONDS.sleep(500);
+      try {
+        TimeUnit.MILLISECONDS.sleep(500);
+      } catch (InterruptedException e1) {
+        e1.printStackTrace();
+      }
       count.incrementAndGet();
     });
     for (int i = 0; i < 100; i++) {

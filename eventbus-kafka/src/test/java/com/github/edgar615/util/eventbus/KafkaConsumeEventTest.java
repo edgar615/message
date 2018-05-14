@@ -32,14 +32,14 @@ public class KafkaConsumeEventTest extends EventbusTest {
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);
       count.incrementAndGet();
-      int r = Integer.parseInt(e.action().resource());
-      if (r % 5 == 0) {
-        try {
-          TimeUnit.SECONDS.sleep(3);
-        } catch (InterruptedException e1) {
-          e1.printStackTrace();
-        }
-      }
+//      int r = Integer.parseInt(e.action().resource());
+//      if (r % 5 == 0) {
+//        try {
+//          TimeUnit.SECONDS.sleep(3);
+//        } catch (InterruptedException e1) {
+//          e1.printStackTrace();
+//        }
+//      }
     });
     try {
       TimeUnit.SECONDS.sleep(30);
