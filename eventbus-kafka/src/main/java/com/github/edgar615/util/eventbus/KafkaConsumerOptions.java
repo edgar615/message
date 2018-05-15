@@ -70,7 +70,7 @@ public class KafkaConsumerOptions extends ConsumerOptions {
 
   }
 
-  public Properties consumerProps() {
+  public Properties toProps() {
     Properties consumerProps = new Properties();
     consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
     consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, group);

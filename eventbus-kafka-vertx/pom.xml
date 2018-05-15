@@ -9,18 +9,54 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>eventbus-metric</artifactId>
+    <artifactId>eventbus-kafka-vertx</artifactId>
 
+    <properties>
+        <vertx.version>3.5.1</vertx.version>
+    </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.github.edgar615</groupId>
             <artifactId>eventbus-core</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-core</artifactId>
+            <groupId>com.github.edgar615</groupId>
+            <artifactId>eventbus-kafka</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-unit</artifactId>
+            <version>${vertx.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.edgar615</groupId>
+            <artifactId>eventbus-metric</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>

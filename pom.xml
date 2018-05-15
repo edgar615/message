@@ -18,6 +18,7 @@
         <module>eventbus-core</module>
         <module>eventbus-kafka</module>
         <module>eventbus-metric</module>
+        <module>eventbus-kafka-vertx</module>
     </modules>
 
     <properties>

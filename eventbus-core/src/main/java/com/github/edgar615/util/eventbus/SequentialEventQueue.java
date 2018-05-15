@@ -41,6 +41,16 @@ public class SequentialEventQueue implements EventQueue {
   }
 
   @Override
+  public synchronized boolean isFull() {
+    return elements.size() >= limit;
+  }
+
+  @Override
+  public synchronized boolean isLowWaterMark() {
+    return elements.size() <= limit / 2;
+  }
+
+  @Override
   public synchronized Event poll() {
     if (elements.isEmpty() || takeElement == null) {
       return null;

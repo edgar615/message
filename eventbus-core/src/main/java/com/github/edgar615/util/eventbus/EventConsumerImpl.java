@@ -44,8 +44,6 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   private Function<Event, Boolean> blackListFilter = event -> false;
 
-  private int maxQuota;
-
   private volatile boolean running = false;
 
   private ConsumerStorage consumerStorage;
@@ -73,7 +71,6 @@ public abstract class EventConsumerImpl implements EventConsumer {
       checker = null;
       this.scheduledExecutor = null;
     }
-    maxQuota = options.getMaxQuota();
     running = true;
     this.consumerStorage = consumerStorage;
     if (blackListFilter == null) {
@@ -177,6 +174,10 @@ public abstract class EventConsumerImpl implements EventConsumer {
     consumer(predicate, handler);
   }
 
+  protected EventQueue queue() {
+    return eventQueue;
+  }
+
   protected void enqueue(List<Event> events) {
     List<String> consumedEvents = checkConsumed(events);
     List<String> blacklistEvents = checkBlacklist(events, consumedEvents);
@@ -226,8 +227,13 @@ public abstract class EventConsumerImpl implements EventConsumer {
   }
 
   protected boolean isFull() {
-    return eventQueue.size() >= maxQuota;
+    return eventQueue.isFull();
   }
+
+  protected boolean isLowWaterMark() {
+    return eventQueue.isLowWaterMark();
+  }
+
 
   protected int size() {
     return eventQueue.size();

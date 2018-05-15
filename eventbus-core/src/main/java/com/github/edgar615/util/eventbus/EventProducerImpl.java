@@ -168,7 +168,11 @@ public abstract class EventProducerImpl implements EventProducer {
     if (producerStorage != null) {
       Runnable scheduledCommand = () -> {
         List<Event> pending = producerStorage.pendingList();
-        pending.forEach(e -> send(e));
+        for (Event event: pending) {
+          //在消息头加上一个标识符，标明是从存储中读取，不在进行持久化
+          event.head().addExt("__storage", "1");
+          send(event);
+        }
       };
       scheduledExecutor
               .scheduleAtFixedRate(scheduledCommand, fetchPendingPeriod, fetchPendingPeriod,
@@ -212,4 +216,5 @@ public abstract class EventProducerImpl implements EventProducer {
               .warn();
     }
   }
+
 }
