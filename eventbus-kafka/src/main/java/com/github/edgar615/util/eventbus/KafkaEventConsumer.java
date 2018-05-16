@@ -2,6 +2,7 @@ package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.event.Event;
 
+import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -42,7 +43,22 @@ public class KafkaEventConsumer extends EventConsumerImpl {
                             Function<Event, String> identificationExtractor,
                             Function<Event, Boolean> blackListFilter) {
     super(options, consumerStorage, identificationExtractor, blackListFilter);
-    this.readStream = new KafkaReadStream(options, queue());
+    this.readStream = new KafkaReadStream(options) {
+      @Override
+      public void handleEvents(List<Event> events) {
+        enqueue(events);
+      }
+
+      @Override
+      public boolean checkPauseCondition() {
+        return isFull();
+      }
+
+      @Override
+      public boolean checkResumeCondition() {
+        return isLowWaterMark();
+      }
+    };
   }
 
   @Override

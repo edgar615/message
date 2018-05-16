@@ -5,10 +5,12 @@ package com.github.edgar615.util.eventbus.vertx;
  *
  * @author Edgar  Date 2018/5/15
  */
-public interface VertxEventConsumer {
+public interface VertxEventbusKafkaConsumer {
   void pause();
 
   void resume();
 
   void close();
+
+  long waitForHandle();
 }

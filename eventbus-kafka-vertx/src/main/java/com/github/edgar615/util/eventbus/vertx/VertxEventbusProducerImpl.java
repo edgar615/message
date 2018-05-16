@@ -4,9 +4,6 @@ import com.github.edgar615.util.event.Event;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.kafka.client.producer.KafkaProducer;
-import io.vertx.kafka.client.producer.KafkaProducerRecord;
-import io.vertx.kafka.client.producer.RecordMetadata;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +19,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Created by Edgar on 2017/4/18.
@@ -40,7 +38,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   private final ConsumerMetrics metrics;
 
-  private EventQueue eventQueue;
+  private final EventQueue eventQueue;
 
   private Function<Event, Boolean> blackListFilter = event -> false;
 
@@ -96,7 +94,11 @@ public abstract class EventConsumerImpl implements EventConsumer {
           checker.register(holder);
         }
         metrics.consumerStart();
-        doHandle(event);
+        if (isConsumed(event) || isBlackList(event)) {
+          //忽略 handle
+        } else {
+          doHandle(event);
+        }
         holder.completed();
         long duration = Instant.now().getEpochSecond() - start;
         metrics.consumerEnd(duration);
@@ -174,41 +176,15 @@ public abstract class EventConsumerImpl implements EventConsumer {
     consumer(predicate, handler);
   }
 
-  protected EventQueue queue() {
-    return eventQueue;
-  }
-
   protected void enqueue(List<Event> events) {
-    List<String> consumedEvents = checkConsumed(events);
-    List<String> blacklistEvents = checkBlacklist(events, consumedEvents);
-
-    //入队
-    List<Event> enqueEvents = events.stream().filter(e -> !consumedEvents.contains(e.head().id()))
-            .filter(e -> !blacklistEvents.contains(e.head().id()))
-            .collect(Collectors.toList());
-    eventQueue.enqueue(enqueEvents);
+    eventQueue.enqueue(events);
     //只提交任务不属于黑名单的消息
-    for (Event event : enqueEvents) {
+    for (Event event : events) {
       handle();
     }
   }
 
-  /**
-   * 入队，如果入队后队列中的任务数量超过了最大数量，暂停消息的读取
-   *
-   * @param event
-   * @return 如果队列中的长度超过最大数量，返回false
-   */
-  protected void enqueue(Event event) {
-    if (consumerStorage != null && consumerStorage.shouldStorage(event)
-        && consumerStorage.isConsumed(event)) {
-      Log.create(LOGGER)
-              .setLogType("event-consumer")
-              .setEvent("RepeatedConsumer")
-              .setTraceId(event.head().id())
-              .info();
-      return;
-    }
+  private boolean isBlackList(Event event) {
     if (blackListFilter != null && blackListFilter.apply(event)) {
       Log.create(LOGGER)
               .setLogType("event-consumer")
@@ -218,8 +194,18 @@ public abstract class EventConsumerImpl implements EventConsumer {
       if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
         consumerStorage.mark(event, 3);
       }
-      return;
+      return true;
     }
+    return false;
+  }
+
+  /**
+   * 入队，如果入队后队列中的任务数量超过了最大数量，暂停消息的读取
+   *
+   * @param event
+   * @return 如果队列中的长度超过最大数量，返回false
+   */
+  protected void enqueue(Event event) {
     //先入队
     eventQueue.enqueue(event);
     //提交任务，这里只是创建了一个runnable交由线程池处理，而这个runnable并不一定真正的处理的是当前的event（根据队列的实现来）
@@ -234,13 +220,25 @@ public abstract class EventConsumerImpl implements EventConsumer {
     return eventQueue.isLowWaterMark();
   }
 
-
   protected int size() {
     return eventQueue.size();
   }
 
   protected boolean isRunning() {
     return running;
+  }
+
+  private boolean isConsumed(Event event) {
+    if (consumerStorage != null && consumerStorage.shouldStorage(event)
+        && consumerStorage.isConsumed(event)) {
+      Log.create(LOGGER)
+              .setLogType("event-consumer")
+              .setEvent("RepeatedConsumer")
+              .setTraceId(event.head().id())
+              .info();
+      return true;
+    }
+    return false;
   }
 
   private void doHandle(Event event) {
@@ -274,59 +272,6 @@ public abstract class EventConsumerImpl implements EventConsumer {
         consumerStorage.mark(event, 2);
       }
     }
-  }
-
-  /**
-   * 过滤重复消费
-   *
-   * @param events
-   * @return
-   */
-  private List<String> checkConsumed(List<Event> events) {
-    if (consumerStorage == null) {
-      return new ArrayList<>();
-    }
-    //过滤掉重复消费的
-    List<String> ids = (events.stream()
-            .filter(e -> consumerStorage.shouldStorage(e))
-            .filter(e -> consumerStorage.isConsumed(e))
-            .map(e -> e.head().id())
-            .collect(Collectors.toList()));
-    for (String id : ids) {
-      Log.create(LOGGER)
-              .setLogType("event-consumer")
-              .setEvent("RepeatedConsumer")
-              .setTraceId(id)
-              .info();
-    }
-    return ids;
-  }
-
-  /**
-   * 过滤黑名单
-   *
-   * @param events
-   * @param consumedEvents
-   */
-  private List<String> checkBlacklist(List<Event> events, List<String> consumedEvents) {
-    if (blackListFilter == null) {
-      return new ArrayList<>();
-    }
-    List<Event> blacklistEvents = events.stream().filter(e -> blackListFilter.apply(e))
-            .filter(e -> !consumedEvents.contains(e.head().id()))
-            .collect(Collectors.toList());
-    for (Event event : blacklistEvents) {
-      Log.create(LOGGER)
-              .setLogType("event-consumer")
-              .setEvent("blacklist")
-              .setTraceId(event.head().id())
-              .info();
-      if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
-        //标记为黑名单
-        consumerStorage.mark(event, 3);
-      }
-    }
-    return blacklistEvents.stream().map(e -> e.head().id()).collect(Collectors.toList());
   }
 
   private ConsumerMetrics createMetrics() {

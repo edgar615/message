@@ -1,9 +1,7 @@
 package com.github.edgar615.util.eventbus.vertx;
 
 import com.github.edgar615.util.event.Event;
-import com.github.edgar615.util.eventbus.EventConsumer;
 import com.github.edgar615.util.eventbus.KafkaConsumerOptions;
-import com.github.edgar615.util.eventbus.KafkaEventConsumer;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.slf4j.Logger;
@@ -33,13 +31,14 @@ public class VertxKafkaConsumeEventTest {
             .setMaxPollRecords(1)
             .setMaxQuota(5)
             .setConsumerAutoOffsetRest("earliest");
-    VertxEventConsumer consumer = new VertxEventConsumerImpl(vertx, options);
+    VertxEventbusKafkaConsumer consumer = new VertxEventbusKafkaConsumerImpl(vertx, options);
     AtomicInteger count = new AtomicInteger();
     VertxEventHandler handler = new VertxEventHandler() {
       @Override
       public void handle(Event event, Future<Void> completeFuture) {
         logger.info("---| handle {}", event);
         count.incrementAndGet();
+        vertx.setTimer(1000, l -> completeFuture.complete());
       }
     }.register(null, null);
     try {
