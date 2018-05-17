@@ -146,7 +146,7 @@ class KafkaVertxEventbusConsumerImpl implements KafkaVertxEventbusConsumer {
   private boolean isBlackList(Event event) {
     if (blackListFilter != null && blackListFilter.apply(event)) {
       Log.create(LOGGER)
-              .setLogType("event-consumer")
+              .setLogType(LOG_TYPE)
               .setEvent("blacklist")
               .setTraceId(event.head().id())
               .info();
@@ -195,7 +195,7 @@ class KafkaVertxEventbusConsumerImpl implements KafkaVertxEventbusConsumer {
                       .collect(Collectors.toList());
       if (handlers == null || handlers.isEmpty()) {
         Log.create(LOGGER)
-                .setLogType("eventbus-consumer")
+                .setLogType(LOG_TYPE)
                 .setEvent("handle")
                 .setTraceId(event.head().id())
                 .setMessage("NO HANDLER")

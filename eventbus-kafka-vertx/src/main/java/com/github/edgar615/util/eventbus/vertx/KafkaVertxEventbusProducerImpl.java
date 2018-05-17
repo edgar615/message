@@ -1,5 +1,6 @@
 package com.github.edgar615.util.eventbus.vertx;
 
+import com.github.edgar615.util.concurrent.NamedThreadFactory;
 import com.github.edgar615.util.event.Event;
 import com.github.edgar615.util.eventbus.Helper;
 import com.github.edgar615.util.eventbus.KafkaProducerOptions;
@@ -24,6 +25,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -33,6 +36,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 class KafkaVertxEventbusProducerImpl implements KafkaVertxEventbusProducer {
   private static final Logger LOGGER = LoggerFactory.getLogger(KafkaVertxEventbusProducer.class);
+
+  private static final String LOG_TYPE = "eventbus-producer";
 
   private final Vertx vertx;
 
@@ -47,6 +52,9 @@ class KafkaVertxEventbusProducerImpl implements KafkaVertxEventbusProducer {
   private final long fetchPendingPeriod;
 
   private final ProducerMetrics metrics;
+
+  //如果使用vertx.executeBlocking来执行发送，可能worker线程会有过多的任务导致发送延迟，所以改用一个线程池来实现
+  private final ExecutorService producerExecutor;
 
   KafkaVertxEventbusProducerImpl(Vertx vertx, KafkaProducerOptions options) {
     this(vertx, options, null);
@@ -63,6 +71,8 @@ class KafkaVertxEventbusProducerImpl implements KafkaVertxEventbusProducer {
     if (storage != null) {
       schedule(fetchPendingPeriod);
     }
+    this.producerExecutor =
+            Executors.newFixedThreadPool(1, NamedThreadFactory.create(LOG_TYPE));
   }
 
   @Override
@@ -82,9 +92,9 @@ class KafkaVertxEventbusProducerImpl implements KafkaVertxEventbusProducer {
     }
     long current = Instant.now().getEpochSecond();
     if (event.head().duration() > 0
-        && current > event.head().timestamp() + event.head().duration()) {
+            && current > event.head().timestamp() + event.head().duration()) {
       Log.create(LOGGER)
-              .setLogType("eventbus-producer")
+              .setLogType(LOG_TYPE)
               .setEvent("EXPIRE")
               .setTraceId(event.head().id())
               .setMessage("[{}] [{}] [{}] [{}]")
@@ -94,80 +104,86 @@ class KafkaVertxEventbusProducerImpl implements KafkaVertxEventbusProducer {
               .addArg(Helper.toActionString(event))
               .info();
       if (producerStorage != null
-          && producerStorage.shouldStorage(event)) {
+              && producerStorage.shouldStorage(event)) {
         producerStorage.mark(event, 3,
-                             Future.<Void>future().completer());
+                Future.<Void>future().completer());
       }
       resultHandler.handle(Future.succeededFuture());
       return;
     }
+    Future<Void> future = sendEvent(event);
+    future.setHandler(ar -> {
+      int remaning = len.decrementAndGet();
+      //当队列中的数量小于最大数量的一半时，从持久层中加载队列
+      if (producerStorage != null && remaning < maxQuota / 2) {
+        schedule(0);
+      }
+      if (ar.failed()) {
+        if (producerStorage != null
+                && producerStorage.shouldStorage(event)) {
+          producerStorage.mark(event, 2,
+                  Future.<Void>future().completer());
+        }
+        resultHandler.handle(Future.failedFuture(ar.cause()));
+      } else {
+        if (producerStorage != null
+                && producerStorage.shouldStorage(event)) {
+          producerStorage.mark(event, 1,
+                  Future.<Void>future().completer());
+        }
+        resultHandler.handle(Future.succeededFuture());
+      }
+    });
 
-    vertx.executeBlocking(f -> {
-                            len.incrementAndGet();
-                            metrics.sendStart();
-                            long start = System.currentTimeMillis();
-                            ProducerRecord<String, Event> record =
-                                    new ProducerRecord<>(event.head().to(), event);
-                            producer.send(record, (metadata, exception) -> {
-                              if (exception == null) {
-                                Log.create(LOGGER)
-                                        .setLogType(LogType.MS)
-                                        .setEvent("kafka")
-                                        .setTraceId(event.head().id())
-                                        .setMessage("[{},{},{}] [{}] [{}] [{}]")
-                                        .addArg(metadata.topic())
-                                        .addArg(metadata.partition())
-                                        .addArg(metadata.offset())
-                                        .addArg(event.head().action())
-                                        .addArg(Helper.toHeadString(event))
-                                        .addArg(Helper.toActionString(event))
-                                        .info();
-                                metrics.sendEnd(true, System.currentTimeMillis() - start);
-                                f.complete();
-                              } else {
-                                Log.create(LOGGER)
-                                        .setLogType(LogType.MS)
-                                        .setEvent("kafka")
-                                        .setTraceId(event.head().id())
-                                        .setMessage("[{}] [{}] [{}]")
-                                        .addArg(event.head().action())
-                                        .addArg(Helper.toHeadString(event))
-                                        .addArg(Helper.toActionString(event))
-                                        .setThrowable(exception)
-                                        .error();
-                                metrics.sendEnd(false, System.currentTimeMillis() - start);
-                                f.fail(exception);
-                              }
-                            });
-                          }, ar ->
-                                  vertx.runOnContext(v -> {
-                                    int remaning = len.decrementAndGet();
-                                    //当队列中的数量小于最大数量的一半时，从持久层中记载队列
-                                    if (producerStorage != null && remaning < maxQuota / 2) {
-                                      schedule(0);
-                                    }
-                                    if (ar.failed()) {
-                                      if (producerStorage != null
-                                          && producerStorage.shouldStorage(event)) {
-                                        producerStorage.mark(event, 2,
-                                                             Future.<Void>future().completer());
-                                      }
-                                      resultHandler.handle(Future.failedFuture(ar.cause()));
-                                    } else {
-                                      if (producerStorage != null
-                                          && producerStorage.shouldStorage(event)) {
-                                        producerStorage.mark(event, 1,
-                                                             Future.<Void>future().completer());
-                                      }
-                                      resultHandler.handle(Future.succeededFuture());
-                                    }
-                                  })
-    );
+  }
+
+  private Future<Void> sendEvent(Event event) {
+    Future<Void> future = Future.future();
+    producerExecutor.submit(() -> {
+      len.incrementAndGet();
+      metrics.sendStart();
+      long start = System.currentTimeMillis();
+      ProducerRecord<String, Event> record =
+              new ProducerRecord<>(event.head().to(), event);
+      producer.send(record, (metadata, exception) -> {
+        if (exception == null) {
+          Log.create(LOGGER)
+                  .setLogType(LogType.MS)
+                  .setEvent("kafka")
+                  .setTraceId(event.head().id())
+                  .setMessage("[{},{},{}] [{}] [{}] [{}]")
+                  .addArg(metadata.topic())
+                  .addArg(metadata.partition())
+                  .addArg(metadata.offset())
+                  .addArg(event.head().action())
+                  .addArg(Helper.toHeadString(event))
+                  .addArg(Helper.toActionString(event))
+                  .info();
+          metrics.sendEnd(true, System.currentTimeMillis() - start);
+          future.complete();
+        } else {
+          Log.create(LOGGER)
+                  .setLogType(LogType.MS)
+                  .setEvent("kafka")
+                  .setTraceId(event.head().id())
+                  .setMessage("[{}] [{}] [{}]")
+                  .addArg(event.head().action())
+                  .addArg(Helper.toHeadString(event))
+                  .addArg(Helper.toActionString(event))
+                  .setThrowable(exception)
+                  .error();
+          metrics.sendEnd(false, System.currentTimeMillis() - start);
+          future.fail(exception);
+        }
+      });
+    });
+    return future;
   }
 
   @Override
   public void close() {
     producer.close();
+    producerExecutor.shutdown();
   }
 
   @Override
@@ -198,7 +214,7 @@ class KafkaVertxEventbusProducerImpl implements KafkaVertxEventbusProducer {
         if (pending.isEmpty() && len.get() == 0) {
           schedule(fetchPendingPeriod);
         } else {
-          for (Event event: pending) {
+          for (Event event : pending) {
             //在消息头加上一个标识符，标明是从存储中读取，不在进行持久化
             event.head().addExt("__storage", "1");
             send(event, Future.<Void>future().completer());
