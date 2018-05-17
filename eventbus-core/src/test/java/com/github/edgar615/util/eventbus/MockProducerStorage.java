@@ -6,6 +6,7 @@ import com.github.edgar615.util.event.Event;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -17,6 +18,8 @@ public class MockProducerStorage implements ProducerStorage {
 
   private final List<Event> events = new ArrayList<>();
 
+  private AtomicInteger pendCount = new AtomicInteger();
+
   @Override
   public boolean shouldStorage(Event event) {
     return !event.head().to().equalsIgnoreCase("SMS");
@@ -24,14 +27,16 @@ public class MockProducerStorage implements ProducerStorage {
 
   @Override
   public void save(Event event) {
-    event.head().addExt("status", "0");
     events.add(event);
   }
 
   @Override
   public List<Event> pendingList() {
-    return events.stream().filter(e -> e.head().ext("status").equalsIgnoreCase("0"))
+    pendCount.incrementAndGet();
+    List<Event> plist = events.stream().filter(e -> !e.head().ext().containsKey("status"))
             .collect(Collectors.toList());
+    plist.forEach(e -> e.head().addExt("status", "0"));
+    return new ArrayList<>(plist);
   }
 
   @Override
@@ -49,4 +54,7 @@ public class MockProducerStorage implements ProducerStorage {
     return this;
   }
 
+  public int getPendCount() {
+    return pendCount.get();
+  }
 }

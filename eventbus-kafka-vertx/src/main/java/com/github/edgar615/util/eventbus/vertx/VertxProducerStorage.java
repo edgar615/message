@@ -1,6 +1,8 @@
 package com.github.edgar615.util.eventbus.vertx;
 
 import com.github.edgar615.util.event.Event;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 
 import java.util.List;
 
@@ -23,12 +25,12 @@ public interface VertxProducerStorage {
    *
    * @param event 事件
    */
-  void save(Event event);
+  void save(Event event, Handler<AsyncResult<Void>> resultHandler);
 
   /**
    * @return 待发送的事件列表
    */
-  List<Event> pendingList();
+  void pendingList(Handler<AsyncResult<List<Event>>> resultHandler);
 
   /**
    * 标记事件,这个方法应该尽量不要阻塞线程，否则会影响发布事件的性能。
@@ -36,14 +38,6 @@ public interface VertxProducerStorage {
    * @param event
    * @param status 1-成功，2-失败 3-过期
    */
-  void mark(Event event, int status);
-
-  default boolean checkAndSave(Event event) {
-    if (shouldStorage(event)) {
-      save(event);
-      return true;
-    }
-    return false;
-  }
+  void mark(Event event, int status, Handler<AsyncResult<Void>> resultHandler);
 
 }

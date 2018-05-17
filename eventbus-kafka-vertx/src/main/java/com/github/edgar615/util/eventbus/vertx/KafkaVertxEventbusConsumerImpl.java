@@ -8,6 +8,8 @@ import com.github.edgar615.util.eventbus.KafkaConsumerOptions;
 import com.github.edgar615.util.eventbus.KafkaReadStream;
 import com.github.edgar615.util.eventbus.SequentialEventQueue;
 import com.github.edgar615.util.log.Log;
+import com.github.edgar615.util.metrics.ConsumerMetrics;
+import com.github.edgar615.util.metrics.DummyMetrics;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -17,7 +19,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -26,10 +31,10 @@ import java.util.stream.Collectors;
  *
  * @author Edgar  Date 2018/5/15
  */
-public class VertxEventbusKafkaConsumerImpl implements VertxEventbusKafkaConsumer {
+class KafkaVertxEventbusConsumerImpl implements KafkaVertxEventbusConsumer {
 
   private static final Logger LOGGER =
-          LoggerFactory.getLogger(VertxEventbusKafkaConsumerImpl.class);
+          LoggerFactory.getLogger(KafkaVertxEventbusConsumerImpl.class);
 
   private static final String LOG_TYPE = "eventbus-consumer";
 
@@ -45,15 +50,18 @@ public class VertxEventbusKafkaConsumerImpl implements VertxEventbusKafkaConsume
 
   private Function<Event, Boolean> blackListFilter = event -> false;
 
-  public VertxEventbusKafkaConsumerImpl(Vertx vertx, KafkaConsumerOptions options) {
+  private final ConsumerMetrics metrics;
+
+  KafkaVertxEventbusConsumerImpl(Vertx vertx, KafkaConsumerOptions options) {
     this(vertx, options, null, null, null);
   }
 
-  public VertxEventbusKafkaConsumerImpl(Vertx vertx, KafkaConsumerOptions options,
+  KafkaVertxEventbusConsumerImpl(Vertx vertx, KafkaConsumerOptions options,
                                         VertxConsumerStorage consumerStorage,
                                         Function<Event, String> identificationExtractor,
                                         Function<Event, Boolean> blackListFilter) {
     this.vertx = vertx;
+    this.metrics = createMetrics();
     this.consumerStorage = consumerStorage;
     if (blackListFilter == null) {
       this.blackListFilter = e -> false;
@@ -111,6 +119,22 @@ public class VertxEventbusKafkaConsumerImpl implements VertxEventbusKafkaConsume
     return eventQueue.size();
   }
 
+  @Override
+  public Map<String, Object> metrics() {
+    return metrics.metrics();
+  }
+
+  private ConsumerMetrics createMetrics() {
+    ServiceLoader<ConsumerMetrics> metrics = ServiceLoader.load(ConsumerMetrics.class);
+    Iterator<ConsumerMetrics> iterator = metrics.iterator();
+    if (!iterator.hasNext()) {
+      return new DummyMetrics();
+    } else {
+      return iterator.next();
+    }
+  }
+
+
   private void schedule(long delay) {
     if (delay > 0) {
       vertx.setTimer(delay, l -> run(resultHandler));
@@ -126,9 +150,6 @@ public class VertxEventbusKafkaConsumerImpl implements VertxEventbusKafkaConsume
               .setEvent("blacklist")
               .setTraceId(event.head().id())
               .info();
-//      if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
-//        consumerStorage.mark(event, 3);
-//      }
       return true;
     }
     return false;
@@ -158,60 +179,53 @@ public class VertxEventbusKafkaConsumerImpl implements VertxEventbusKafkaConsume
     doHandle(event, resultHandler);
   }
 
-  private void persistResult(Event event, AsyncResult<Event> asyncResult,
-                             Handler<AsyncResult<Event>> resultHandler) {
-    if (asyncResult.failed()) {
-      consumerStorage.mark(event, 2, ar -> {
-        resultHandler.handle(Future.succeededFuture(event));
-      });
-      return;
-    }
-    consumerStorage.mark(event, 1, ar -> {
-      resultHandler.handle(Future.succeededFuture(event));
-    });
-  }
-
   private void doHandle(Event event, Handler<AsyncResult<Event>> resultHandler) {
+    metrics.consumerStart();
     //黑名单检查
+    long start = System.currentTimeMillis();
+    Future<Integer> completeFuture = Future.future();
     if (isBlackList(event)) {
-      resultHandler.handle(Future.succeededFuture(event));
-      return;
-    }
-    List<VertxEventHandler> handlers =
-            HandlerRegistration.instance()
-                    .getHandlers(event)
-                    .stream().filter(h -> h instanceof VertxEventHandler)
-                    .map(h -> (VertxEventHandler) h)
-                    .collect(Collectors.toList());
-    Future<Void> completeFuture = Future.future();
-    if (handlers == null || handlers.isEmpty()) {
-      Log.create(LOGGER)
-              .setLogType("eventbus-consumer")
-              .setEvent("handle")
-              .setTraceId(event.head().id())
-              .setMessage("NO HANDLER")
-              .warn();
-      completeFuture.complete();
+      completeFuture.complete(3);
     } else {
-      List<Future> futures = new ArrayList<>();
-      for (VertxEventHandler handler : handlers) {
-        Future<Void> future = Future.future();
-        futures.add(future);
-        handler.handle(event, future);
+      List<VertxEventHandler> handlers =
+              HandlerRegistration.instance()
+                      .getHandlers(event)
+                      .stream().filter(h -> h instanceof VertxEventHandler)
+                      .map(h -> (VertxEventHandler) h)
+                      .collect(Collectors.toList());
+      if (handlers == null || handlers.isEmpty()) {
+        Log.create(LOGGER)
+                .setLogType("eventbus-consumer")
+                .setEvent("handle")
+                .setTraceId(event.head().id())
+                .setMessage("NO HANDLER")
+                .warn();
+        completeFuture.complete(1);
+      } else {
+        List<Future> futures = new ArrayList<>();
+        for (VertxEventHandler handler : handlers) {
+          Future<Void> future = Future.future();
+          futures.add(future);
+          handler.handle(event, future);
+        }
+        CompositeFuture.all(futures)
+                .setHandler(ar -> completeFuture.complete(ar.succeeded() ? 1 : 2));
       }
-      CompositeFuture.all(futures)
-              .setHandler(ar -> {
-                completeFuture.complete();
-              });
     }
     //持久化
     if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
       completeFuture.setHandler(ar -> {
-        consumerStorage.mark(event, ar.succeeded() ? 1 : 2,
-                             par -> resultHandler.handle(Future.succeededFuture(event)));
+        consumerStorage.mark(event, ar.succeeded() ? ar.result() : 2,
+                             par -> {
+                               metrics.consumerEnd(System.currentTimeMillis() - start);
+                               resultHandler.handle(Future.succeededFuture(event));
+                             });
       });
     } else {
-      completeFuture.setHandler(ar -> resultHandler.handle(Future.succeededFuture(event)));
+      completeFuture.setHandler(ar ->{
+        metrics.consumerEnd(System.currentTimeMillis() - start);
+        resultHandler.handle(Future.succeededFuture(event));
+      });
     }
   }
 }

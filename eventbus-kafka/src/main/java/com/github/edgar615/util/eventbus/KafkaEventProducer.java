@@ -55,14 +55,14 @@ public class KafkaEventProducer extends EventProducerImpl {
                 .setLogType(LogType.MS)
                 .setEvent("kafka")
                 .setTraceId(event.head().id())
-                .setMessage("[{},{},{}] [{}] [{}] [{}]")
-                .addArg(metadata.topic())
-                .addArg(metadata.partition())
-                .addArg(metadata.offset())
+                .setMessage("[{}] [{}] [{}]")
+//                .addArg(metadata.topic())
+//                .addArg(metadata.partition())
+//                .addArg(metadata.offset())
                 .addArg(event.head().action())
                 .addArg(Helper.toHeadString(event))
                 .addArg(Helper.toActionString(event))
-                .setThrowable(future.cause())
+                .setThrowable(exception)
                 .error();
         future.fail(exception);
       }

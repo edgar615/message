@@ -45,12 +45,4 @@ public interface ProducerStorage {
    */
   void mark(Event event, int status);
 
-  default boolean checkAndSave(Event event) {
-    String storage = event.head().ext("__storage");
-    if (shouldStorage(event) && !"1".equals(storage)) {
-      save(event);
-      return true;
-    }
-    return false;
-  }
 }

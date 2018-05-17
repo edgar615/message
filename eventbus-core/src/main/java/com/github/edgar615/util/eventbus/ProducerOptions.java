@@ -14,7 +14,7 @@ public class ProducerOptions {
           2 * Runtime.getRuntime().availableProcessors();
 
 
-  private static long DEFAULT_PERIOD = 5 * 60 * 1000;
+  private static long DEFAULT_PERIOD = 10 * 1000;
 
   private static int DEFAULT_MAX_QUOTA = 30000;
 
