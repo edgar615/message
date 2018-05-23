@@ -5,15 +5,14 @@
     <parent>
         <artifactId>eventbus</artifactId>
         <groupId>com.github.edgar615</groupId>
-        <version>1.0.10</version>
+        <version>1.0.9</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>eventbus-kafka</artifactId>
+    <artifactId>eventbus-kafka-vertx</artifactId>
 
     <properties>
-        <kafka.version>0.11.0.1</kafka.version>
-        <jackson.version>2.4.6</jackson.version>
+        <vertx.version>3.5.1</vertx.version>
     </properties>
 
     <dependencies>
@@ -28,19 +27,30 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
-            <version>${kafka.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
             <groupId>com.github.edgar615</groupId>
             <artifactId>eventbus-core</artifactId>
             <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.edgar615</groupId>
+            <artifactId>eventbus-kafka</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-dropwizard-metrics</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-unit</artifactId>
+            <version>${vertx.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -87,5 +97,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>
