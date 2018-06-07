@@ -11,6 +11,10 @@ import java.util.List;
  */
 public interface EventQueue {
 
+  boolean isFull();
+
+  boolean isLowWaterMark();
+
   /**
    * 不阻塞，如果没有合适的event，返回null
    * @return

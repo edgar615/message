@@ -45,11 +45,4 @@ public interface ProducerStorage {
    */
   void mark(Event event, int status);
 
-  default boolean checkAndSave(Event event) {
-    if (shouldStorage(event)) {
-      save(event);
-      return true;
-    }
-    return false;
-  }
 }

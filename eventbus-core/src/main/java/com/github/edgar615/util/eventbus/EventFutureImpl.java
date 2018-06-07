@@ -7,7 +7,7 @@ import com.github.edgar615.util.event.Event;
  *
  * @author Edgar  Date 2016/4/26
  */
-class EventFutureImpl<T> implements EventFuture<T> {
+class EventFutureImpl implements EventFuture {
 
   private final Event event;
 
@@ -15,20 +15,21 @@ class EventFutureImpl<T> implements EventFuture<T> {
 
   private boolean succeeded;
 
-  private T result;
-
   private Throwable throwable;
 
-  private Callback<T> callback;
+  private EventCallback callback;
+
+  private long start = System.currentTimeMillis();
+
+  private long duration;
 
   EventFutureImpl(Event event) {
     this.event = event;
   }
 
-
   @Override
-  public T result() {
-    return result;
+  public Event event() {
+    return event;
   }
 
   @Override
@@ -47,32 +48,22 @@ class EventFutureImpl<T> implements EventFuture<T> {
   }
 
   @Override
-  public void complete() {
-    complete(null);
-  }
-
-  @Override
-  public Event event() {
-    return event;
-  }
-
-  @Override
   public boolean isComplete() {
     return failed || succeeded;
   }
 
   @Override
-  public EventFuture<T> setCallback(Callback callback) {
+  public EventFuture setCallback(EventCallback callback) {
     this.callback = callback;
     checkCallback();
     return this;
   }
 
   @Override
-  public void complete(T result) {
+  public void complete() {
     checkComplete();
-    this.result = result;
-    succeeded = true;
+    this.succeeded = true;
+    this.duration = System.currentTimeMillis() - start;
     checkCallback();
   }
 
@@ -80,8 +71,14 @@ class EventFutureImpl<T> implements EventFuture<T> {
   public void fail(Throwable throwable) {
     checkComplete();
     this.throwable = throwable;
-    failed = true;
+    this.failed = true;
+    this.duration = System.currentTimeMillis() - start;
     checkCallback();
+  }
+
+  @Override
+  public long duration() {
+    return duration;
   }
 
   private void checkCallback() {
@@ -93,8 +90,7 @@ class EventFutureImpl<T> implements EventFuture<T> {
   private void checkComplete() {
     if (succeeded || failed) {
       throw new IllegalStateException(
-              "id:" + event.head().id()
-              + "Result is already complete: " + (succeeded ? "succeeded" : "failed:" + throwable));
+              "Result is already complete: " + (succeeded ? "succeeded" : "failed:" + throwable));
     }
   }
 }

@@ -23,7 +23,7 @@ public class BlockProducer extends EventProducerImpl {
   }
 
   @Override
-  public EventFuture<Void> sendEvent(Event event) {
+  public EventFuture sendEvent(Event event) {
     if (block > 0) {
       try {
         TimeUnit.SECONDS.sleep(block);
@@ -31,9 +31,9 @@ public class BlockProducer extends EventProducerImpl {
         e.printStackTrace();
       }
     }
-    EventFuture<Void> future = EventFuture.future(event);
+    EventFuture future = EventFuture.future(event);
     System.out.println("send:" + event);
-    future.complete(null);
+    future.complete();
     return future;
   }
 }

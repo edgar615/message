@@ -32,16 +32,18 @@ public abstract class EventProducerImpl implements EventProducer {
 
   private final ScheduledExecutorService scheduledExecutor =
           Executors.newSingleThreadScheduledExecutor(
-                  NamedThreadFactory.create("eventbus-scheduler"));
+                  NamedThreadFactory.create("eventbus-producer-scheduler"));
 
   private final ExecutorService producerExecutor
           = Executors.newFixedThreadPool(1, NamedThreadFactory.create("eventbus-producer"));
+
+  private final ExecutorService workExecutor;
 
   private final OrderQueue queue = new OrderQueue();
 
   private final ProducerMetrics metrics;
 
-  private final Callback callback;
+  private final EventCallback callback;
 
   private final long maxQuota;
 
@@ -64,22 +66,34 @@ public abstract class EventProducerImpl implements EventProducer {
       long duration = Instant.now().getEpochSecond() - event.head().timestamp();
       metrics.sendEnd(future.succeeded(), duration);
       mark(event, future.succeeded() ? 1 : 2);
+      //当队列中的数量小于最大数量的一半时，从持久层中记载队列
+      if (producerStorage != null && queue.size() < maxQuota / 2) {
+        schedule(0);
+      }
     };
     if (producerStorage != null) {
+      //只有开启持久化时才启动工作线程
       registerStorage(producerStorage);
+      workExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
+                                                  NamedThreadFactory.create
+                                                          ("eventbus-producer-worker"));
+    } else {
+      workExecutor = null;
     }
   }
 
-  public abstract EventFuture<Void> sendEvent(Event event);
+  public abstract EventFuture sendEvent(Event event);
 
   @Override
   public void send(Event event) {
-    boolean persisted = false;
-    if (producerStorage != null) {
-      persisted = producerStorage.checkAndSave(event);
+    String storage = event.head().ext("__storage");
+    //持久化的消息，就认为成功，可以直接返回，不在加入发送队列
+    if (producerStorage != null && !"1".equals(storage) && producerStorage.shouldStorage(event)) {
+      //与调用方在同一个线程处理
+      producerStorage.save(event);
+      return;
     }
-
-    if (queue.size() > maxQuota) {
+    if (queue.size() > maxQuota && !"1".equals(storage)) {
       Log.create(LOGGER)
               .setLogType("eventbus-producer")
               .setEvent("THROTTLE")
@@ -89,16 +103,10 @@ public abstract class EventProducerImpl implements EventProducer {
               .addArg(event.head().action())
               .addArg(Helper.toHeadString(event))
               .addArg(Helper.toActionString(event))
-              .info();
-      //持久化的消息，就认为成功，可以直接返回，未持久化的消息拒绝
-      if (persisted) {
-        return;
-      } else {
-        throw SystemException.create(DefaultErrorCode.TOO_MANY_REQ)
-                .set("maxQuota", maxQuota);
-      }
+              .warn();
+      throw SystemException.create(DefaultErrorCode.TOO_MANY_REQ)
+              .set("maxQuota", maxQuota);
     }
-
     Runnable command = () -> {
       long current = Instant.now().getEpochSecond();
       if (event.head().duration() > 0
@@ -128,6 +136,9 @@ public abstract class EventProducerImpl implements EventProducer {
   public void close() {
     producerExecutor.shutdown();
     scheduledExecutor.shutdown();
+    if (workExecutor != null) {
+      workExecutor.shutdown();
+    }
   }
 
   @Override
@@ -154,16 +165,32 @@ public abstract class EventProducerImpl implements EventProducer {
 //    }
     this.producerStorage = producerStorage;
     if (producerStorage != null) {
-      Runnable scheduledCommand = () -> {
-        List<Event> pending = producerStorage.pendingList();
-        pending.forEach(e -> send(e));
-      };
-      scheduledExecutor
-              .scheduleAtFixedRate(scheduledCommand, fetchPendingPeriod, fetchPendingPeriod,
-                                   TimeUnit
-                                           .MILLISECONDS);
+      schedule(fetchPendingPeriod);
     }
     return this;
+  }
+
+  private void schedule(long delay) {
+    Runnable scheduledCommand = () -> {
+      List<Event> pending = producerStorage.pendingList();
+      //如果queue的中有数据，那么schedule会在回调中执行
+      if (pending.isEmpty() && queue.size() == 0) {
+        schedule(fetchPendingPeriod);
+      } else {
+        for (Event event : pending) {
+          //在消息头加上一个标识符，标明是从存储中读取，不在进行持久化
+          event.head().addExt("__storage", "1");
+          send(event);
+        }
+      }
+
+    };
+    if (delay > 0) {
+      scheduledExecutor.schedule(scheduledCommand, delay, TimeUnit.MILLISECONDS);
+    } else {
+      //直接运行
+      scheduledExecutor.submit(scheduledCommand);
+    }
   }
 
   private ProducerMetrics createMetrics() {
@@ -179,13 +206,16 @@ public abstract class EventProducerImpl implements EventProducer {
   private void mark(Event event, int status) {
     try {
       if (producerStorage != null && producerStorage.shouldStorage(event)) {
-        producerStorage.mark(event, status);
-        Log.create(LOGGER)
-                .setLogType("eventbus-producer")
-                .setEvent("mark")
-                .addData("status", status)
-                .setTraceId(event.head().id())
-                .debug();
+        //使用一个工作线程来存储
+        workExecutor.submit(() -> {
+          producerStorage.mark(event, status);
+          Log.create(LOGGER)
+                  .setLogType("eventbus-producer")
+                  .setEvent("mark")
+                  .addData("status", status)
+                  .setTraceId(event.head().id())
+                  .debug();
+        });
       }
     } catch (Exception e) {
       Log.create(LOGGER)
@@ -197,4 +227,5 @@ public abstract class EventProducerImpl implements EventProducer {
               .warn();
     }
   }
+
 }

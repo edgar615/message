@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 
 import com.github.edgar615.util.event.Event;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 

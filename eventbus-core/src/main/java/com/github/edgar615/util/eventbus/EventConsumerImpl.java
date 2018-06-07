@@ -9,20 +9,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.ServiceLoader;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Created by Edgar on 2017/4/18.
@@ -42,11 +38,9 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   private final ConsumerMetrics metrics;
 
-  private EventQueue eventQueue;
+  private final EventQueue eventQueue;
 
   private Function<Event, Boolean> blackListFilter = event -> false;
-
-  private int maxQuota;
 
   private volatile boolean running = false;
 
@@ -62,7 +56,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
     this.metrics = createMetrics();
     this.workerExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
                                                        NamedThreadFactory.create
-                                                               ("eventbus-worker"));
+                                                               ("eventbus-consumer-worker"));
     this.blockedCheckerMs = options.getBlockedCheckerMs();
     if (options.getBlockedCheckerMs() > 0) {
       this.scheduledExecutor =
@@ -75,7 +69,6 @@ public abstract class EventConsumerImpl implements EventConsumer {
       checker = null;
       this.scheduledExecutor = null;
     }
-    maxQuota = options.getMaxQuota();
     running = true;
     this.consumerStorage = consumerStorage;
     if (blackListFilter == null) {
@@ -88,6 +81,52 @@ public abstract class EventConsumerImpl implements EventConsumer {
     } else {
       this.eventQueue = new SequentialEventQueue(identificationExtractor, options.getMaxQuota());
     }
+  }
+
+  private final void handle() {
+    workerExecutor.submit(() -> {
+      Event event = null;
+      try {
+        event = eventQueue.dequeue();
+        long start = Instant.now().getEpochSecond();
+        BlockedEventHolder holder = BlockedEventHolder.create(event.head().id(), blockedCheckerMs);
+        if (checker != null) {
+          checker.register(holder);
+        }
+        metrics.consumerStart();
+        if (isConsumed(event) || isBlackList(event)) {
+          //忽略 handle
+        } else {
+          doHandle(event);
+        }
+        holder.completed();
+        long duration = Instant.now().getEpochSecond() - start;
+        metrics.consumerEnd(duration);
+        eventQueue.complete(event);
+        Log.create(LOGGER)
+                .setLogType("eventbus-consumer")
+                .setEvent("complete")
+                .setTraceId(event.head().id())
+                .addData("duration", duration)
+                .info();
+      } catch (InterruptedException e) {
+        Log.create(LOGGER)
+                .setLogType("eventbus-consumer")
+                .setEvent("handle")
+                .setThrowable(e)
+                .error();
+//        因此中断一个运行在线程池中的任务可以起到双重效果，一是取消任务，二是通知执行线程线程池正要关闭。如果任务生吞中断请求，则 worker
+// 线程将不知道有一个被请求的中断，从而耽误应用程序或服务的关闭
+        Thread.currentThread().interrupt();
+      } catch (Exception e) {
+        Log.create(LOGGER)
+                .setLogType("eventbus")
+                .setEvent("handle")
+                .setTraceId(event.head().id())
+                .setThrowable(e)
+                .error();
+      }
+    });
   }
 
   @Override
@@ -138,30 +177,26 @@ public abstract class EventConsumerImpl implements EventConsumer {
   }
 
   protected void enqueue(List<Event> events) {
-    List<String> consumedEvents = checkConsumed(events);
-    List<String> blacklistEvents = checkBlacklist(events, consumedEvents);
-
-    //入队
-    List<Event> enqueEvents = events.stream().filter(e -> !consumedEvents.contains(e.head().id()))
-            .filter(e -> !blacklistEvents.contains(e.head().id()))
-            .collect(Collectors.toList());
-    eventQueue.enqueue(enqueEvents);
+    eventQueue.enqueue(events);
     //只提交任务不属于黑名单的消息
-    for (Event event : enqueEvents) {
-      CompletableFuture<EventFuture<Event>> completableFuture = handle();
-      completableFuture.thenAccept(e -> {
-        if (e != null) {
-          eventQueue.complete(e.event());
-          if (consumerStorage != null && consumerStorage.shouldStorage(e.event())) {
-            if (e.succeeded()) {
-              consumerStorage.mark(e.event(), 1);
-            } else {
-              consumerStorage.mark(e.event(), 2);
-            }
-          }
-        }
-      });
+    for (Event event : events) {
+      handle();
     }
+  }
+
+  private boolean isBlackList(Event event) {
+    if (blackListFilter != null && blackListFilter.apply(event)) {
+      Log.create(LOGGER)
+              .setLogType("event-consumer")
+              .setEvent("blacklist")
+              .setTraceId(event.head().id())
+              .info();
+      if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
+        consumerStorage.mark(event, 3);
+      }
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -173,27 +208,16 @@ public abstract class EventConsumerImpl implements EventConsumer {
   protected void enqueue(Event event) {
     //先入队
     eventQueue.enqueue(event);
-    if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
-      consumerStorage.mark(event, 1);
-    }
     //提交任务，这里只是创建了一个runnable交由线程池处理，而这个runnable并不一定真正的处理的是当前的event（根据队列的实现来）
-    CompletableFuture<EventFuture<Event>> completableFuture = handle();
-    completableFuture.thenAccept(e -> {
-      if (e != null) {
-        eventQueue.complete(e.event());
-        if (consumerStorage != null && consumerStorage.shouldStorage(e.event())) {
-          if (e.succeeded()) {
-            consumerStorage.mark(e.event(), 1);
-          } else {
-            consumerStorage.mark(e.event(), 2);
-          }
-        }
-      }
-    });
+    handle();
   }
 
   protected boolean isFull() {
-    return eventQueue.size() >= maxQuota;
+    return eventQueue.isFull();
+  }
+
+  protected boolean isLowWaterMark() {
+    return eventQueue.isLowWaterMark();
   }
 
   protected int size() {
@@ -204,114 +228,50 @@ public abstract class EventConsumerImpl implements EventConsumer {
     return running;
   }
 
-  protected CompletableFuture<EventFuture<Event>> handle() {
-    return CompletableFuture.supplyAsync(() -> {
-      Event event = null;
-      try {
-        event = eventQueue.dequeue();
-        long start = Instant.now().getEpochSecond();
-        BlockedEventHolder holder = BlockedEventHolder.create(event, blockedCheckerMs);
-        if (checker != null) {
-          checker.register(holder);
-        }
-        metrics.consumerStart();
-        List<EventHandler> handlers =
-                HandlerRegistration.instance()
-                        .getHandlers(event);
-        if (handlers == null || handlers.isEmpty()) {
-          Log.create(LOGGER)
-                  .setLogType("eventbus-consumer")
-                  .setEvent("handle")
-                  .setTraceId(event.head().id())
-                  .setMessage("NO HANDLER")
-                  .warn();
-        } else {
-          for (EventHandler handler : handlers) {
-            handler.handle(event);
-          }
-        }
-        holder.completed();
-        metrics.consumerEnd(Instant.now().getEpochSecond() - start);
-        EventFuture eventFuture = EventFuture.future(event);
-        eventFuture.complete(event);
-        return eventFuture;
-      } catch (InterruptedException e) {
-        Log.create(LOGGER)
-                .setLogType("eventbus-consumer")
-                .setEvent("handle")
-                .setThrowable(e)
-                .error();
-//        因此中断一个运行在线程池中的任务可以起到双重效果，一是取消任务，二是通知执行线程线程池正要关闭。如果任务生吞中断请求，则 worker
-// 线程将不知道有一个被请求的中断，从而耽误应用程序或服务的关闭
-        Thread.currentThread().interrupt();
-        EventFuture eventFuture = EventFuture.future(event);
-        eventFuture.fail(e);
-        return eventFuture;
-      } catch (Exception e) {
-        Log.create(LOGGER)
-                .setLogType("eventbus")
-                .setEvent("handle")
-                .setTraceId(event.head().id())
-                .setThrowable(e)
-                .error();
-        EventFuture eventFuture = EventFuture.future(event);
-        eventFuture.fail(e);
-        return eventFuture;
-      }
-    }, workerExecutor);
-  }
-
-  /**
-   * 过滤重复消费
-   *
-   * @param events
-   * @return
-   */
-  private List<String> checkConsumed(List<Event> events) {
-    if (consumerStorage == null) {
-      return new ArrayList<>();
-    }
-    //过滤掉重复消费的
-    List<String> ids = (events.stream()
-            .filter(e -> consumerStorage.shouldStorage(e))
-            .filter(e -> consumerStorage.isConsumed(e))
-            .map(e -> e.head().id())
-            .collect(Collectors.toList()));
-    for (String id : ids) {
+  private boolean isConsumed(Event event) {
+    if (consumerStorage != null && consumerStorage.shouldStorage(event)
+        && consumerStorage.isConsumed(event)) {
       Log.create(LOGGER)
               .setLogType("event-consumer")
               .setEvent("RepeatedConsumer")
-              .setTraceId(id)
-              .info();
-    }
-    return ids;
-  }
-
-  /**
-   * 过滤黑名单
-   *
-   * @param events
-   * @param consumedEvents
-   */
-  private List<String> checkBlacklist(List<Event> events, List<String> consumedEvents) {
-    if (blackListFilter == null) {
-      return new ArrayList<>();
-    }
-    List<Event> blacklistEvents = events.stream().filter(e -> blackListFilter.apply(e))
-            .filter(e -> !consumedEvents.contains(e.head().id()))
-            .collect(Collectors.toList());
-    for (Event event : blacklistEvents) {
-      Log.create(LOGGER)
-              .setLogType("event-consumer")
-              .setEvent("blacklist")
               .setTraceId(event.head().id())
               .info();
+      return true;
+    }
+    return false;
+  }
+
+  private void doHandle(Event event) {
+    try {
+      List<EventHandler> handlers =
+              HandlerRegistration.instance()
+                      .getHandlers(event);
+      if (handlers == null || handlers.isEmpty()) {
+        Log.create(LOGGER)
+                .setLogType("eventbus-consumer")
+                .setEvent("handle")
+                .setTraceId(event.head().id())
+                .setMessage("NO HANDLER")
+                .warn();
+      } else {
+        for (EventHandler handler : handlers) {
+          handler.handle(event);
+        }
+      }
       if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
-        //标记为黑名单
-        consumerStorage.mark(event, 3);
+        consumerStorage.mark(event, 1);
+      }
+    } catch (Exception e) {
+      Log.create(LOGGER)
+              .setLogType("eventbus")
+              .setEvent("handle")
+              .setTraceId(event.head().id())
+              .setThrowable(e)
+              .error();
+      if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
+        consumerStorage.mark(event, 2);
       }
     }
-    return blacklistEvents.stream().map(e -> e.head().id()).collect(Collectors.toList());
   }
 
   private ConsumerMetrics createMetrics() {

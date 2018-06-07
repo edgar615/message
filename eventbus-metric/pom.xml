@@ -5,7 +5,7 @@
     <parent>
         <artifactId>eventbus</artifactId>
         <groupId>com.github.edgar615</groupId>
-        <version>1.0.8</version>
+        <version>1.0.10</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -39,10 +39,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
 
             <plugin>

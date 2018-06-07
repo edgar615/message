@@ -40,7 +40,7 @@ class BlockedEventChecker {
 
         holders.forEach(r -> Log.create(LOGGER)
                 .setLogType("eventbus")
-                .setTraceId(r.event().head().id())
+                .setTraceId(r.eventId())
                 .setEvent("event.blocked")
                 .addData("duration", r.duration())
                 .warn());

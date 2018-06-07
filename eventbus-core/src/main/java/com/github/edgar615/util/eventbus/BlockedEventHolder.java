@@ -8,7 +8,7 @@ import com.github.edgar615.util.event.Event;
  * @author Edgar  Date 2016/7/8
  */
 class BlockedEventHolder {
-  private final Event event;
+  private final String eventId;
 
   private final long maxExecTime;
 
@@ -18,13 +18,13 @@ class BlockedEventHolder {
 
   private long startedOn = System.currentTimeMillis();
 
-  private BlockedEventHolder(Event event, long maxExecTime) {
-    this.event = event;
+  private BlockedEventHolder(String eventId, long maxExecTime) {
+    this.eventId = eventId;
     this.maxExecTime = maxExecTime;
   }
 
-  static BlockedEventHolder create(Event event, long maxExecTime) {
-    return new BlockedEventHolder(event, maxExecTime);
+  static BlockedEventHolder create(String eventId, long maxExecTime) {
+    return new BlockedEventHolder(eventId, maxExecTime);
   }
 
   public long maxExecTime() {
@@ -40,8 +40,8 @@ class BlockedEventHolder {
     return System.currentTimeMillis() - startedOn;
   }
 
-  public Event event() {
-    return event;
+  public String eventId() {
+    return eventId;
   }
 
   public boolean isCompleted() {

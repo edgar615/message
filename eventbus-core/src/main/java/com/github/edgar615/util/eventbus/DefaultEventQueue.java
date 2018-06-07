@@ -78,6 +78,16 @@ public class DefaultEventQueue implements EventQueue {
   }
 
   @Override
+  public synchronized boolean isFull() {
+    return elements.size() >= limit;
+  }
+
+  @Override
+  public synchronized boolean isLowWaterMark() {
+    return elements.size() <= limit / 2;
+  }
+
+  @Override
   public Event poll() {
     if (elements.isEmpty()) {
       return null;
