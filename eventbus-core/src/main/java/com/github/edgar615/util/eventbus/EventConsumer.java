@@ -62,4 +62,11 @@ public interface EventConsumer {
    * @return
    */
   boolean isRunning();
+
+  /**
+   * 是否暂停
+   *
+   * @return
+   */
+  boolean paused();
 }

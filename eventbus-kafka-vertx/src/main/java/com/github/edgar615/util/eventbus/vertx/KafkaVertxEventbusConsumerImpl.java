@@ -228,4 +228,14 @@ class KafkaVertxEventbusConsumerImpl implements KafkaVertxEventbusConsumer {
       });
     }
   }
+
+  @Override
+  public boolean isRunning() {
+    return readStream.isRunning();
+  }
+
+  @Override
+  public boolean paused() {
+    return readStream.paused();
+  }
 }
