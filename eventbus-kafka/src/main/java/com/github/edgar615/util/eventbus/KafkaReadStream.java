@@ -54,6 +54,11 @@ public abstract class KafkaReadStream implements Runnable {
     this.consumerExecutor.submit(this);
   }
 
+  public abstract void handleEvents(List<Event> events);
+
+  public abstract boolean checkPauseCondition();
+
+  public abstract boolean checkResumeCondition();
 
   /**
    * commit完成的消息
@@ -99,12 +104,6 @@ public abstract class KafkaReadStream implements Runnable {
     }
   }
 
-  public abstract void handleEvents(List<Event> events);
-
-  public abstract boolean checkPauseCondition();
-
-  public abstract boolean checkResumeCondition();
-
   public void subscribe(String topic) {
     consumer.subscribe(Lists.newArrayList(topic), createListener());
   }
@@ -131,6 +130,10 @@ public abstract class KafkaReadStream implements Runnable {
     closed = true;
 //    consumer.close();
     consumerExecutor.shutdown();
+  }
+
+  public boolean isRunning() {
+    return !closed;
   }
 
   private void startKafkaConsumer() {
@@ -291,7 +294,7 @@ public abstract class KafkaReadStream implements Runnable {
               .addData("offset", "none")
               .info();
     } else if (startingOffset == 0) {
-      consumer.seekToBeginning(new TopicPartition[] {tp});
+      consumer.seekToBeginning(new TopicPartition[]{tp});
       Log.create(LOGGER)
               .setLogType(LOG_TYPE)
               .setEvent("StartingOffset")
@@ -300,7 +303,7 @@ public abstract class KafkaReadStream implements Runnable {
               .addData("offset", "beginning")
               .info();
     } else if (startingOffset == -1) {
-      consumer.seekToEnd(new TopicPartition[] {tp});
+      consumer.seekToEnd(new TopicPartition[]{tp});
       Log.create(LOGGER)
               .setLogType(LOG_TYPE)
               .setEvent("StartingOffset")

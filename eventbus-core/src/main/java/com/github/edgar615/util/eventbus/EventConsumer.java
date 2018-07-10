@@ -55,4 +55,11 @@ public interface EventConsumer {
    * @return
    */
   long waitForHandle();
+
+  /**
+   * 是否在运行
+   *
+   * @return
+   */
+  boolean isRunning();
 }

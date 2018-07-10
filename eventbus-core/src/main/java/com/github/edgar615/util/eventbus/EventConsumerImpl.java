@@ -224,7 +224,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
     return eventQueue.size();
   }
 
-  protected boolean isRunning() {
+  public boolean isRunning() {
     return running;
   }
 

@@ -1,6 +1,7 @@
 package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.event.Event;
+import com.github.edgar615.util.metrics.ConsumerMetrics;
 
 import java.util.List;
 import java.util.function.Function;
@@ -75,5 +76,10 @@ public class KafkaEventConsumer extends EventConsumerImpl {
   public void close() {
     super.close();
     readStream.close();
+  }
+
+  @Override
+  public boolean isRunning() {
+    return super.isRunning() && readStream.isRunning();
   }
 }
