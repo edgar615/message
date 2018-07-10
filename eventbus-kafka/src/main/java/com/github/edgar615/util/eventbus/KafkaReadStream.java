@@ -133,6 +133,14 @@ public abstract class KafkaReadStream implements Runnable {
     consumerExecutor.shutdown();
   }
 
+  public boolean isRunning() {
+    return !closed;
+  }
+
+  public boolean paused() {
+    return pause;
+  }
+
   private void startKafkaConsumer() {
     consumer = new KafkaConsumer<>(options.toProps());
     List<PartitionInfo> partitions;

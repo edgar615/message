@@ -76,4 +76,15 @@ public class KafkaEventConsumer extends EventConsumerImpl {
     super.close();
     readStream.close();
   }
+
+  @Override
+  public boolean isRunning() {
+    return super.isRunning() && readStream.isRunning();
+  }
+
+  @Override
+  public boolean paused() {
+    return readStream.paused();
+  }
+
 }

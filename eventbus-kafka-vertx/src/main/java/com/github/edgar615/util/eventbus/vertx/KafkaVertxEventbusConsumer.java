@@ -23,6 +23,10 @@ public interface KafkaVertxEventbusConsumer {
 
   Map<String, Object> metrics();
 
+  boolean isRunning();
+
+  boolean paused();
+
 
   static KafkaVertxEventbusConsumer create(Vertx vertx, KafkaConsumerOptions options) {
     return new KafkaVertxEventbusConsumerImpl(vertx, options);
