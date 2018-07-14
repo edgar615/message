@@ -88,6 +88,8 @@ public abstract class EventConsumerImpl implements EventConsumer {
       Event event = null;
       try {
         event = eventQueue.dequeue();
+        EventIdTracing eventIdTracing = new EventIdTracing(event.head().id());
+        EventIdTracingHolder.set(eventIdTracing);
         long start = Instant.now().getEpochSecond();
         BlockedEventHolder holder = BlockedEventHolder.create(event.head().id(), blockedCheckerMs);
         if (checker != null) {
@@ -125,6 +127,8 @@ public abstract class EventConsumerImpl implements EventConsumer {
                 .setTraceId(event.head().id())
                 .setThrowable(e)
                 .error();
+      }finally {
+        EventIdTracingHolder.clear();
       }
     });
   }

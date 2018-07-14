@@ -34,4 +34,9 @@ public class MockConsumer extends EventConsumerImpl {
   public void resume() {
 
   }
+
+  @Override
+  public boolean paused() {
+    return false;
+  }
 }
