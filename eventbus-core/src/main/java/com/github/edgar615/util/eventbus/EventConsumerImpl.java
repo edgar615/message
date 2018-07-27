@@ -7,6 +7,7 @@ import com.github.edgar615.util.metrics.ConsumerMetrics;
 import com.github.edgar615.util.metrics.DummyMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 import java.time.Instant;
 import java.util.Iterator;
@@ -90,6 +91,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
         event = eventQueue.dequeue();
         EventIdTracing eventIdTracing = new EventIdTracing(event.head().id());
         EventIdTracingHolder.set(eventIdTracing);
+        MDC.put("x-requset-id", event.head().id());
         long start = Instant.now().getEpochSecond();
         BlockedEventHolder holder = BlockedEventHolder.create(event.head().id(), blockedCheckerMs);
         if (checker != null) {
@@ -129,6 +131,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
                 .error();
       }finally {
         EventIdTracingHolder.clear();
+        MDC.remove("x-requset-id");
       }
     });
   }
