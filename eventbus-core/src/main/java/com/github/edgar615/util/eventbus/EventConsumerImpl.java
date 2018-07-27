@@ -91,7 +91,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
         event = eventQueue.dequeue();
         EventIdTracing eventIdTracing = new EventIdTracing(event.head().id());
         EventIdTracingHolder.set(eventIdTracing);
-        MDC.put("x-requset-id", event.head().id());
+        MDC.put("x-request-id", event.head().id());
         long start = Instant.now().getEpochSecond();
         BlockedEventHolder holder = BlockedEventHolder.create(event.head().id(), blockedCheckerMs);
         if (checker != null) {
@@ -131,7 +131,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
                 .error();
       }finally {
         EventIdTracingHolder.clear();
-        MDC.remove("x-requset-id");
+        MDC.remove("x-request-id");
       }
     });
   }
