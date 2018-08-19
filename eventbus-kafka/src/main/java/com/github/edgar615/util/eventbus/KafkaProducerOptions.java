@@ -1,8 +1,6 @@
 package com.github.edgar615.util.eventbus;
 
-import com.github.edgar615.util.metrics.Metrics;
 import com.google.common.base.Strings;
-
 import org.apache.kafka.clients.producer.ProducerConfig;
 
 import java.util.Properties;

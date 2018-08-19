@@ -1,28 +1,14 @@
 package com.github.edgar615.util.eventbus.vertx;
 
 import com.github.edgar615.util.event.Event;
-import com.github.edgar615.util.eventbus.DefaultEventQueue;
-import com.github.edgar615.util.eventbus.EventQueue;
-import com.github.edgar615.util.eventbus.HandlerRegistration;
-import com.github.edgar615.util.eventbus.KafkaConsumerOptions;
-import com.github.edgar615.util.eventbus.KafkaReadStream;
-import com.github.edgar615.util.eventbus.SequentialEventQueue;
-import com.github.edgar615.util.log.Log;
+import com.github.edgar615.util.eventbus.*;
 import com.github.edgar615.util.metrics.ConsumerMetrics;
 import com.github.edgar615.util.metrics.DummyMetrics;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
+import io.vertx.core.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.ServiceLoader;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -145,11 +131,7 @@ class KafkaVertxEventbusConsumerImpl implements KafkaVertxEventbusConsumer {
 
   private boolean isBlackList(Event event) {
     if (blackListFilter != null && blackListFilter.apply(event)) {
-      Log.create(LOGGER)
-              .setLogType(LOG_TYPE)
-              .setEvent("blacklist")
-              .setTraceId(event.head().id())
-              .info();
+      LOGGER.warn("[{}] [EC] [blacklist]", event.head().id());
       return true;
     }
     return false;
@@ -194,12 +176,7 @@ class KafkaVertxEventbusConsumerImpl implements KafkaVertxEventbusConsumer {
                       .map(h -> (VertxEventHandler) h)
                       .collect(Collectors.toList());
       if (handlers == null || handlers.isEmpty()) {
-        Log.create(LOGGER)
-                .setLogType(LOG_TYPE)
-                .setEvent("handle")
-                .setTraceId(event.head().id())
-                .setMessage("NO HANDLER")
-                .warn();
+        LOGGER.warn("[{}] [EC] [no handler]", event.head().id());
         completeFuture.complete(1);
       } else {
         List<Future> futures = new ArrayList<>();

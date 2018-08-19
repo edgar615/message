@@ -1,8 +1,7 @@
 package com.github.edgar615.util.eventbus;
 
-import com.google.common.base.MoreObjects;
-
 import com.github.edgar615.util.event.Event;
+import com.google.common.base.MoreObjects;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 /**

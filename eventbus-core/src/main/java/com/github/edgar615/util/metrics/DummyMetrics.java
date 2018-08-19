@@ -1,7 +1,5 @@
 package com.github.edgar615.util.metrics;
 
-import com.github.edgar615.util.metrics.Metrics;
-
 import java.util.HashMap;
 import java.util.Map;
 

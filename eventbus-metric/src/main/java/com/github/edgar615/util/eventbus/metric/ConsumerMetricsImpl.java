@@ -4,7 +4,6 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.github.edgar615.util.metrics.ConsumerMetrics;
-import com.github.edgar615.util.metrics.Metrics;
 
 import java.util.HashMap;
 import java.util.Map;

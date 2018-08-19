@@ -1,7 +1,5 @@
 package com.github.edgar615.util.eventbus;
 
-import com.github.edgar615.util.event.Event;
-
 /**
  * Created by Edgar on 2016/7/8.
  *

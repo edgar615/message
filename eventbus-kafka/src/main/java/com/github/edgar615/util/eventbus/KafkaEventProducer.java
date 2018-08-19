@@ -1,15 +1,11 @@
 package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.event.Event;
-import com.github.edgar615.util.log.Log;
-import com.github.edgar615.util.log.LogType;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Created by Edgar on 2017/4/19.
@@ -37,33 +33,16 @@ public class KafkaEventProducer extends EventProducerImpl {
             new ProducerRecord<>(event.head().to(), event);
     producer.send(record, (metadata, exception) -> {
       if (exception == null) {
-        Log.create(LOGGER)
-                .setLogType(LogType.MS)
-                .setEvent("kafka")
-                .setTraceId(event.head().id())
-                .setMessage("[{},{},{}] [{}] [{}] [{}]")
-                .addArg(metadata.topic())
-                .addArg(metadata.partition())
-                .addArg(metadata.offset())
-                .addArg(event.head().action())
-                .addArg(Helper.toHeadString(event))
-                .addArg(Helper.toActionString(event))
-                .info();
+        LOGGER.info("[{}] [MS] [KAFKA] [OK] [{},{},{}] [{}] [{}]", event.head().id(),
+                metadata.topic(),metadata.partition(),metadata.offset(),
+                Helper.toHeadString(event),
+                Helper.toActionString(event));
         future.complete();
       } else {
-        Log.create(LOGGER)
-                .setLogType(LogType.MS)
-                .setEvent("kafka")
-                .setTraceId(event.head().id())
-                .setMessage("[{}] [{}] [{}]")
-//                .addArg(metadata.topic())
-//                .addArg(metadata.partition())
-//                .addArg(metadata.offset())
-                .addArg(event.head().action())
-                .addArg(Helper.toHeadString(event))
-                .addArg(Helper.toActionString(event))
-                .setThrowable(exception)
-                .error();
+        LOGGER.error("[{}] [MS] [KAFKA] [FAILED] [{}] [{}] [{}]", event.head().id(),
+                event.head().to(),
+                Helper.toHeadString(event),
+                Helper.toActionString(event), exception);
         future.fail(exception);
       }
     });

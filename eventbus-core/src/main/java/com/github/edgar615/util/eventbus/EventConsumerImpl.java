@@ -2,14 +2,12 @@ package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.concurrent.NamedThreadFactory;
 import com.github.edgar615.util.event.Event;
-import com.github.edgar615.util.log.Log;
 import com.github.edgar615.util.metrics.ConsumerMetrics;
 import com.github.edgar615.util.metrics.DummyMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -56,8 +54,8 @@ public abstract class EventConsumerImpl implements EventConsumer {
                     Function<Event, Boolean> blackListFilter) {
     this.metrics = createMetrics();
     this.workerExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
-                                                       NamedThreadFactory.create
-                                                               ("eventbus-consumer-worker"));
+            NamedThreadFactory.create
+                    ("eventbus-consumer-worker"));
     this.blockedCheckerMs = options.getBlockedCheckerMs();
     if (options.getBlockedCheckerMs() > 0) {
       this.scheduledExecutor =
@@ -92,7 +90,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
         EventIdTracing eventIdTracing = new EventIdTracing(event.head().id());
         EventIdTracingHolder.set(eventIdTracing);
         MDC.put("x-request-id", event.head().id());
-        long start = Instant.now().getEpochSecond();
+        long start = System.currentTimeMillis();
         BlockedEventHolder holder = BlockedEventHolder.create(event.head().id(), blockedCheckerMs);
         if (checker != null) {
           checker.register(holder);
@@ -104,31 +102,17 @@ public abstract class EventConsumerImpl implements EventConsumer {
           doHandle(event);
         }
         holder.completed();
-        long duration = Instant.now().getEpochSecond() - start;
+        long duration = System.currentTimeMillis() - start;
         metrics.consumerEnd(duration);
         eventQueue.complete(event);
-        Log.create(LOGGER)
-                .setLogType("eventbus-consumer")
-                .setEvent("complete")
-                .setTraceId(event.head().id())
-                .addData("duration", duration)
-                .info();
+        LOGGER.info("[{}] [EC] [OK] [{}ms]", event.head().id(), duration);
       } catch (InterruptedException e) {
-        Log.create(LOGGER)
-                .setLogType("eventbus-consumer")
-                .setEvent("handle")
-                .setThrowable(e)
-                .error();
+        LOGGER.error("[EC] [Interrupted]");
 //        因此中断一个运行在线程池中的任务可以起到双重效果，一是取消任务，二是通知执行线程线程池正要关闭。如果任务生吞中断请求，则 worker
 // 线程将不知道有一个被请求的中断，从而耽误应用程序或服务的关闭
         Thread.currentThread().interrupt();
       } catch (Exception e) {
-        Log.create(LOGGER)
-                .setLogType("eventbus")
-                .setEvent("handle")
-                .setTraceId(event.head().id())
-                .setThrowable(e)
-                .error();
+        LOGGER.error("[{}] [EC] [failed]", event.head().id(), e);
       } finally {
         EventIdTracingHolder.clear();
         MDC.remove("x-request-id");
@@ -140,11 +124,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
   public void close() {
     //关闭消息订阅
     running = false;
-    Log.create(LOGGER)
-            .setLogType("eventbus-consumer")
-            .setEvent("close")
-            .addData("remaining", waitForHandle())
-            .info();
+    LOGGER.info("closing consumer, remaining:{}", waitForHandle());
     workerExecutor.shutdown();
     if (scheduledExecutor != null) {
       scheduledExecutor.shutdown();
@@ -193,11 +173,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   private boolean isBlackList(Event event) {
     if (blackListFilter != null && blackListFilter.apply(event)) {
-      Log.create(LOGGER)
-              .setLogType("event-consumer")
-              .setEvent("blacklist")
-              .setTraceId(event.head().id())
-              .info();
+      LOGGER.warn("[{}] [EC] [blacklist]", event.head().id());
       if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
         consumerStorage.mark(event, 3);
       }
@@ -237,12 +213,8 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   private boolean isConsumed(Event event) {
     if (consumerStorage != null && consumerStorage.shouldStorage(event)
-        && consumerStorage.isConsumed(event)) {
-      Log.create(LOGGER)
-              .setLogType("event-consumer")
-              .setEvent("RepeatedConsumer")
-              .setTraceId(event.head().id())
-              .info();
+            && consumerStorage.isConsumed(event)) {
+      LOGGER.warn("[{}] [EC] [repeated]", event.head().id());
       return true;
     }
     return false;
@@ -254,12 +226,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
               HandlerRegistration.instance()
                       .getHandlers(event);
       if (handlers == null || handlers.isEmpty()) {
-        Log.create(LOGGER)
-                .setLogType("eventbus-consumer")
-                .setEvent("handle")
-                .setTraceId(event.head().id())
-                .setMessage("NO HANDLER")
-                .warn();
+        LOGGER.warn("[{}] [EC] [no handler]", event.head().id());
       } else {
         for (EventHandler handler : handlers) {
           handler.handle(event);
@@ -269,12 +236,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
         consumerStorage.mark(event, 1);
       }
     } catch (Exception e) {
-      Log.create(LOGGER)
-              .setLogType("eventbus")
-              .setEvent("handle")
-              .setTraceId(event.head().id())
-              .setThrowable(e)
-              .error();
+      LOGGER.error("[{}] [EC] [failed]", event.head().id(), e);
       if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
         consumerStorage.mark(event, 2);
       }

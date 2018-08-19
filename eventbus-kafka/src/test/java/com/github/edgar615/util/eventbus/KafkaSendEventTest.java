@@ -1,10 +1,8 @@
 package com.github.edgar615.util.eventbus;
 
-import com.google.common.collect.ImmutableMap;
-
 import com.github.edgar615.util.event.Event;
 import com.github.edgar615.util.event.Message;
-import com.github.edgar615.util.log.Log;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.concurrent.TimeUnit;
 

@@ -1,8 +1,7 @@
 package com.github.edgar615.util.eventbus;
 
-import com.google.common.collect.ImmutableList;
-
 import com.github.edgar615.util.event.Event;
+import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;

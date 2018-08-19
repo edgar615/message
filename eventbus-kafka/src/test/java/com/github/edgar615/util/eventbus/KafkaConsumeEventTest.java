@@ -1,6 +1,5 @@
 package com.github.edgar615.util.eventbus;
 
-import com.github.edgar615.util.event.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,7 +1,6 @@
 package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.event.Event;
-import com.github.edgar615.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,11 +81,7 @@ public class SequentialEventQueue implements EventQueue {
         && takeElement == null) {
       takeElement = event;
     }
-    Log.create(LOGGER)
-            .setLogType("eventbus")
-            .setEvent("enqueue")
-            .setTraceId(event.head().id())
-            .debug();
+    LOGGER.debug("[{}] [EC] [enqueue]", event.head().id());
   }
 
   @Override
@@ -106,11 +101,7 @@ public class SequentialEventQueue implements EventQueue {
       }
     }
     if (LOGGER.isDebugEnabled()) {
-      events.forEach(e -> Log.create(LOGGER)
-              .setLogType("eventbus")
-              .setEvent("enqueue")
-              .setTraceId(e.head().id())
-              .debug());
+      events.forEach(e -> LOGGER.debug("[{}] [EC] [enqueue]", e.head().id()));
     }
   }
 
@@ -135,11 +126,7 @@ public class SequentialEventQueue implements EventQueue {
     registry.add(extractId(x));
     //重新计算下一个可以出队的元素
     takeElement = next();
-    Log.create(LOGGER)
-            .setLogType("eventbus")
-            .setEvent("dequeue")
-            .setTraceId(x.head().id())
-            .debug();
+    LOGGER.debug("[{}] [EC] [dequeue]", x.head().id());
     return x;
   }
 

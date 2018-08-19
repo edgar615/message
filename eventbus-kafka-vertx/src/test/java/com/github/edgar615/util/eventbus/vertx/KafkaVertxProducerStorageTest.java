@@ -1,15 +1,11 @@
 package com.github.edgar615.util.eventbus.vertx;
 
-import com.google.common.collect.ImmutableMap;
-
 import com.github.edgar615.util.event.Event;
 import com.github.edgar615.util.event.Message;
 import com.github.edgar615.util.eventbus.KafkaProducerOptions;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
+import com.google.common.collect.ImmutableMap;
 import io.vertx.core.Vertx;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**

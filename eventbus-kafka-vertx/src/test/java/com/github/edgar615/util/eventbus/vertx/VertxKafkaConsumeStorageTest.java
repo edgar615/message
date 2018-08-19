@@ -1,10 +1,9 @@
 package com.github.edgar615.util.eventbus.vertx;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
-
 import com.github.edgar615.util.event.Event;
 import com.github.edgar615.util.eventbus.KafkaConsumerOptions;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;

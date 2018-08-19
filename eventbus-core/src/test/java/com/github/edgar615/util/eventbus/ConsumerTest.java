@@ -1,9 +1,8 @@
 package com.github.edgar615.util.eventbus;
 
-import com.google.common.collect.ImmutableMap;
-
 import com.github.edgar615.util.event.Event;
 import com.github.edgar615.util.event.Message;
+import com.google.common.collect.ImmutableMap;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;

@@ -3,7 +3,6 @@ package com.github.edgar615.util.eventbus.metric;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
-import com.github.edgar615.util.metrics.Metrics;
 import com.github.edgar615.util.metrics.ProducerMetrics;
 
 import java.util.HashMap;

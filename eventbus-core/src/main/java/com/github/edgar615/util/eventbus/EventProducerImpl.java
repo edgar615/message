@@ -5,7 +5,6 @@ import com.github.edgar615.util.concurrent.OrderQueue;
 import com.github.edgar615.util.event.Event;
 import com.github.edgar615.util.exception.DefaultErrorCode;
 import com.github.edgar615.util.exception.SystemException;
-import com.github.edgar615.util.log.Log;
 import com.github.edgar615.util.metrics.DummyMetrics;
 import com.github.edgar615.util.metrics.ProducerMetrics;
 import org.slf4j.Logger;
@@ -16,11 +15,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * Created by Edgar on 2017/4/19.
@@ -75,8 +70,8 @@ public abstract class EventProducerImpl implements EventProducer {
       //只有开启持久化时才启动工作线程
       registerStorage(producerStorage);
       workExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
-                                                  NamedThreadFactory.create
-                                                          ("eventbus-producer-worker"));
+              NamedThreadFactory.create
+                      ("eventbus-producer-worker"));
     } else {
       workExecutor = null;
     }
@@ -94,33 +89,17 @@ public abstract class EventProducerImpl implements EventProducer {
       return;
     }
     if (queue.size() > maxQuota && !"1".equals(storage)) {
-      Log.create(LOGGER)
-              .setLogType("eventbus-producer")
-              .setEvent("THROTTLE")
-              .setTraceId(event.head().id())
-              .setMessage("[{}] [{}] [{}] [{}]")
-              .addArg(event.head().to())
-              .addArg(event.head().action())
-              .addArg(Helper.toHeadString(event))
-              .addArg(Helper.toActionString(event))
-              .warn();
+      LOGGER.warn("[{}] [EP] [throttle] [{}] [{}] [maxQuota:{}]",
+              event.head().id(), Helper.toHeadString(event), Helper.toActionString(event), maxQuota);
       throw SystemException.create(DefaultErrorCode.TOO_MANY_REQ)
               .set("maxQuota", maxQuota);
     }
     Runnable command = () -> {
       long current = Instant.now().getEpochSecond();
       if (event.head().duration() > 0
-          && current > event.head().timestamp() + event.head().duration()) {
-        Log.create(LOGGER)
-                .setLogType("eventbus-producer")
-                .setEvent("EXPIRE")
-                .setTraceId(event.head().id())
-                .setMessage("[{}] [{}] [{}] [{}]")
-                .addArg(event.head().to())
-                .addArg(event.head().action())
-                .addArg(Helper.toHeadString(event))
-                .addArg(Helper.toActionString(event))
-                .info();
+              && current > event.head().timestamp() + event.head().duration()) {
+        LOGGER.info("[{}] [EP] [expire] [{}] [{}]",
+                event.head().id(), Helper.toHeadString(event), Helper.toActionString(event));
         mark(event, 3);
       } else {
         sendEvent(event)
@@ -209,22 +188,11 @@ public abstract class EventProducerImpl implements EventProducer {
         //使用一个工作线程来存储
         workExecutor.submit(() -> {
           producerStorage.mark(event, status);
-          Log.create(LOGGER)
-                  .setLogType("eventbus-producer")
-                  .setEvent("mark")
-                  .addData("status", status)
-                  .setTraceId(event.head().id())
-                  .debug();
+          LOGGER.debug("[{}] [EP] [marked] [{}]", event.head().id(), status);
         });
       }
     } catch (Exception e) {
-      Log.create(LOGGER)
-              .setLogType("eventbus-producer")
-              .setEvent("mark.failed")
-              .addData("status", status)
-              .setTraceId(event.head().id())
-              .setMessage(e.getMessage())
-              .warn();
+      LOGGER.warn("[{}] [EP]  [failed] [{}]", event.head().id(), status, e);
     }
   }
 

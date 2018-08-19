@@ -6,8 +6,6 @@ import com.github.edgar615.util.eventbus.Helper;
 import com.github.edgar615.util.eventbus.KafkaProducerOptions;
 import com.github.edgar615.util.exception.DefaultErrorCode;
 import com.github.edgar615.util.exception.SystemException;
-import com.github.edgar615.util.log.Log;
-import com.github.edgar615.util.log.LogType;
 import com.github.edgar615.util.metrics.DummyMetrics;
 import com.github.edgar615.util.metrics.ProducerMetrics;
 import io.vertx.core.AsyncResult;
@@ -36,8 +34,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 class KafkaVertxEventbusProducerImpl implements KafkaVertxEventbusProducer {
   private static final Logger LOGGER = LoggerFactory.getLogger(KafkaVertxEventbusProducer.class);
-
-  private static final String LOG_TYPE = "eventbus-producer";
 
   private final Vertx vertx;
 
@@ -72,7 +68,7 @@ class KafkaVertxEventbusProducerImpl implements KafkaVertxEventbusProducer {
       schedule(fetchPendingPeriod);
     }
     this.producerExecutor =
-            Executors.newFixedThreadPool(1, NamedThreadFactory.create(LOG_TYPE));
+            Executors.newFixedThreadPool(1, NamedThreadFactory.create("eventbus-producer"));
   }
 
   @Override
@@ -93,16 +89,8 @@ class KafkaVertxEventbusProducerImpl implements KafkaVertxEventbusProducer {
     long current = Instant.now().getEpochSecond();
     if (event.head().duration() > 0
             && current > event.head().timestamp() + event.head().duration()) {
-      Log.create(LOGGER)
-              .setLogType(LOG_TYPE)
-              .setEvent("EXPIRE")
-              .setTraceId(event.head().id())
-              .setMessage("[{}] [{}] [{}] [{}]")
-              .addArg(event.head().to())
-              .addArg(event.head().action())
-              .addArg(Helper.toHeadString(event))
-              .addArg(Helper.toActionString(event))
-              .info();
+      LOGGER.info("[{}] [EP] [expire] [{}] [{}]",
+              event.head().id(), Helper.toHeadString(event), Helper.toActionString(event));
       if (producerStorage != null
               && producerStorage.shouldStorage(event)) {
         producerStorage.mark(event, 3,
@@ -147,31 +135,17 @@ class KafkaVertxEventbusProducerImpl implements KafkaVertxEventbusProducer {
               new ProducerRecord<>(event.head().to(), event);
       producer.send(record, (metadata, exception) -> {
         if (exception == null) {
-          Log.create(LOGGER)
-                  .setLogType(LogType.MS)
-                  .setEvent("kafka")
-                  .setTraceId(event.head().id())
-                  .setMessage("[{},{},{}] [{}] [{}] [{}]")
-                  .addArg(metadata.topic())
-                  .addArg(metadata.partition())
-                  .addArg(metadata.offset())
-                  .addArg(event.head().action())
-                  .addArg(Helper.toHeadString(event))
-                  .addArg(Helper.toActionString(event))
-                  .info();
+          LOGGER.info("[{}] [MS] [KAFKA] [OK] [{},{},{}] [{}] [{}]", event.head().id(),
+                  metadata.topic(),metadata.partition(),metadata.offset(),
+                  Helper.toHeadString(event),
+                  Helper.toActionString(event));
           metrics.sendEnd(true, System.currentTimeMillis() - start);
           future.complete();
         } else {
-          Log.create(LOGGER)
-                  .setLogType(LogType.MS)
-                  .setEvent("kafka")
-                  .setTraceId(event.head().id())
-                  .setMessage("[{}] [{}] [{}]")
-                  .addArg(event.head().action())
-                  .addArg(Helper.toHeadString(event))
-                  .addArg(Helper.toActionString(event))
-                  .setThrowable(exception)
-                  .error();
+          LOGGER.error("[{}] [MS] [KAFKA] [FAILED] [{}] [{}] [{}]", event.head().id(),
+                  event.head().to(),
+                  Helper.toHeadString(event),
+                  Helper.toActionString(event), exception);
           metrics.sendEnd(false, System.currentTimeMillis() - start);
           future.fail(exception);
         }

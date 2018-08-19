@@ -1,7 +1,6 @@
 package com.github.edgar615.util.eventbus;
 
 import com.github.edgar615.util.event.Event;
-import com.github.edgar615.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,11 +42,7 @@ public class DefaultEventQueue implements EventQueue {
       notifyAll();
     }
     elements.add(event);
-    Log.create(LOGGER)
-            .setLogType("eventbus")
-            .setEvent("enqueue")
-            .setTraceId(event.head().id())
-            .debug();
+    LOGGER.debug("[{}] [EC] [enqueue]", event.head().id());
   }
 
   @Override
@@ -59,11 +54,7 @@ public class DefaultEventQueue implements EventQueue {
     }
     elements.addAll(events);
     if (LOGGER.isDebugEnabled()) {
-      events.forEach(e -> Log.create(LOGGER)
-              .setLogType("eventbus")
-              .setEvent("enqueue")
-              .setTraceId(e.head().id())
-              .debug());
+      events.forEach(e -> LOGGER.debug("[{}] [EC] [enqueue]", e.head().id()));
     }
 
   }
@@ -97,11 +88,7 @@ public class DefaultEventQueue implements EventQueue {
 
   private Event taskNextElement() {
     Event e = next();
-    Log.create(LOGGER)
-            .setLogType("eventbus")
-            .setEvent("dequeue")
-            .setTraceId(e.head().id())
-            .debug();
+    LOGGER.debug("[{}] [EC] [dequeue]", e.head().id());
     return e;
   }
 

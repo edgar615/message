@@ -1,16 +1,10 @@
 package com.github.edgar615.util.eventbus.vertx;
 
-import com.google.common.collect.ImmutableMap;
-
 import com.github.edgar615.util.event.Event;
 import com.github.edgar615.util.event.Message;
-import com.github.edgar615.util.eventbus.EventProducer;
-import com.github.edgar615.util.eventbus.KafkaEventProducer;
 import com.github.edgar615.util.eventbus.KafkaProducerOptions;
+import com.google.common.collect.ImmutableMap;
 import io.vertx.core.Vertx;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.Before;
-import org.junit.runner.RunWith;
 
 import java.util.concurrent.TimeUnit;
 

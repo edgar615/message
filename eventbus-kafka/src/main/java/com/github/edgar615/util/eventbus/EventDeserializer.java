@@ -1,7 +1,7 @@
 package com.github.edgar615.util.eventbus;
 
-import com.github.edgar615.util.event.Event;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.edgar615.util.event.Event;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 

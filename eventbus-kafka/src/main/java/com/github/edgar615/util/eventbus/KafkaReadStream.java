@@ -1,17 +1,10 @@
 package com.github.edgar615.util.eventbus;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-
 import com.github.edgar615.util.concurrent.NamedThreadFactory;
 import com.github.edgar615.util.event.Event;
-import com.github.edgar615.util.log.Log;
-import com.github.edgar615.util.log.LogType;
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
@@ -25,13 +18,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 public abstract class KafkaReadStream implements Runnable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(KafkaReadStream.class);
-
-  private static final String LOG_TYPE = "eventbus-consumer";
 
   private final KafkaConsumerOptions options;
 
@@ -46,6 +38,10 @@ public abstract class KafkaReadStream implements Runnable {
   private volatile boolean pause = false;
 
   private volatile boolean closed = false;
+
+  private final AtomicInteger pauseCount = new AtomicInteger();
+
+  private volatile long latestPaused = 0l;
 
   public KafkaReadStream(KafkaConsumerOptions options) {
     this.options = options;
@@ -67,19 +63,10 @@ public abstract class KafkaReadStream implements Runnable {
       consumer.commitAsync(
               (offsets, exception) -> {
                 if (exception != null) {
-                  Log.create(LOGGER)
-                          .setLogType(LOG_TYPE)
-                          .setEvent("commit")
-                          .addData("offsets", offsets)
-                          .setThrowable(exception)
-                          .error();
+                  LOGGER.error("[KAFKA][commitFailed] [{}]", offsets, exception);
                 } else {
                   if (!offsets.isEmpty()) {
-                    Log.create(LOGGER)
-                            .setLogType(LOG_TYPE)
-                            .setEvent("commit")
-                            .addData("offsets", offsets)
-                            .info();
+                    LOGGER.debug("[KAFKA] [committed] [{}]", offsets);
                   }
                 }
               });
@@ -91,11 +78,7 @@ public abstract class KafkaReadStream implements Runnable {
     try {
       startKafkaConsumer();
     } catch (Exception e) {
-      Log.create(LOGGER)
-              .setLogType(LOG_TYPE)
-              .setEvent("start.failed")
-              .setThrowable(e)
-              .error();
+      LOGGER.error("[KAFKA] [startFailed]", e);
     }
   }
 
@@ -112,19 +95,15 @@ public abstract class KafkaReadStream implements Runnable {
   public void pause() {
     consumer.pause(partitionsAssigned);
     pause = true;
-    Log.create(LOGGER)
-            .setLogType(LOG_TYPE)
-            .setEvent("pause")
-            .info();
+    int count = pauseCount.incrementAndGet();
+    latestPaused = System.currentTimeMillis();
+    LOGGER.info("[KAFKA] [pause] [{}]", count);
   }
 
   public void resume() {
     consumer.resume(partitionsAssigned);
     pause = false;
-    Log.create(LOGGER)
-            .setLogType(LOG_TYPE)
-            .setEvent("resume")
-            .info();
+    LOGGER.info("[KAFKA] [resume] [{}ms]", System.currentTimeMillis() - latestPaused);
   }
 
   public void close() {
@@ -147,39 +126,20 @@ public abstract class KafkaReadStream implements Runnable {
     for (String topic : options.getTopics()) {
       while ((partitions = consumer.partitionsFor(topic)) == null) {
         try {
-          Log.create(LOGGER)
-                  .setLogType(LOG_TYPE)
-                  .setEvent("metadata.unavailable")
-                  .addData("topic", topic)
-                  .setMessage("wait 5s")
-                  .info();
+          LOGGER.warn("[KAFKA] [waitMetadata] [{}]", topic);
           TimeUnit.SECONDS.sleep(5);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
-      Log.create(LOGGER)
-              .setLogType(LOG_TYPE)
-              .setEvent("metadata.available")
-              .addData("topic", topic)
-              .addData("partitions", partitions)
-              .setMessage("wait 5s")
-              .info();
+      LOGGER.info("[KAFKA] [available] [{}] [{}]", topic, partitions);
     }
     if (options.getTopics().isEmpty()
-        && !Strings.isNullOrEmpty(options.getPattern())) {
-      Log.create(LOGGER)
-              .setLogType(LOG_TYPE)
-              .setEvent("subscribe")
-              .addData("pattern", options.getPattern())
-              .info();
+            && !Strings.isNullOrEmpty(options.getPattern())) {
+      LOGGER.info("[KAFKA] [subscribe] [{}]", options.getPattern());
       consumer.subscribe(Pattern.compile(options.getPattern()), createListener());
     } else {
-      Log.create(LOGGER)
-              .setLogType(LOG_TYPE)
-              .setEvent("subscribe")
-              .addData("topics", options.getTopics())
-              .info();
+      LOGGER.info("[KAFKA] [subscribe] [{}]", options.getTopics());
       consumer.subscribe(options.getTopics(), createListener());
     }
 
@@ -188,28 +148,15 @@ public abstract class KafkaReadStream implements Runnable {
         try {
           ConsumerRecords<String, Event> records = consumer.poll(100);
           if (records.count() > 0) {
-            Log.create(LOGGER)
-                    .setLogType(LOG_TYPE)
-                    .setEvent("poll")
-                    .addData("count", records.count())
-                    .info();
+            LOGGER.info("[KAFKA] [poll] [{} records]", records.count());
           }
           List<Event> events = new ArrayList<>();
           //将读取的消息全部写入队列
           for (ConsumerRecord<String, Event> record : records) {
             Event event = record.value();
-            Log.create(LOGGER)
-                    .setLogType(LogType.MR)
-                    .setEvent("kafka")
-                    .setTraceId(event.head().id())
-                    .setMessage("[{},{},{}] [{}] [{}] [{}]")
-                    .addArg(record.topic())
-                    .addArg(record.partition())
-                    .addArg(record.offset())
-                    .addArg(event.head().action())
-                    .addArg(Helper.toHeadString(event))
-                    .addArg(Helper.toActionString(event))
-                    .info();
+            LOGGER.info("[{}] [MR] [KAFKA] [{},{},{}] [{}] [{}] [{}]", event.head().id(),
+                    record.topic(), record.partition(), record.offset(),
+                    Helper.toHeadString(event), Helper.toActionString(event));
             events.add(event);
           }
           handleEvents(events);
@@ -226,26 +173,15 @@ public abstract class KafkaReadStream implements Runnable {
             }
           }
         } catch (Exception e) {
-          Log.create(LOGGER)
-                  .setLogType(LOG_TYPE)
-                  .setEvent("ERROR")
-                  .setThrowable(e)
-                  .error();
+          LOGGER.error("[KAFKA] [pollFailed]", e);
         }
 
       }
     } catch (Exception e) {
-      Log.create(LOGGER)
-              .setLogType(LOG_TYPE)
-              .setEvent("ERROR")
-              .setThrowable(e)
-              .error();
+      LOGGER.error("[KAFKA] [failed]", e);
     } finally {
       consumer.close();
-      Log.create(LOGGER)
-              .setLogType(LOG_TYPE)
-              .setEvent("consumer.exited")
-              .info();
+      LOGGER.info("[KAFKA] [exited]");
     }
   }
 
@@ -253,11 +189,7 @@ public abstract class KafkaReadStream implements Runnable {
     return new ConsumerRebalanceListener() {
       @Override
       public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-        Log.create(LOGGER)
-                .setLogType(LOG_TYPE)
-                .setEvent("onPartitionsRevoked")
-                .addData("partitions", partitions)
-                .info();
+        LOGGER.info("[KAFKA] [partitionsRevoked] [{}]", partitions);
       }
 
       @Override
@@ -269,16 +201,9 @@ public abstract class KafkaReadStream implements Runnable {
           partitionsAssigned.add(new TopicPartition(tp.topic(), tp.partition()));
           long position = consumer.position(tp);
           OffsetAndMetadata lastCommitedOffsetAndMetadata = consumer.committed(tp);
-          Log.create(LOGGER)
-                  .setLogType(LOG_TYPE)
-                  .setEvent("onPartitionsAssigned")
-                  .addData("topic", tp.topic())
-                  .addData("partition", tp.partition())
-                  .addData("offset", position)
-                  .addData("partitions", partitions)
-                  .addData("commited", lastCommitedOffsetAndMetadata)
-                  .info();
-
+          LOGGER.info("[KAFKA] [partitionsAssigned] [{},{},{}] [{}] [{}]",
+                  tp.topic(), tp.partition(), position,
+                  partitions, lastCommitedOffsetAndMetadata);
           if (!started) {
             setStartOffset(tp);
           }
@@ -291,40 +216,20 @@ public abstract class KafkaReadStream implements Runnable {
   private void setStartOffset(TopicPartition tp) {
     long startingOffset = options.getStartingOffset(tp);
     if (startingOffset == -2) {
-      Log.create(LOGGER)
-              .setLogType(LOG_TYPE)
-              .setEvent("StartingOffset")
-              .addData("topic", tp.topic())
-              .addData("partition", tp.partition())
-              .addData("offset", "none")
-              .info();
+      LOGGER.info("[KAFKA] [StartingOffset] [{},{},{}]",
+              tp.topic(), tp.partition(), "none");
     } else if (startingOffset == 0) {
       consumer.seekToBeginning(Lists.newArrayList(tp));
-      Log.create(LOGGER)
-              .setLogType(LOG_TYPE)
-              .setEvent("StartingOffset")
-              .addData("topic", tp.topic())
-              .addData("partition", tp.partition())
-              .addData("offset", "beginning")
-              .info();
+      LOGGER.info("[KAFKA] [StartingOffset] [{},{},{}]",
+              tp.topic(), tp.partition(), "beginning");
     } else if (startingOffset == -1) {
       consumer.seekToEnd(Lists.newArrayList(tp));
-      Log.create(LOGGER)
-              .setLogType(LOG_TYPE)
-              .setEvent("StartingOffset")
-              .addData("topic", tp.topic())
-              .addData("partition", tp.partition())
-              .addData("offset", "end")
-              .info();
+      LOGGER.info("[KAFKA] [StartingOffset] [{},{},{}]",
+              tp.topic(), tp.partition(), "end");
     } else {
       consumer.seek(tp, startingOffset);
-      Log.create(LOGGER)
-              .setLogType(LOG_TYPE)
-              .setEvent("StartingOffset")
-              .addData("topic", tp.topic())
-              .addData("partition", tp.partition())
-              .addData("offset", startingOffset)
-              .info();
+      LOGGER.info("[KAFKA] [StartingOffset] [{},{},{}]",
+              tp.topic(), tp.partition(), startingOffset);
     }
   }
 }
