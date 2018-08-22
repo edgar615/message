@@ -2,6 +2,7 @@ package com.github.edgar615.util.eventbus.metric;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SharedMetricRegistries;
 import com.codahale.metrics.Timer;
 import com.github.edgar615.util.metrics.ConsumerMetrics;
 
@@ -25,7 +26,7 @@ public class ConsumerMetricsImpl implements ConsumerMetrics {
   private final Timer consumerTimer;
 
   public ConsumerMetricsImpl() {
-    this.registry = new MetricRegistry();
+    this.registry = SharedMetricRegistries.getOrCreate("eventbus");
     String baseName = "eventbus";
     this.consumerCompleted = registry.counter(MetricRegistry.name(baseName, "consumer",
             "completed"));

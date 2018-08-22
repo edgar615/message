@@ -2,6 +2,7 @@ package com.github.edgar615.util.eventbus.metric;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SharedMetricRegistries;
 import com.codahale.metrics.Timer;
 import com.github.edgar615.util.metrics.ProducerMetrics;
 
@@ -29,7 +30,7 @@ public class ProducerMetricsImpl implements ProducerMetrics {
   private final Timer sendTimer;
 
   public ProducerMetricsImpl() {
-    this.registry = new MetricRegistry();
+    this.registry = SharedMetricRegistries.getOrCreate("eventbus");
     String baseName = "eventbus";
     this.sendPending = registry.counter(MetricRegistry.name(baseName, "send", "pending"));
     this.sendSucceed = registry.counter(MetricRegistry.name(baseName, "send", "succeed"));
