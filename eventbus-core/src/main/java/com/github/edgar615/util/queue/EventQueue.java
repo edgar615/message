@@ -1,4 +1,4 @@
-package com.github.edgar615.util.eventbus;
+package com.github.edgar615.util.queue;
 
 import com.github.edgar615.util.event.Event;
 
