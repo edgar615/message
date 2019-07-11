@@ -31,8 +31,9 @@
         <junit.version>4.12</junit.version>
         <awaitility.version>2.0.0</awaitility.version>
         <slf4j.version>1.7.14</slf4j.version>
-        <util.version>1.1.1.BETA9</util.version>
+        <guava.version>26.0-jre</guava.version>
         <metrics.version>3.2.0</metrics.version>
+        <logstash.logback.version>6.1</logstash.logback.version>
         <logback.vesion>1.1.2</logback.vesion>
 
     </properties>
@@ -57,6 +58,11 @@
                 <version>${slf4j.version}</version>
             </dependency>
             <dependency>
+                <groupId>net.logstash.logback</groupId>
+                <artifactId>logstash-logback-encoder</artifactId>
+                <version>${logstash.logback.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
                 <version>${logback.vesion}</version>
@@ -64,9 +70,9 @@
             </dependency>
 
             <dependency>
-                <groupId>com.github.edgar615</groupId>
-                <artifactId>util</artifactId>
-                <version>${util.version}</version>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
 
             <dependency>
