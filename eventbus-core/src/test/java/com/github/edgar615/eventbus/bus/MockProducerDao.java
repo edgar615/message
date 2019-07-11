@@ -1,6 +1,7 @@
 package com.github.edgar615.eventbus.bus;
 
 import com.github.edgar615.eventbus.dao.EventProducerDao;
+import com.github.edgar615.eventbus.dao.SendEventState;
 import com.github.edgar615.eventbus.event.Event;
 import com.google.common.collect.ImmutableList;
 

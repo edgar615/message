@@ -1,8 +1,10 @@
 package com.github.edgar615.eventbus.utils;
 
 import static net.logstash.logback.marker.Markers.append;
+import static net.logstash.logback.marker.Markers.appendEntries;
 
 import com.github.edgar615.eventbus.event.Event;
+import java.util.Map;
 import org.slf4j.Marker;
 
 public class LoggingMarker {
@@ -17,9 +19,16 @@ public class LoggingMarker {
     return messageMarker;
   }
 
-  public static Marker getIdLoggingMarker(Event event) {
+  public static Marker getIdLoggingMarker(String id) {
     Marker messageMarker =
-        append("traceId", event.head().id());
+        append("traceId", id);
+    return messageMarker;
+  }
+
+  public static Marker getLoggingMarker(String id, Map<String, Object> extra) {
+    Marker messageMarker =
+        append("traceId", id)
+        .and(appendEntries(extra));
     return messageMarker;
   }
 }

@@ -2,7 +2,6 @@ package com.github.edgar615.eventbus.dao;
 
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.bus.EventProducer;
-import com.github.edgar615.eventbus.bus.SendEventState;
 import java.util.List;
 
 /**

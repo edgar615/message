@@ -7,36 +7,31 @@ import com.github.edgar615.eventbus.utils.DefaultEventQueue;
 import com.github.edgar615.eventbus.utils.EventQueue;
 import com.github.edgar615.eventbus.utils.NamedThreadFactory;
 import com.github.edgar615.eventbus.utils.SequentialEventQueue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * Created by Edgar on 2017/4/18.
  *
  * @author Edgar  Date 2017/4/18
  */
-public abstract class EventConsumerImpl implements EventConsumer {
+public abstract class EventConsumerImplV2 implements EventConsumer {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(EventConsumer.class);
 
   private final ExecutorService workerExecutor;
 
-  private final ScheduledExecutorService scheduledExecutor;
-
   private final BlockedEventChecker checker;
-
-  private final int blockedCheckerMs;
 
   private final ConsumerMetrics metrics;
 
@@ -48,28 +43,27 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   private ConsumerStorage consumerStorage;
 
-  EventConsumerImpl(ConsumerOptions options) {
+  private EventBusReadStream readStream;
+
+  private final int workerCount;
+
+  EventConsumerImplV2(ConsumerOptions options) {
     this(options, null, null, null);
   }
 
-  EventConsumerImpl(ConsumerOptions options, ConsumerStorage consumerStorage,
-                    Function<Event, String> identificationExtractor,
-                    Function<Event, Boolean> blackListFilter) {
+  EventConsumerImplV2(ConsumerOptions options, EventBusReadStream readStream, EventQueue queue,
+      EventBusScheduler eventBusScheduler) {
     this.metrics = createMetrics();
+    this.workerCount = options.getWorkerPoolSize();
     this.workerExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
-            NamedThreadFactory.create
-                    ("event-consumer-worker"));
-    this.blockedCheckerMs = options.getBlockedCheckerMs();
+        NamedThreadFactory.create
+            ("event-consumer-worker"));
     if (options.getBlockedCheckerMs() > 0) {
-      this.scheduledExecutor =
-              Executors.newSingleThreadScheduledExecutor(
-                      NamedThreadFactory.create("kafka-blocker-checker"));
       this.checker = BlockedEventChecker
-              .create(options.getBlockedCheckerMs(),
-                      scheduledExecutor);
+          .create(options.getBlockedCheckerMs(),
+              eventBusScheduler.executor());
     } else {
       checker = null;
-      this.scheduledExecutor = null;
     }
     running = true;
     this.consumerStorage = consumerStorage;
@@ -78,10 +72,13 @@ public abstract class EventConsumerImpl implements EventConsumer {
     } else {
       this.blackListFilter = blackListFilter;
     }
-    if (identificationExtractor == null) {
-      this.eventQueue = new DefaultEventQueue(options.getMaxQuota());
-    } else {
-      this.eventQueue = new SequentialEventQueue(identificationExtractor, options.getMaxQuota());
+  }
+
+  public void start() {
+    for (int i = 0; i < workerCount; i ++) {
+      workerExecutor.submit(() -> {
+
+      });
     }
   }
 
@@ -188,7 +185,6 @@ public abstract class EventConsumerImpl implements EventConsumer {
   /**
    * 入队，如果入队后队列中的任务数量超过了最大数量，暂停消息的读取
    *
-   * @param event
    * @return 如果队列中的长度超过最大数量，返回false
    */
   protected void enqueue(Event event) {
@@ -216,7 +212,7 @@ public abstract class EventConsumerImpl implements EventConsumer {
 
   private boolean isConsumed(Event event) {
     if (consumerStorage != null && consumerStorage.shouldStorage(event)
-            && consumerStorage.isConsumed(event)) {
+        && consumerStorage.isConsumed(event)) {
       LOGGER.warn("[{}] [EC] [repeated]", event.head().id());
       return true;
     }
@@ -226,8 +222,8 @@ public abstract class EventConsumerImpl implements EventConsumer {
   private void doHandle(Event event) {
     try {
       List<EventHandler> handlers =
-              HandlerRegistration.instance()
-                      .getHandlers(event);
+          HandlerRegistration.instance()
+              .getHandlers(event);
       if (handlers == null || handlers.isEmpty()) {
         LOGGER.warn("[{}] [EC] [no handler]", event.head().id());
       } else {

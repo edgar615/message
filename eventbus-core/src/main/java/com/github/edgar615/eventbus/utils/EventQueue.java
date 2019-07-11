@@ -5,7 +5,7 @@ import com.github.edgar615.eventbus.event.Event;
 import java.util.List;
 
 /**
- * Created by Edgar on 2018/5/3.
+ * 消息消费的队列.
  *
  * @author Edgar  Date 2018/5/3
  */

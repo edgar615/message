@@ -1,7 +1,9 @@
 package com.github.edgar615.eventbus.bus;
 
 import com.github.edgar615.eventbus.dao.EventProducerDao;
+import com.github.edgar615.eventbus.dao.SendEventState;
 import com.github.edgar615.eventbus.event.Event;
+import com.github.edgar615.eventbus.utils.LoggingMarker;
 import com.github.edgar615.eventbus.utils.NamedThreadFactory;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -39,7 +41,7 @@ public class EventBusSchedulerImpl implements EventBusScheduler {
   public EventBusSchedulerImpl(EventProducerDao eventProducerDao,
       EventBusWriteStream writeStream, long fetchPendingPeriod) {
     this.scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
-        NamedThreadFactory.create("kafka-scheduler"));
+        NamedThreadFactory.create("event-scheduler"));
     this.writeStream = writeStream;
     this.eventProducerDao = eventProducerDao;
     if (fetchPendingPeriod <= 0) {
@@ -52,7 +54,7 @@ public class EventBusSchedulerImpl implements EventBusScheduler {
 
   @Override
   public void start() {
-    LOGGER.info("start scheduler, period:{}ms" + fetchPendingPeriod);
+    LOGGER.info("start scheduler, period:{}ms", fetchPendingPeriod);
     schedule(fetchPendingPeriod);
   }
 
@@ -62,11 +64,16 @@ public class EventBusSchedulerImpl implements EventBusScheduler {
     scheduledExecutor.shutdown();
   }
 
+  @Override
+  public ScheduledExecutorService executor() {
+    return scheduledExecutor;
+  }
+
   private void schedule(long delay) {
     Runnable scheduledCommand = () -> {
       // 如果processing大于0说明有任务在执行，直接返回，在任务执行完成后会重新只执行定时任务
       if (closed || processing.get() > 0) {
-        LOGGER.trace("skip scheduler, closed:{}, processing:{}" + fetchPendingPeriod);
+        LOGGER.trace("skip scheduler, closed:{}, processing:{}", closed,  fetchPendingPeriod);
         return;
       }
       List<Event> waitingForSend = eventProducerDao.waitingForSend();
@@ -102,20 +109,20 @@ public class EventBusSchedulerImpl implements EventBusScheduler {
   }
 
   private void markSucess(Event event) {
-    LOGGER.info("event send success");
+    LOGGER.info(LoggingMarker.getIdLoggingMarker(event.head().id()), "send succeed");
     try {
       eventProducerDao.mark(event.head().id(), SendEventState.SUCCEED);
     } catch (Exception e) {
-      LOGGER.error("mark event failed", e);
+      LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()),"mark event failed", e);
     }
   }
 
   private void markFailed(Event event, Throwable throwable) {
-    LOGGER.error("event send failed, cause:{}", throwable.getMessage());
+    LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "send failed", throwable.getMessage());
     try {
       eventProducerDao.mark(event.head().id(), SendEventState.FAILED);
     } catch (Exception e) {
-      LOGGER.error("mark event failed", e);
+      LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()),"mark event failed", e);
     }
   }
 

@@ -44,11 +44,12 @@ public class EventProducerImpl implements EventProducer {
   public CompletableFuture<Event> send(Event event) {
     LOGGER.info(LoggingMarker.getLoggingMarker(event, false), "waiting for send");
     CompletableFuture<Event> future = new CompletableFuture<>();
+    String id = event.head().id();
     writeStream.send(event).thenAccept(e -> {
-      LOGGER.info(LoggingMarker.getIdLoggingMarker(event), "send succeed");
+      LOGGER.info(LoggingMarker.getIdLoggingMarker(id), "send succeed");
       future.complete(e);
     }).exceptionally(throwable -> {
-      LOGGER.error(LoggingMarker.getIdLoggingMarker(event), "send failed", throwable);
+      LOGGER.error(LoggingMarker.getIdLoggingMarker(id), "send failed", throwable.getMessage());
       future.completeExceptionally(throwable);
       return null;
     });
