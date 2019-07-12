@@ -1,6 +1,5 @@
 package com.github.edgar615.eventbus.kafka;
 
-import com.github.edgar615.eventbus.bus.Helper;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.utils.NamedThreadFactory;
 import com.google.common.base.Strings;

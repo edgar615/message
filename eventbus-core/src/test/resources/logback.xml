@@ -12,7 +12,7 @@
           <pattern>%n</pattern>
         </suffix>
         <encoder class="net.logstash.logback.encoder.LogstashAccessEncoder">
-          <customFields>{"appname":"myWebservice","roles":["customerorder","auth"]}</customFields>
+          <!--<customFields>{"appname":"myWebservice","roles":["customerorder","auth"]}</customFields>-->
         </encoder>
       </layout>
     </appender>

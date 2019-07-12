@@ -81,7 +81,7 @@ public class SequentialEventQueue implements EventQueue {
         && takeElement == null) {
       takeElement = event;
     }
-    LOGGER.debug("[{}] [EC] [enqueue]", event.head().id());
+    LOGGER.debug(LoggingMarker.getIdLoggingMarker(event.head().id()), "enqueue");
   }
 
   @Override
@@ -101,7 +101,7 @@ public class SequentialEventQueue implements EventQueue {
       }
     }
     if (LOGGER.isDebugEnabled()) {
-      events.forEach(e -> LOGGER.debug("[{}] [EC] [enqueue]", e.head().id()));
+      events.forEach(e -> LOGGER.debug(LoggingMarker.getIdLoggingMarker(e.head().id()), "enqueue"));
     }
   }
 
@@ -126,7 +126,7 @@ public class SequentialEventQueue implements EventQueue {
     registry.add(extractId(x));
     //重新计算下一个可以出队的元素
     takeElement = next();
-    LOGGER.debug("[{}] [EC] [dequeue]", x.head().id());
+    LOGGER.debug(LoggingMarker.getIdLoggingMarker(x.head().id()), "dequeue");
     return x;
   }
 

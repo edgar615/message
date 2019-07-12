@@ -20,7 +20,7 @@ public class SerialConsumeEventTest extends EventbusTest {
     options.setServers(server)
             .setGroup("test-consumer")
             .addTopic("test");
-    KafkaEventConsumer consumer = new KafkaEventConsumer(options);
+    KafkaEventBusConsumer consumer = new KafkaEventBusConsumer(options);
 //    consumer .setPartitioner(event -> Integer.parseInt(event.action().resource()) % 3);
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);

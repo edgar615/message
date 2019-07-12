@@ -17,16 +17,16 @@ import org.slf4j.LoggerFactory;
 /**
  * @author Edgar
  */
-public class EventBusSchedulerImpl implements EventBusScheduler {
+public class EventBusProducerSchedulerImpl implements EventBusProducerScheduler {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(EventBusScheduler.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(EventBusProducerScheduler.class);
 
   private static final int DEFAULT_PREIOD = 1000;
 
   /**
    * 定时从持久层拉取待发送消息的方法
    */
-  private long fetchPendingPeriod;
+  private long fetchPeriod;
 
   private final EventProducerDao eventProducerDao;
 
@@ -38,49 +38,46 @@ public class EventBusSchedulerImpl implements EventBusScheduler {
 
   private volatile boolean closed = false;
 
-  public EventBusSchedulerImpl(EventProducerDao eventProducerDao,
-      EventBusWriteStream writeStream, long fetchPendingPeriod) {
+  public EventBusProducerSchedulerImpl(EventProducerDao eventProducerDao,
+      EventBusWriteStream writeStream, long fetchPeriod) {
     this.scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
-        NamedThreadFactory.create("event-scheduler"));
+        NamedThreadFactory.create("producer-scheduler"));
     this.writeStream = writeStream;
     this.eventProducerDao = eventProducerDao;
-    if (fetchPendingPeriod <= 0) {
-      this.fetchPendingPeriod = DEFAULT_PREIOD;
+    if (fetchPeriod <= 0) {
+      this.fetchPeriod = DEFAULT_PREIOD;
     } else {
-      this.fetchPendingPeriod = fetchPendingPeriod;
+      this.fetchPeriod = fetchPeriod;
     }
 
   }
 
   @Override
   public void start() {
-    LOGGER.info("start scheduler, period:{}ms", fetchPendingPeriod);
-    schedule(fetchPendingPeriod);
+    LOGGER.info("start scheduler, period:{}ms", fetchPeriod);
+    schedule(fetchPeriod);
   }
 
   @Override
   public void close() {
-    LOGGER.info("close scheduler");
-    scheduledExecutor.shutdown();
-  }
-
-  @Override
-  public ScheduledExecutorService executor() {
-    return scheduledExecutor;
+    if (!scheduledExecutor.isShutdown()) {
+      LOGGER.info("close scheduler");
+      scheduledExecutor.shutdown();
+    }
   }
 
   private void schedule(long delay) {
     Runnable scheduledCommand = () -> {
       // 如果processing大于0说明有任务在执行，直接返回，在任务执行完成后会重新只执行定时任务
       if (closed || processing.get() > 0) {
-        LOGGER.trace("skip scheduler, closed:{}, processing:{}", closed,  fetchPendingPeriod);
+        LOGGER.trace("skip scheduler, closed:{}, processing:{}", closed,  processing.get());
         return;
       }
       List<Event> waitingForSend = eventProducerDao.waitingForSend();
       //没有数据，等待
       LOGGER.trace("{} events to be send", waitingForSend.size());
       if (waitingForSend.isEmpty()) {
-        schedule(fetchPendingPeriod);
+        schedule(fetchPeriod);
         return;
       }
       processing.addAndGet(waitingForSend.size());

@@ -21,7 +21,7 @@ public class SeekToBeginningConsumeEventTest extends EventbusTest {
 //            .addStartingOffset(new TopicPartition("test", 0), 11834794l)
             .setGroup("test-consumer")
             .addTopic("test");
-    KafkaEventConsumer consumer = new KafkaEventConsumer(options);
+    KafkaEventBusConsumer consumer = new KafkaEventBusConsumer(options);
 //    consumer.setPartitioner(event -> Integer.parseInt(event.action().resource()) % 3);
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);

@@ -1,6 +1,6 @@
 package com.github.edgar615.eventbus.kafka;
 
-import com.github.edgar615.eventbus.bus.EventConsumer;
+import com.github.edgar615.eventbus.bus.EventBusConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +27,7 @@ public class KafkaConsumeEventTest extends EventbusTest {
             .setMaxPollRecords(1)
             .setMaxQuota(5)
             .setConsumerAutoOffsetRest("earliest");
-    EventConsumer consumer = new KafkaEventConsumer(options);
+    EventBusConsumer consumer = new KafkaEventBusConsumer(options);
     AtomicInteger count = new AtomicInteger();
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);

@@ -1,7 +1,6 @@
 package com.github.edgar615.eventbus.kafka.vertx;
 
 import com.github.edgar615.eventbus.event.Event;
-import com.github.edgar615.eventbus.bus.Helper;
 import com.github.edgar615.eventbus.metrics.DummyMetrics;
 import com.github.edgar615.eventbus.metrics.ProducerMetrics;
 import com.github.edgar615.util.concurrent.NamedThreadFactory;

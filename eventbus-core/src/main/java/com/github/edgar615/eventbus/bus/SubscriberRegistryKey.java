@@ -1,5 +1,6 @@
 package com.github.edgar615.eventbus.bus;
 
+@Deprecated
 public class SubscriberRegistryKey {
 
   private final String topic;

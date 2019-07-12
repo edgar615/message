@@ -14,7 +14,7 @@ public class LoggingMarker {
         append("traceId", event.head().id())
             .and(append("topic", event.head().to()))
             .and(append("type", wasReceived ? "inbound" : "outbound"))
-            .and(append("action", event.head()))
+            .and(append("action", event.action().name()))
             .and(append("source", event.toMap()));
     return messageMarker;
   }

@@ -1,7 +1,5 @@
 package com.github.edgar615.eventbus.kafka;
 
-import com.github.edgar615.eventbus.bus.ConsumerStorage;
-import com.github.edgar615.eventbus.bus.EventConsumerImpl;
 import com.github.edgar615.eventbus.event.Event;
 
 import java.util.List;
@@ -33,15 +31,15 @@ import java.util.function.Function;
  *
  * @author Edgar  Date 2017/4/5
  */
-public class KafkaEventConsumer extends EventConsumerImpl {
+public class KafkaEventBusConsumer extends EventConsumerImpl {
 
   private final KafkaReadStream readStream;
 
-  public KafkaEventConsumer(KafkaConsumerOptions options) {
+  public KafkaEventBusConsumer(KafkaConsumerOptions options) {
     this(options, null, null, null);
   }
 
-  public KafkaEventConsumer(KafkaConsumerOptions options, ConsumerStorage consumerStorage,
+  public KafkaEventBusConsumer(KafkaConsumerOptions options, ConsumerStorage consumerStorage,
                             Function<Event, String> identificationExtractor,
                             Function<Event, Boolean> blackListFilter) {
     super(options, consumerStorage, identificationExtractor, blackListFilter);

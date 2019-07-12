@@ -1,4 +1,4 @@
-package com.github.edgar615.eventbus.bus;
+package com.github.edgar615.eventbus.utils;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

@@ -28,6 +28,10 @@ public interface EventQueue {
    */
   Event dequeue() throws InterruptedException;
 
+  /**
+   * 入队
+   * @param event
+   */
   void enqueue(Event event);
 
   void enqueue(List<Event> events);

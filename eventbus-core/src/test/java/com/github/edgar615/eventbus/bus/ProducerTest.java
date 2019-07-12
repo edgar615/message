@@ -42,8 +42,9 @@ public class ProducerTest {
   public void testStorage() {
     MockProducerDao producerDao = new MockProducerDao();
     RoundRobinWriteStream writeStream = new RoundRobinWriteStream();
-    EventBusScheduler eventBusScheduler = new EventBusSchedulerImpl(producerDao, writeStream, 3000);
-    EventProducer producer = new EventProducerImpl(new ProducerOptions(), writeStream, producerDao, eventBusScheduler);
+    EventBusProducerScheduler eventBusProducerScheduler = new EventBusProducerSchedulerImpl(producerDao, writeStream, 3000);
+    EventProducer producer = new EventProducerImpl(new ProducerOptions(), writeStream, producerDao,
+        eventBusProducerScheduler);
     producer.start();
     for (int i = 0; i < 10; i++) {
       if (i == 5) {

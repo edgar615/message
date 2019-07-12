@@ -1,4 +1,4 @@
-package com.github.edgar615.eventbus.bus;
+package com.github.edgar615.eventbus.utils;
 
 /**
  * Created by Edgar on 2018/7/14.

@@ -1,6 +1,6 @@
 package com.github.edgar615.eventbus.kafka;
 
-import com.github.edgar615.eventbus.bus.EventConsumer;
+import com.github.edgar615.eventbus.bus.EventBusConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +26,7 @@ public class KafkaMaxQuotaConsumeEventTest extends EventbusTest {
 //            .setPattern(".*")
             .addTopic("DeviceControlEvent_1_3")
             .setMaxQuota(1);
-    EventConsumer consumer = new KafkaEventConsumer(options);
+    EventBusConsumer consumer = new KafkaEventBusConsumer(options);
     AtomicInteger count = new AtomicInteger();
     consumer.consumer(null, null, e -> {
       try {

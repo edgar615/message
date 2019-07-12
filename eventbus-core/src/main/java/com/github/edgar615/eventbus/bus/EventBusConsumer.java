@@ -8,17 +8,7 @@ import java.util.function.BiPredicate;
  *
  * @author Edgar  Date 2017/4/18
  */
-public interface EventConsumer {
-
-  /**
-   * 暂停读取消息
-   */
-  void pause();
-
-  /**
-   * 恢复读取消息
-   */
-  void resume();
+public interface EventBusConsumer {
 
   /**
    * 关闭
@@ -55,12 +45,6 @@ public interface EventConsumer {
    * @return
    */
   long waitForHandle();
-
-  /**
-   * 是否暂停
-   * @return
-   */
-  boolean paused();
 
   /**
    * 是否运行

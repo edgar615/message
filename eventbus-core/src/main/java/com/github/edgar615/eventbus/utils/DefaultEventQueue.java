@@ -1,11 +1,10 @@
 package com.github.edgar615.eventbus.utils;
 
 import com.github.edgar615.eventbus.event.Event;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.LinkedList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by Edgar on 2018/5/3.
@@ -42,7 +41,7 @@ public class DefaultEventQueue implements EventQueue {
       notifyAll();
     }
     elements.add(event);
-    LOGGER.debug("[{}] [EC] [enqueue]", event.head().id());
+    LOGGER.debug(LoggingMarker.getIdLoggingMarker(event.head().id()), "enqueue");
   }
 
   @Override
@@ -54,7 +53,7 @@ public class DefaultEventQueue implements EventQueue {
     }
     elements.addAll(events);
     if (LOGGER.isDebugEnabled()) {
-      events.forEach(e -> LOGGER.debug("[{}] [EC] [enqueue]", e.head().id()));
+      events.forEach(e -> LOGGER.debug(LoggingMarker.getIdLoggingMarker(e.head().id()), "enqueue"));
     }
 
   }
@@ -88,7 +87,7 @@ public class DefaultEventQueue implements EventQueue {
 
   private Event taskNextElement() {
     Event e = next();
-    LOGGER.debug("[{}] [EC] [dequeue]", e.head().id());
+    LOGGER.debug(LoggingMarker.getIdLoggingMarker(e.head().id()), "dequeue");
     return e;
   }
 

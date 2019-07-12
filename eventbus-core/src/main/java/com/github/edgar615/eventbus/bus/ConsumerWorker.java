@@ -3,6 +3,8 @@ package com.github.edgar615.eventbus.bus;
 import com.github.edgar615.eventbus.dao.ConsumeEventState;
 import com.github.edgar615.eventbus.dao.EventConsumerDao;
 import com.github.edgar615.eventbus.event.Event;
+import com.github.edgar615.eventbus.utils.EventIdTracing;
+import com.github.edgar615.eventbus.utils.EventIdTracingHolder;
 import com.github.edgar615.eventbus.utils.EventQueue;
 import com.github.edgar615.eventbus.utils.LoggingMarker;
 import com.google.common.collect.ImmutableMap;
@@ -60,14 +62,14 @@ public class ConsumerWorker implements Runnable {
       queue.complete(event);
       LOGGER.info(
           LoggingMarker.getLoggingMarker(event.head().id(), ImmutableMap.of("duration", duration)),
-          "consumer succeed");
+          "consume succeed");
     } catch (InterruptedException e) {
-      LOGGER.info(LoggingMarker.getIdLoggingMarker(event.head().id()), "thread interrupted");
+      LOGGER.warn(LoggingMarker.getIdLoggingMarker(event.head().id()), "thread interrupted");
 //        因为中断一个运行在线程池中的任务可以起到双重效果，一是取消任务，二是通知执行线程线程池正要关闭。如果任务生吞中断请求，则 worker
 // 线程将不知道有一个被请求的中断，从而耽误应用程序或服务的关闭
       Thread.currentThread().interrupt();
     } catch (Exception e) {
-      LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "consumer failed", e);
+      LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "consume failed", e);
     } finally {
       EventIdTracingHolder.clear();
       MDC.remove("x-request-id");
@@ -86,15 +88,32 @@ public class ConsumerWorker implements Runnable {
           handler.handle(event);
         }
       }
-      LOGGER.info(LoggingMarker.getIdLoggingMarker(event.head().id()), "handle succeed");
       if (consumerDao != null) {
-        consumerDao.mark(event.head().id(), ConsumeEventState.SUCCEED);
+        markSucess(event);
       }
     } catch (Exception e) {
-      LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "handle failed", e);
       if (consumerDao != null) {
-        consumerDao.mark(event.head().id(), ConsumeEventState.FAILED);
+        markFailed(event, e);
       }
+      throw e;
+    }
+  }
+
+  private void markSucess(Event event) {
+    try {
+      consumerDao.mark(event.head().id(), ConsumeEventState.SUCCEED);
+    } catch (Exception e) {
+      LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "mark event failed", e);
+    }
+  }
+
+  private void markFailed(Event event, Throwable throwable) {
+    LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "consume failed",
+        throwable.getMessage());
+    try {
+      consumerDao.mark(event.head().id(), ConsumeEventState.FAILED);
+    } catch (Exception e) {
+      LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "mark event failed", e);
     }
   }
 }

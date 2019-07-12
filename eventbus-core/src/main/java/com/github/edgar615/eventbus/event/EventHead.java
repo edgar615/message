@@ -69,7 +69,15 @@ public interface EventHead {
    * @return
    */
   static EventHead create(String to, String action) {
-    return create(UUID.randomUUID().toString(), to, action, -1);
+    return create(genUuid(), to, action, -1);
+  }
+
+  /**
+   * 生成uuid
+   * @return
+   */
+  static String genUuid() {
+    return UUID.randomUUID().toString().replace("-", "");
   }
 
   /**
@@ -81,7 +89,7 @@ public interface EventHead {
    * @return
    */
   static EventHead create(String to, String action, long duration) {
-    return create(UUID.randomUUID().toString(), to, action, duration);
+    return create(UUID.randomUUID().toString().replace("-", ""), to, action, duration);
   }
 
   /**

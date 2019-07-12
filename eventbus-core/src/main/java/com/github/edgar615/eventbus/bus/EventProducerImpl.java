@@ -14,7 +14,7 @@ public class EventProducerImpl implements EventProducer {
 
   private final EventProducerDao eventProducerDao;
 
-  private final EventBusScheduler eventBusScheduler;
+  private final EventBusProducerScheduler eventBusProducerScheduler;
 
   private final EventBusWriteStream writeStream;
 
@@ -25,18 +25,18 @@ public class EventProducerImpl implements EventProducer {
   }
 
   public EventProducerImpl(ProducerOptions options, EventBusWriteStream writeStream,
-      EventProducerDao eventProducerDao, EventBusScheduler eventBusScheduler) {
+      EventProducerDao eventProducerDao, EventBusProducerScheduler eventBusProducerScheduler) {
     this.options = options;
     this.writeStream = writeStream;
     this.eventProducerDao = eventProducerDao;
-    this.eventBusScheduler = eventBusScheduler;
+    this.eventBusProducerScheduler = eventBusProducerScheduler;
   }
 
   @Override
   public void start() {
     LOGGER.info("start producer");
-    if (eventBusScheduler != null) {
-      eventBusScheduler.start();
+    if (eventBusProducerScheduler != null) {
+      eventBusProducerScheduler.start();
     }
   }
 
@@ -68,8 +68,8 @@ public class EventProducerImpl implements EventProducer {
   @Override
   public void close() {
     LOGGER.info("close producer");
-    if (eventBusScheduler != null) {
-      eventBusScheduler.close();
+    if (eventBusProducerScheduler != null) {
+      eventBusProducerScheduler.close();
     }
   }
 
