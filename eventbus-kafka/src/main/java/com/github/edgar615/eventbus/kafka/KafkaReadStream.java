@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
-public abstract class KafkaReadStream implements Runnable {
+public abstract class KafkaReadStream  implements Runnable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(KafkaReadStream.class);
 
