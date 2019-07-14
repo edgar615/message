@@ -235,21 +235,23 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
 
   private void setStartOffset(TopicPartition tp) {
     long startingOffset = options.getStartingOffset(tp);
+    Map<String, Object> extra = new HashMap<>();
+    extra.put("topic", tp.topic());
+    extra.put("partition", tp.partition());
     if (startingOffset == -2) {
-      LOGGER.info("[KAFKA] [StartingOffset] [{},{},{}]",
-          tp.topic(), tp.partition(), "none");
+      extra.put("offset", "default");
     } else if (startingOffset == 0) {
+      extra.put("offset", "beginning");
       consumer.seekToBeginning(Lists.newArrayList(tp));
-      LOGGER.info("[KAFKA] [StartingOffset] [{},{},{}]",
-          tp.topic(), tp.partition(), "beginning");
     } else if (startingOffset == -1) {
+      extra.put("offset", "end");
       consumer.seekToEnd(Lists.newArrayList(tp));
-      LOGGER.info("[KAFKA] [StartingOffset] [{},{},{}]",
-          tp.topic(), tp.partition(), "end");
     } else {
+      extra.put("offset", startingOffset);
       consumer.seek(tp, startingOffset);
-      LOGGER.info("[KAFKA] [StartingOffset] [{},{},{}]",
-          tp.topic(), tp.partition(), startingOffset);
     }
+    Marker messageMarker =
+        appendEntries(extra);
+    LOGGER.info(messageMarker, "set kafka start offset");
   }
 }
