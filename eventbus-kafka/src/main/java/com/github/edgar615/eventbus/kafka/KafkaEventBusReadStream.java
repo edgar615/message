@@ -1,14 +1,20 @@
 package com.github.edgar615.eventbus.kafka;
 
+import static net.logstash.logback.marker.Markers.append;
+import static net.logstash.logback.marker.Markers.appendEntries;
+
 import com.github.edgar615.eventbus.bus.AbstractEventBusReadStream;
 import com.github.edgar615.eventbus.dao.EventConsumerDao;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.utils.EventQueue;
+import com.github.edgar615.eventbus.utils.EventSerDe;
+import com.github.edgar615.eventbus.utils.LoggingMarker;
 import com.github.edgar615.eventbus.utils.NamedThreadFactory;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +32,7 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
 
 /**
  * kafka的consumer对象不是线程安全的，如果在不同的线程里使用consumer会抛出异常.
@@ -75,7 +82,25 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
 
   @Override
   public List<Event> poll() {
-    return null;
+    ConsumerRecords<String, String> records = consumer.poll(100);
+    List<Event> events = new ArrayList<>();
+    for (ConsumerRecord<String, String> record : records) {
+      Map<String, Object> extra = new HashMap<>();
+      extra.put("topic", record.topic());
+      extra.put("timestamp", record.timestamp());
+      extra.put("partition", record.partition());
+      extra.put("offset", record.offset());
+      try {
+        Event event = EventSerDe.deserialize(record.topic(), record.value());
+        LOGGER.info(LoggingMarker.getLoggingMarker(event, true, extra), "poll from kafka");
+        events.add(event);
+      } catch (Exception e) {
+        Marker messageMarker =
+            appendEntries(extra);
+        LOGGER.warn(messageMarker, "poll from kafka, bus deserialize failed");
+      }
+    }
+    return events;
   }
 
   @Override
@@ -131,23 +156,9 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
     try {
       while (!closed) {
         try {
-          ConsumerRecords<String, Event> records = consumer.poll(100);
-          if (records.count() > 0) {
-            LOGGER.info("[KAFKA] [poll] [{} records]", records.count());
-          }
-          List<Event> events = new ArrayList<>();
-          //将读取的消息全部写入队列
-          for (ConsumerRecord<String, Event> record : records) {
-            Event event = record.value();
-            LOGGER.info("[{}] [MR] [KAFKA] [{},{},{}] [{}] [{}] [{}]", event.head().id(),
-                record.topic(), record.partition(), record.offset(),
-                Helper.toHeadString(event), Helper.toActionString(event));
-            events.add(event);
-          }
-          pollAndEnqueue(events);
-          commit(records);
+
           //暂停和恢复
-          if (pause) {
+          if (paused()) {
             //队列中等待的消息降到一半才恢复
             if (checkResumeCondition()) {
               resume();
@@ -157,16 +168,17 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
               pause();
             }
           }
+          pollAndEnqueue();
         } catch (Exception e) {
-          LOGGER.error("[KAFKA] [pollFailed]", e);
+          LOGGER.error("poll event from kafka occur error", e);
         }
 
       }
     } catch (Exception e) {
-      LOGGER.error("[KAFKA] [failed]", e);
+      LOGGER.error("consume from kafka occur error", e);
     } finally {
       consumer.close();
-      LOGGER.info("[KAFKA] [exited]");
+      LOGGER.info("closing kafka consumer");
     }
   }
 

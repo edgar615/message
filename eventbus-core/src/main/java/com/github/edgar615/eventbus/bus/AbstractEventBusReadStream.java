@@ -52,6 +52,9 @@ public abstract class AbstractEventBusReadStream implements EventBusReadStream {
    */
   public final void pollAndEnqueue() {
     List<Event> events = poll();
+    if (events.size() > 0) {
+      LOGGER.info("poll {} records", events.size());
+    }
     for (Event event : events) {
       //先入库
       boolean duplicated = false;
@@ -62,7 +65,7 @@ public abstract class AbstractEventBusReadStream implements EventBusReadStream {
         LOGGER.info(LoggingMarker.getLoggingMarker(event, true), "duplicate event, do nothing");
       } else {
         queue.enqueue(event);
-        LOGGER.info(LoggingMarker.getLoggingMarker(event, true), "pull and enqueue");
+        LOGGER.info(LoggingMarker.getLoggingMarker(event, true), "poll and enqueue");
       }
     }
     //暂停和恢复，避免过多的消息造成内存溢出
@@ -78,11 +81,11 @@ public abstract class AbstractEventBusReadStream implements EventBusReadStream {
     }
   }
 
-  private final boolean checkPauseCondition() {
+  protected final boolean checkPauseCondition() {
     return queue.isFull();
   }
 
-  private final boolean checkResumeCondition() {
+  protected final boolean checkResumeCondition() {
     return queue.isLowWaterMark();
   }
 }

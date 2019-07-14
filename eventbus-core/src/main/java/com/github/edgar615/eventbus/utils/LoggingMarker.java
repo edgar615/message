@@ -19,6 +19,17 @@ public class LoggingMarker {
     return messageMarker;
   }
 
+  public static Marker getLoggingMarker(Event event, boolean wasReceived, Map<String, Object> extra) {
+    Marker messageMarker =
+        append("traceId", event.head().id())
+            .and(append("topic", event.head().to()))
+            .and(append("type", wasReceived ? "inbound" : "outbound"))
+            .and(append("action", event.action().name()))
+            .and(append("source", event.toMap()))
+            .and(appendEntries(extra));
+    return messageMarker;
+  }
+
   public static Marker getIdLoggingMarker(String id) {
     Marker messageMarker =
         append("traceId", id);
