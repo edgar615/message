@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.BiPredicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,24 +86,8 @@ public class EventBusConsumerImpl implements EventBusConsumer {
   }
 
   @Override
-  public void consumer(BiPredicate<String, String> predicate, EventHandler handler) {
-    HandlerRegistration.instance().registerHandler(predicate, handler);
-  }
-
-  @Override
-  public void consumer(String topic, String resource, EventHandler handler) {
-    final BiPredicate<String, String> predicate = (t, r) -> {
-      boolean topicMatch = true;
-      if (topic != null) {
-        topicMatch = topic.equals(t);
-      }
-      boolean resourceMatch = true;
-      if (resource != null) {
-        resourceMatch = resource.equals(r);
-      }
-      return topicMatch && resourceMatch;
-    };
-    consumer(predicate, handler);
+  public void consumer(String topic, String resource, EventSubscriber handler) {
+    SubscriberRegistry.instance().register(new SubscriberKey(topic, resource), handler);
   }
 
 

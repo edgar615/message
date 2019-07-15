@@ -1,7 +1,7 @@
 package com.github.edgar615.eventbus.kafka.vertx;
 
 import com.github.edgar615.eventbus.event.Event;
-import com.github.edgar615.eventbus.bus.EventHandler;
+import com.github.edgar615.eventbus.bus.EventSubscriber;
 import com.github.edgar615.eventbus.bus.HandlerRegistration;
 import io.vertx.core.Future;
 
@@ -12,7 +12,7 @@ import java.util.function.BiPredicate;
  *
  * @author Edgar  Date 2018/5/15
  */
-public interface VertxEventHandler extends EventHandler {
+public interface VertxEventHandler extends EventSubscriber {
 
   void handle(Event event, Future<Void> completeFuture);
 

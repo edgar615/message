@@ -78,13 +78,13 @@ public class ConsumerWorker implements Runnable {
 
   private void doHandle(Event event) {
     try {
-      List<EventHandler> handlers =
-          HandlerRegistration.instance()
+      List<EventSubscriber> handlers =
+          SubscriberRegistry.instance().findAllSubscribers(new SubscriberKey(event.head().t))
               .getHandlers(event);
       if (handlers == null || handlers.isEmpty()) {
         LOGGER.warn(LoggingMarker.getIdLoggingMarker(event.head().id()), "no handler");
       } else {
-        for (EventHandler handler : handlers) {
+        for (EventSubscriber handler : handlers) {
           handler.handle(event);
         }
       }

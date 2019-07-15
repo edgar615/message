@@ -25,21 +25,13 @@ public interface EventBusConsumer {
   Map<String, Object> metrics();
 
   /**
-   * 绑定消息处理类
-   *
-   * @param predicate
-   * @param handler
-   */
-  void consumer(BiPredicate<String, String> predicate, EventHandler handler);
-
-  /**
    * 绑定消息处理类.
    *
    * @param topic
    * @param resource
    * @param handler
    */
-  void consumer(String topic, String resource, EventHandler handler);
+  void consumer(String topic, String resource, EventSubscriber handler);
 
   /**
    * 等待处理的消息数量
