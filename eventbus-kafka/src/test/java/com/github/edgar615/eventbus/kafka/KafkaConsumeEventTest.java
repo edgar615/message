@@ -37,8 +37,7 @@ public class KafkaConsumeEventTest {
     KafkaEventBusReadStream readStream = new KafkaEventBusReadStream(eventQueue, null, options);
     ConsumerOptions consumerOptions = new ConsumerOptions()
         .setWorkerPoolSize(5)
-        .setBlockedCheckerMs(1000)
-        .setMaxQuota(100);
+        .setBlockedCheckerMs(1000);
     ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
         NamedThreadFactory.create("scheduler"));
 

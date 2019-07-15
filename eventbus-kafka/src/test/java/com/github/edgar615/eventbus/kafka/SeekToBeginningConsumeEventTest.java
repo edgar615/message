@@ -38,8 +38,7 @@ public class SeekToBeginningConsumeEventTest  {
     options.addStartingOffset(new TopicPartition("DeviceControlEvent", 0), 0L);
     ConsumerOptions consumerOptions = new ConsumerOptions()
         .setWorkerPoolSize(5)
-        .setBlockedCheckerMs(1000)
-        .setMaxQuota(100);
+        .setBlockedCheckerMs(1000);
     ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
         NamedThreadFactory.create("scheduler"));
 

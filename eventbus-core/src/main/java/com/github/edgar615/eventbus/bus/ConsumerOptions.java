@@ -15,8 +15,6 @@ public class ConsumerOptions {
 
   private static int DEFAULT_BLOCKER_CHECKER_MS = 1000;
 
-  private static int DEFAULT_MAX_QUOTA = 30000;
-
   /**
    * 工作线程数量
    */
@@ -27,28 +25,8 @@ public class ConsumerOptions {
    */
   private int blockedCheckerMs = DEFAULT_BLOCKER_CHECKER_MS;
 
-  /**
-   * 最大配额，当未处理的事件超过配额时，需要暂停消费
-   */
-  private int maxQuota = DEFAULT_MAX_QUOTA;
-
   public ConsumerOptions() {
 
-  }
-
-  public int getMaxQuota() {
-    return maxQuota;
-  }
-
-  /**
-   * 设置限流的最大配额，当未处理的事件超过配额时，需要暂停消费
-   *
-   * @param maxQuota
-   * @return
-   */
-  public ConsumerOptions setMaxQuota(int maxQuota) {
-    this.maxQuota = maxQuota;
-    return this;
   }
 
   public int getBlockedCheckerMs() {

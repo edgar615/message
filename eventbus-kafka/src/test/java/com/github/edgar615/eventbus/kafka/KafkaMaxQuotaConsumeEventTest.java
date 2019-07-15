@@ -39,8 +39,7 @@ public class KafkaMaxQuotaConsumeEventTest  {
     options.addStartingOffset(new TopicPartition("DeviceControlEvent", 0), 0L);
     ConsumerOptions consumerOptions = new ConsumerOptions()
         .setWorkerPoolSize(5)
-        .setBlockedCheckerMs(1000)
-        .setMaxQuota(3);
+        .setBlockedCheckerMs(1000);
     ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
         NamedThreadFactory.create("scheduler"));
 
