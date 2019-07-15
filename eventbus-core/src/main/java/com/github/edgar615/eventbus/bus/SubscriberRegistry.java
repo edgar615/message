@@ -46,4 +46,14 @@ class SubscriberRegistry {
   Collection<EventSubscriber> findAllSubscribers(SubscriberKey key) {
     return subscribers.get(key);
   }
+
+  private boolean match(SubscriberKey source, SubscriberKey target) {
+    if (source.topic() == null && target == null) {
+      return true;
+    }
+//    if (source.topic() == null) {
+//
+//    }
+    return false;
+  }
 }

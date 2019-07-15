@@ -8,7 +8,7 @@ import com.github.edgar615.eventbus.utils.EventIdTracingHolder;
 import com.github.edgar615.eventbus.utils.EventQueue;
 import com.github.edgar615.eventbus.utils.LoggingMarker;
 import com.google.common.collect.ImmutableMap;
-import java.util.List;
+import java.util.Collection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -78,14 +78,14 @@ public class ConsumerWorker implements Runnable {
 
   private void doHandle(Event event) {
     try {
-      List<EventSubscriber> handlers =
-          SubscriberRegistry.instance().findAllSubscribers(new SubscriberKey(event.head().t))
-              .getHandlers(event);
-      if (handlers == null || handlers.isEmpty()) {
-        LOGGER.warn(LoggingMarker.getIdLoggingMarker(event.head().id()), "no handler");
+      Collection<EventSubscriber> subscribers =
+          SubscriberRegistry.instance()
+              .findAllSubscribers(new SubscriberKey(event.head().to(), event.action().resource()));
+      if (subscribers == null || subscribers.isEmpty()) {
+        LOGGER.warn(LoggingMarker.getIdLoggingMarker(event.head().id()), "no subscriber");
       } else {
-        for (EventSubscriber handler : handlers) {
-          handler.handle(event);
+        for (EventSubscriber subscriber : subscribers) {
+          subscriber.subscribe(event);
         }
       }
       if (consumerDao != null) {

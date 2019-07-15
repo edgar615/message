@@ -37,7 +37,7 @@ public class ConsumerTest {
         NamedThreadFactory.create("consumer-scheduler"));
     AtomicInteger count = new AtomicInteger();
     EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao, scheduledExecutor);
-    eventBusConsumer.consumer((t, r) -> true, e -> {
+    eventBusConsumer.consumer(null, null, e -> {
       count.incrementAndGet();
     });
     ((EventBusConsumerImpl) eventBusConsumer).start();
@@ -58,7 +58,7 @@ public class ConsumerTest {
         NamedThreadFactory.create("consumer-scheduler"));
     AtomicInteger count = new AtomicInteger();
     EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao, scheduledExecutor);
-    eventBusConsumer.consumer((t, r) -> true, e -> {
+    eventBusConsumer.consumer(null, null, e -> {
       int seq = count.incrementAndGet();
       if (seq % 2 == 0) {
         throw new RuntimeException();
@@ -100,7 +100,7 @@ public class ConsumerTest {
     List<Integer> zeroList = new ArrayList<>();
     List<Integer> fiveList = new ArrayList<>();
     EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao, scheduledExecutor);
-    eventBusConsumer.consumer((t, r) -> true, e -> {
+    eventBusConsumer.consumer(null, null, e -> {
       try {
         TimeUnit.MILLISECONDS.sleep(500);
       } catch (InterruptedException e1) {
@@ -145,7 +145,7 @@ public class ConsumerTest {
         NamedThreadFactory.create("consumer-scheduler"));
     AtomicInteger count = new AtomicInteger();
     EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao, scheduledExecutor);
-    eventBusConsumer.consumer((t, r) -> true, e -> {
+    eventBusConsumer.consumer(null, null, e -> {
       try {
         TimeUnit.MILLISECONDS.sleep(40);
       } catch (InterruptedException e1) {
