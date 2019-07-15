@@ -51,19 +51,6 @@ public abstract class AbstractEventBusReadStream implements EventBusReadStream {
    * 对于从MQ读取消息的主线程应该在while循环中调用这个pollAndEnqueue，否则可能会出现无法从暂停状态恢复的问题
    */
   public final int pollAndEnqueue() {
-    //暂停和恢复，避免过多的消息造成内存溢出
-    if (pause) {
-      //队列中等待的消息降到一半才恢复
-      if (checkResumeCondition()) {
-        resume();
-      }
-    } else {
-      if (checkPauseCondition()) {
-        pause();
-        return 0;
-      }
-    }
-
     List<Event> events = poll();
     if (events.size() > 0) {
       LOGGER.info("poll {} records", events.size());
@@ -79,6 +66,18 @@ public abstract class AbstractEventBusReadStream implements EventBusReadStream {
       } else {
         queue.enqueue(event);
         LOGGER.info(LoggingMarker.getLoggingMarker(event, true), "poll and enqueue");
+      }
+    }
+    //暂停和恢复，避免过多的消息造成内存溢出
+    if (pause) {
+      //队列中等待的消息降到一半才恢复
+      if (checkResumeCondition()) {
+        resume();
+      }
+    } else {
+      if (checkPauseCondition()) {
+        pause();
+        return 0;
       }
     }
     return events.size();

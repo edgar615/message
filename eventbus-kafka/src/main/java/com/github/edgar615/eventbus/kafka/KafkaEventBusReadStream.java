@@ -156,7 +156,7 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
 
   @Override
   public void resume() {
-    this.resume();
+    this.consumer.resume(partitionsAssigned);
     super.resume();
   }
 

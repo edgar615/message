@@ -30,6 +30,7 @@ public class KafkaMaxQuotaConsumeEventTest  {
   public static void main(String[] args) {
     Map<String, Object> configs = new HashMap<>();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "192.168.1.212:9092");
+    configs.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "20");
     configs.put(ConsumerConfig.GROUP_ID_CONFIG, "user");
     KafkaReadOptions options = new KafkaReadOptions(configs)
         .addTopic("DeviceControlEvent");
@@ -48,7 +49,7 @@ public class KafkaMaxQuotaConsumeEventTest  {
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);
       try {
-        TimeUnit.SECONDS.sleep(5);
+        TimeUnit.SECONDS.sleep(1);
       } catch (InterruptedException e1) {
         e1.printStackTrace();
       }
