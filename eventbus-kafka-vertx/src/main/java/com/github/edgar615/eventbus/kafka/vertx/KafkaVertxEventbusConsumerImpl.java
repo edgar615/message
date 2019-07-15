@@ -2,8 +2,7 @@ package com.github.edgar615.eventbus.kafka.vertx;
 
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.bus.HandlerRegistration;
-import com.github.edgar615.eventbus.kafka.KafkaConsumerOptions;
-import com.github.edgar615.eventbus.kafka.KafkaReadStream;
+import com.github.edgar615.eventbus.kafka.KafkaReadOptions;
 import com.github.edgar615.eventbus.metrics.ConsumerMetrics;
 import com.github.edgar615.eventbus.metrics.DummyMetrics;
 import com.github.edgar615.eventbus.utils.DefaultEventQueue;
@@ -44,11 +43,11 @@ class KafkaVertxEventbusConsumerImpl implements KafkaVertxEventbusConsumer {
 
   private final ConsumerMetrics metrics;
 
-  KafkaVertxEventbusConsumerImpl(Vertx vertx, KafkaConsumerOptions options) {
+  KafkaVertxEventbusConsumerImpl(Vertx vertx, KafkaReadOptions options) {
     this(vertx, options, null, null, null);
   }
 
-  KafkaVertxEventbusConsumerImpl(Vertx vertx, KafkaConsumerOptions options,
+  KafkaVertxEventbusConsumerImpl(Vertx vertx, KafkaReadOptions options,
                                         VertxConsumerStorage consumerStorage,
                                         Function<Event, String> identificationExtractor,
                                         Function<Event, Boolean> blackListFilter) {

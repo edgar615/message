@@ -10,6 +10,8 @@ import java.util.function.BiPredicate;
  */
 public interface EventBusConsumer {
 
+  void start();
+
   /**
    * 关闭
    */

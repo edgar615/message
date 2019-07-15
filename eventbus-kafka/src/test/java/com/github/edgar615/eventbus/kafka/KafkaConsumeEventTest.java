@@ -1,6 +1,17 @@
 package com.github.edgar615.eventbus.kafka;
 
+import com.github.edgar615.eventbus.bus.ConsumerOptions;
 import com.github.edgar615.eventbus.bus.EventBusConsumer;
+import com.github.edgar615.eventbus.bus.EventBusConsumerImpl;
+import com.github.edgar615.eventbus.utils.DefaultEventQueue;
+import com.github.edgar615.eventbus.utils.EventQueue;
+import com.github.edgar615.eventbus.utils.NamedThreadFactory;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,66 +23,32 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author Edgar  Date 2017/3/22
  */
-public class KafkaConsumeEventTest extends EventbusTest {
+public class KafkaConsumeEventTest {
 
   private static Logger logger = LoggerFactory.getLogger(KafkaConsumeEventTest.class);
 
   public static void main(String[] args) {
+    Map<String, Object> configs = new HashMap<>();
+    configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "192.168.1.212:9092");
+    configs.put(ConsumerConfig.GROUP_ID_CONFIG, "user");
+    KafkaReadOptions options = new KafkaReadOptions(configs)
+        .addTopic("DeviceControlEvent");
+    EventQueue eventQueue = new DefaultEventQueue(100);
+    KafkaEventBusReadStream readStream = new KafkaEventBusReadStream(eventQueue, null, options);
+    ConsumerOptions consumerOptions = new ConsumerOptions()
+        .setWorkerPoolSize(5)
+        .setBlockedCheckerMs(1000)
+        .setMaxQuota(100);
+    ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
+        NamedThreadFactory.create("scheduler"));
 
-    String server = "120.76.158.7:9092";
-    KafkaConsumerOptions options = new KafkaConsumerOptions();
-    options.setServers(server)
-            .setGroup("test-c")
-//            .setPattern(".*")
-            .addTopic("DeviceControlEvent_1_3")
-            .setMaxPollRecords(1)
-            .setMaxQuota(5)
-            .setConsumerAutoOffsetRest("earliest");
-    EventBusConsumer consumer = new KafkaEventBusConsumer(options);
-    AtomicInteger count = new AtomicInteger();
+    EventBusConsumer consumer = new EventBusConsumerImpl(consumerOptions, eventQueue, null, scheduledExecutor);
+//    consumer.setPartitioner(event -> Integer.parseInt(event.action().resource()) % 3);
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);
-      count.incrementAndGet();
-//      int r = Integer.parseInt(e.action().resource());
-//      if (r % 5 == 0) {
-//        try {
-//          TimeUnit.SECONDS.sleep(3);
-//        } catch (InterruptedException e1) {
-//          e1.printStackTrace();
-//        }
-//      }
     });
-    try {
-      TimeUnit.SECONDS.sleep(30);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-    consumer.close();
-    try {
-      TimeUnit.SECONDS.sleep(10);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-
-    System.out.println(consumer.metrics());
-    System.out.println(consumer.metrics().get("kafka.consumer.completed"));
-    System.out.println(count);
-//    kafka.consumer("test", null, e -> {
-//      System.out.println("handle" + e);
-//    });
-//
-//    kafka.consumer("test", "1", e -> {
-//      System.out.println("handle" + e);
-//    });
-
-//    ExecutorService executorService = Executors.newFixedThreadPool(1);
-//    executorService.submit(() -> {
-//      while (true) {
-//        TimeUnit.SECONDS.sleep(5);
-//        System.out.println(kafka.metrics());
-//      }
-//    });
+    consumer.start();
+    readStream.start();
   }
-
 
 }

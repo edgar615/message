@@ -1,7 +1,7 @@
 package com.github.edgar615.eventbus.kafka.vertx;
 
 import com.github.edgar615.eventbus.event.Event;
-import com.github.edgar615.eventbus.kafka.KafkaProducerOptions;
+import com.github.edgar615.eventbus.kafka.KafkaWriteOptions;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -23,11 +23,11 @@ public interface KafkaVertxEventbusProducer {
 
   Map<String, Object> metrics();
 
-  static KafkaVertxEventbusProducer create(Vertx vertx, KafkaProducerOptions options) {
+  static KafkaVertxEventbusProducer create(Vertx vertx, KafkaWriteOptions options) {
     return new KafkaVertxEventbusProducerImpl(vertx, options);
   }
 
-  static KafkaVertxEventbusProducer create(Vertx vertx, KafkaProducerOptions options,
+  static KafkaVertxEventbusProducer create(Vertx vertx, KafkaWriteOptions options,
                                            VertxProducerStorage storage) {
     return new KafkaVertxEventbusProducerImpl(vertx, options, storage);
   }

@@ -12,7 +12,7 @@
     <artifactId>eventbus-kafka</artifactId>
 
     <properties>
-        <kafka.version>0.11.0.1</kafka.version>
+        <kafka.version>1.0.1</kafka.version>
         <jackson.version>2.4.6</jackson.version>
     </properties>
 

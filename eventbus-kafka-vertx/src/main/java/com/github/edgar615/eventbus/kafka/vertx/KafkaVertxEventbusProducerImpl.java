@@ -4,7 +4,7 @@ import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.metrics.DummyMetrics;
 import com.github.edgar615.eventbus.metrics.ProducerMetrics;
 import com.github.edgar615.util.concurrent.NamedThreadFactory;
-import com.github.edgar615.eventbus.kafka.KafkaProducerOptions;
+import com.github.edgar615.eventbus.kafka.KafkaWriteOptions;
 import com.github.edgar615.util.exception.DefaultErrorCode;
 import com.github.edgar615.util.exception.SystemException;
 import io.vertx.core.AsyncResult;
@@ -51,11 +51,11 @@ class KafkaVertxEventbusProducerImpl implements KafkaVertxEventbusProducer {
   //如果使用vertx.executeBlocking来执行发送，可能worker线程会有过多的任务导致发送延迟，所以改用一个线程池来实现
   private final ExecutorService producerExecutor;
 
-  KafkaVertxEventbusProducerImpl(Vertx vertx, KafkaProducerOptions options) {
+  KafkaVertxEventbusProducerImpl(Vertx vertx, KafkaWriteOptions options) {
     this(vertx, options, null);
   }
 
-  KafkaVertxEventbusProducerImpl(Vertx vertx, KafkaProducerOptions options,
+  KafkaVertxEventbusProducerImpl(Vertx vertx, KafkaWriteOptions options,
                                  VertxProducerStorage storage) {
     this.vertx = vertx;
     this.maxQuota = options.getMaxQuota();

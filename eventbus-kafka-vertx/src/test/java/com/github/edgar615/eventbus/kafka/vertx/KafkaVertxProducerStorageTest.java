@@ -2,7 +2,7 @@ package com.github.edgar615.eventbus.kafka.vertx;
 
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.event.Message;
-import com.github.edgar615.eventbus.kafka.KafkaProducerOptions;
+import com.github.edgar615.eventbus.kafka.KafkaWriteOptions;
 import com.google.common.collect.ImmutableMap;
 import io.vertx.core.Vertx;
 
@@ -17,7 +17,7 @@ public class KafkaVertxProducerStorageTest {
 
   public static void main(String[] args) throws InterruptedException {
     Vertx vertx = Vertx.vertx();
-    KafkaProducerOptions options = new KafkaProducerOptions()
+    KafkaWriteOptions options = new KafkaWriteOptions()
             .setFetchPendingPeriod(100);
     options.setServers("120.76.158.7:9092");
     MockProducerStorage storage = new MockProducerStorage();

@@ -1,7 +1,7 @@
 package com.github.edgar615.eventbus.kafka.vertx;
 
 import com.github.edgar615.eventbus.event.Event;
-import com.github.edgar615.eventbus.kafka.KafkaConsumerOptions;
+import com.github.edgar615.eventbus.kafka.KafkaReadOptions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import io.vertx.core.AsyncResult;
@@ -27,7 +27,7 @@ public class VertxKafkaConsumeStorageTest {
 
     Vertx vertx = Vertx.vertx();
     String server = "120.76.158.7:9092";
-    KafkaConsumerOptions options = new KafkaConsumerOptions();
+    KafkaReadOptions options = new KafkaReadOptions();
     options.setServers(server)
             .setGroup("test-ezere")
 //            .setPattern(".*")

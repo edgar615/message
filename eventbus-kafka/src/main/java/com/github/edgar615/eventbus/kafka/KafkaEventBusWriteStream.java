@@ -5,7 +5,6 @@ import static net.logstash.logback.marker.Markers.append;
 import com.github.edgar615.eventbus.bus.EventBusWriteStream;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.utils.EventSerDe;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -21,8 +20,8 @@ public class KafkaEventBusWriteStream implements EventBusWriteStream {
 
   private final Producer<String, String> producer;
 
-  public KafkaEventBusWriteStream(Map<String, Object> configs) {
-    this.producer = new KafkaProducer<>(configs);
+  public KafkaEventBusWriteStream(KafkaWriteOptions options) {
+    this.producer = new KafkaProducer<>(options.getConfigs());
   }
 
   @Override
@@ -51,7 +50,7 @@ public class KafkaEventBusWriteStream implements EventBusWriteStream {
       }
     });
 
-    return null;
+    return future;
   }
 
   @Override

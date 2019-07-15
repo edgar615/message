@@ -1,6 +1,5 @@
 package com.github.edgar615.eventbus.kafka;
 
-import static net.logstash.logback.marker.Markers.append;
 import static net.logstash.logback.marker.Markers.appendEntries;
 
 import com.github.edgar615.eventbus.bus.AbstractEventBusReadStream;
@@ -18,11 +17,13 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -40,8 +41,7 @@ import org.slf4j.Marker;
  * 消息的消费有两种方式：每个线程维护一个KafkaConsumer 或者 维护一个或多个KafkaConsumer，同时维护多个事件处理线程(worker thread)
  * <p>
  * <b>每个线程维护一个KafkaConsumer</b>
- * 一个或多个Consumer线程，Consumer除了读取消息外，还包括具体的业务逻辑处理，同一个Consumer线程里对事件串行处理，
- * 每个事件完成之后再commit.
+ * 一个或多个Consumer线程，Consumer除了读取消息外，还包括具体的业务逻辑处理，同一个Consumer线程里对事件串行处理， 每个事件完成之后再commit.
  * <p>
  * 同一个主题的线程数受限于主题的分区数，多余的线程不会接收任何消息。
  * <p>
@@ -51,9 +51,8 @@ import org.slf4j.Marker;
  * <b>维护一个或多个KafkaConsumer，同时维护多个事件处理线程(worker thread)</b>
  * 一个或者多个Consumer线程，Consumer只用来从kafka读取消息，并不涉及具体的业务逻辑处理, 具体的业务逻辑由Consumer转发给工作线程来处理.
  * <p>
- * 使用工作线程处理事件的时候，需要注意commit的正确的offset。
- * 如果有两个工作线程处理事件，工作线程A，处理事件 1，工作线程B，处理事件2. 如果工作线程的2先处理完，不能立刻commit。
- * 否则有可能导致1的丢失.所以这种模式需要一个协调器来检测各个工作线程的消费状态，来对合适的offset进行commit
+ * 使用工作线程处理事件的时候，需要注意commit的正确的offset。 如果有两个工作线程处理事件，工作线程A，处理事件 1，工作线程B，处理事件2.
+ * 如果工作线程的2先处理完，不能立刻commit。 否则有可能导致1的丢失.所以这种模式需要一个协调器来检测各个工作线程的消费状态，来对合适的offset进行commit
  * <p>
  * <p>
  * Eventbus采用第二种方案消费消息.
@@ -68,16 +67,46 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
 
   private final KafkaConsumer<String, String> consumer;
 
-  private volatile boolean closed = false;
+  /**
+   * 状态：0启动中 1-运行中 2-关闭
+   */
+  private volatile int state = 0;
+
+  private static final int STATE_WAITING = 0;
+  private static final int STATE_RUNNING = 1;
+  private static final int STATE_CLOSED = 2;
 
   private List<TopicPartition> partitionsAssigned = new CopyOnWriteArrayList<>();
 
+  private final KafkaReadOptions options;
+
+  private boolean enableAutoCommit;
+
+  /**
+   * 拉取消息的偏移量，用来手动提交时记录偏移
+   */
+  private final Map<TopicPartition, Long> pollOffsets = new ConcurrentHashMap<>();
+
+  /**
+   * 已提交的偏移量，用来手动提交是记录偏移，如果拉取的偏移>已提交的偏移，说明需要提交
+   */
+  private final Map<TopicPartition, Long> commitedOffsets = new ConcurrentHashMap<>();
+
   public KafkaEventBusReadStream(EventQueue queue,
-      EventConsumerDao consumerDao, Map<String, Object> configs) {
+      EventConsumerDao consumerDao, KafkaReadOptions options) {
     super(queue, consumerDao);
     this.consumerExecutor =
         Executors.newFixedThreadPool(1, NamedThreadFactory.create("kafka-consumer"));
-    this.consumer = new KafkaConsumer<String, String>(configs);
+    this.consumer = new KafkaConsumer<>(options.getConfigs());
+    this.options = options;
+    Object enableAutoCommitConfig = options.getConfigs()
+        .get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG);
+    if (enableAutoCommitConfig == null) {
+      enableAutoCommit = true;
+    } else {
+      enableAutoCommit = Boolean.parseBoolean(enableAutoCommitConfig.toString());
+    }
+
   }
 
   @Override
@@ -99,6 +128,11 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
             appendEntries(extra);
         LOGGER.warn(messageMarker, "poll from kafka, bus deserialize failed");
       }
+      // 记录最近的偏移量，
+      if (!enableAutoCommit) {
+        TopicPartition topicPartition = new TopicPartition(record.topic(), record.partition());
+        pollOffsets.put(topicPartition, record.offset());
+      }
     }
     return events;
   }
@@ -110,7 +144,7 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
 
   @Override
   public void close() {
-    closed = true;
+    state = STATE_CLOSED;
     consumerExecutor.shutdown();
   }
 
@@ -128,7 +162,7 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
 
   @Override
   public void run() {
-
+    startKafkaConsumer();
   }
 
   private void startKafkaConsumer() {
@@ -136,39 +170,33 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
     for (String topic : options.getTopics()) {
       while ((partitions = consumer.partitionsFor(topic)) == null) {
         try {
-          LOGGER.warn("[KAFKA] [waitMetadata] [{}]", topic);
+          LOGGER.warn("topic:{} not found ,wait {}s", topic, 5);
           TimeUnit.SECONDS.sleep(5);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
-      LOGGER.info("[KAFKA] [available] [{}] [{}]", topic, partitions);
+      LOGGER.info("topic:{} available ,partitions:{}", topic, partitions);
     }
     if (options.getTopics().isEmpty()
         && !Strings.isNullOrEmpty(options.getPattern())) {
-      LOGGER.info("[KAFKA] [subscribe] [{}]", options.getPattern());
+      LOGGER.info("subscribe with pattern:{}", options.getPattern());
       consumer.subscribe(Pattern.compile(options.getPattern()), createListener());
     } else {
-      LOGGER.info("[KAFKA] [subscribe] [{}]", options.getTopics());
+      for (String topic : options.getTopics()) {
+        LOGGER.info("subscribe:{}", topic);
+      }
       consumer.subscribe(options.getTopics(), createListener());
     }
 
     try {
-      while (!closed) {
+      while (state != STATE_CLOSED) {
         try {
-
-          //暂停和恢复
-          if (paused()) {
-            //队列中等待的消息降到一半才恢复
-            if (checkResumeCondition()) {
-              resume();
-            }
-          } else {
-            if (checkPauseCondition()) {
-              pause();
-            }
+          long count = pollAndEnqueue();
+          // 手动提交，只要入队（DB）就认为消费了，消费失败或未正常消费的问题应该交由业务方处理
+          if (!enableAutoCommit && count > 0) {
+            commit();
           }
-          pollAndEnqueue();
         } catch (Exception e) {
           LOGGER.error("poll event from kafka occur error", e);
         }
@@ -186,30 +214,49 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
   /**
    * commit完成的消息
    */
-  private synchronized void commit(ConsumerRecords<String, String> records) {
+  private synchronized void commit() {
     //没有自动判断offset来提交
-    if (records.isEmpty()) {
-      return;
+    // 成功提交的分区要从offset清理掉
+    Map<TopicPartition, OffsetAndMetadata> needCommitOffsets = new HashMap<>();
+    for (TopicPartition topicPartition : pollOffsets.keySet()) {
+      long pollOffset = pollOffsets.get(topicPartition);
+      if (!commitedOffsets.containsKey(topicPartition)
+          || commitedOffsets.get(topicPartition) < pollOffset) {
+        needCommitOffsets.put(topicPartition, new OffsetAndMetadata(pollOffset));
+      }
     }
-    if (!options.isConsumerAutoCommit()) {
-      consumer.commitAsync(
-          (offsets, exception) -> {
+
+    consumer.commitAsync(
+        (offsets, exception) -> {
+          for (TopicPartition topicPartition : offsets.keySet()) {
+            commitedOffsets.put(topicPartition, offsets.get(topicPartition).offset());
+            Map<String, Object> extra = new HashMap<>();
+            extra.put("topic", topicPartition.topic());
+            extra.put("partition", topicPartition.partition());
+            extra.put("offset", offsets.get(topicPartition).offset());
+            Marker messageMarker =
+                appendEntries(extra);
             if (exception != null) {
-              LOGGER.error("[KAFKA][commitFailed] [{}]", offsets, exception);
+              LOGGER.warn(messageMarker, "commit failed", exception);
             } else {
-              if (!offsets.isEmpty()) {
-                LOGGER.debug("[KAFKA] [committed] [{}]", offsets);
-              }
+              LOGGER.debug(messageMarker, "commit succeed");
             }
-          });
-    }
+          }
+        });
   }
 
   private ConsumerRebalanceListener createListener() {
     return new ConsumerRebalanceListener() {
       @Override
       public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-        LOGGER.info("[KAFKA] [partitionsRevoked] [{}]", partitions);
+        for (TopicPartition tp : partitions) {
+          Map<String, Object> extra = new HashMap<>();
+          extra.put("topic", tp.topic());
+          extra.put("partition", tp.partition());
+          Marker messageMarker =
+              appendEntries(extra);
+          LOGGER.info(messageMarker, "partitionsRevoked");
+        }
       }
 
       @Override
@@ -221,14 +268,19 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
           partitionsAssigned.add(new TopicPartition(tp.topic(), tp.partition()));
           long position = consumer.position(tp);
           OffsetAndMetadata lastCommitedOffsetAndMetadata = consumer.committed(tp);
-          LOGGER.info("[KAFKA] [partitionsAssigned] [{},{},{}] [{}] [{}]",
-              tp.topic(), tp.partition(), position,
-              partitions, lastCommitedOffsetAndMetadata);
-          if (!started) {
+          Map<String, Object> extra = new HashMap<>();
+          extra.put("topic", tp.topic());
+          extra.put("partition", tp.partition());
+          extra.put("position", position);
+          extra.put("lastCommitedOffsetAndMetadata", lastCommitedOffsetAndMetadata);
+          Marker messageMarker =
+              appendEntries(extra);
+          LOGGER.info(messageMarker, "partitionsAssigned");
+          if (state == STATE_WAITING) {
             setStartOffset(tp);
           }
         }
-        started = true;
+        state = STATE_RUNNING;
       }
     };
   }

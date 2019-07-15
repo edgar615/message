@@ -35,7 +35,7 @@ public class EventBusConsumerImpl implements EventBusConsumer {
 
   private final long blockedCheckerMs;
 
-  EventBusConsumerImpl(ConsumerOptions options, EventQueue queue,
+  public EventBusConsumerImpl(ConsumerOptions options, EventQueue queue,
       EventConsumerDao consumerDao,
       ScheduledExecutorService scheduledExecutor) {
     this.workerCount = options.getWorkerPoolSize();
@@ -55,6 +55,7 @@ public class EventBusConsumerImpl implements EventBusConsumer {
     running = true;
   }
 
+  @Override
   public void start() {
     for (int i = 0; i < workerCount; i++) {
       ConsumerWorker worker = new ConsumerWorker(eventQueue, consumerDao, checker,
