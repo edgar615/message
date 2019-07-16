@@ -24,7 +24,7 @@ public class ConsumerTest {
 
   @Before
   public void setUp() {
-    ConsumerRegistry.instance().unregisterAll(new ConsumerKey(null, null));
+    HandlerRegistry.instance().unregisterAll(new HandlerKey(null, null));
   }
 
   @Test

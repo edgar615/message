@@ -14,8 +14,8 @@ public class BlockReadStream extends AbstractEventBusReadStream {
 
   private AtomicInteger seq = new AtomicInteger();
 
-  public BlockReadStream(EventQueue queue, EventConsumerRepository consumerDao) {
-    super(queue, consumerDao);
+  public BlockReadStream(EventQueue queue, EventConsumerRepository consumerRepository) {
+    super(queue, consumerRepository);
   }
 
   @Override

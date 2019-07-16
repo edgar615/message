@@ -2,8 +2,8 @@ package com.github.edgar615.eventbus.bus;
 
 import com.github.edgar615.eventbus.event.Event;
 
-public interface EventConsumer {
+public interface EventHandler {
 
-  void subscribe(Event event);
+  void handle(Event event);
 
 }

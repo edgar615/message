@@ -21,11 +21,11 @@ public abstract class AbstractEventBusReadStream implements EventBusReadStream {
 
   private volatile long latestPaused = 0L;
 
-  private final EventConsumerRepository consumerDao;
+  private final EventConsumerRepository consumerRepository;
 
-  public AbstractEventBusReadStream(EventQueue queue, EventConsumerRepository consumerDao) {
+  public AbstractEventBusReadStream(EventQueue queue, EventConsumerRepository consumerRepository) {
     this.queue = queue;
-    this.consumerDao = consumerDao;
+    this.consumerRepository = consumerRepository;
   }
 
   @Override
@@ -58,8 +58,8 @@ public abstract class AbstractEventBusReadStream implements EventBusReadStream {
     for (Event event : events) {
       //先入库
       boolean duplicated = false;
-      if (consumerDao != null) {
-        duplicated = consumerDao.insert(event);
+      if (consumerRepository != null) {
+        duplicated = consumerRepository.insert(event);
       }
       if (duplicated) {
         LOGGER.info(LoggingMarker.getLoggingMarker(event, true), "duplicate event, do nothing");

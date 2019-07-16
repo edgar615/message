@@ -1,14 +1,14 @@
-package com.github.edgar615.eventbus.bus;
+package com.github.edgar615.eventbus.vertx;
 
 import java.util.Objects;
 
-class ConsumerKey {
+class VertxHandlerKey {
 
   private final String topic;
 
   private final String resource;
 
-  ConsumerKey(String topic, String resource) {
+  VertxHandlerKey(String topic, String resource) {
     this.topic = topic;
     this.resource = resource;
   }
@@ -29,7 +29,7 @@ class ConsumerKey {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ConsumerKey that = (ConsumerKey) o;
+    VertxHandlerKey that = (VertxHandlerKey) o;
     return Objects.equals(topic, that.topic) &&
         Objects.equals(resource, that.resource);
   }

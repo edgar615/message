@@ -1,6 +1,7 @@
 package com.github.edgar615.eventbus.kafka.vertx;
 
 import com.github.edgar615.eventbus.event.Event;
+import com.github.edgar615.eventbus.repository.SendEventState;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -15,36 +16,32 @@ import java.util.stream.Collectors;
  *
  * @author Edgar  Date 2018/5/17
  */
-public class MockProducerStorage implements VertxProducerStorage {
+public class MockEventProducerRepository implements VertxEventProducerRepository {
 
   private List<Event> events = new CopyOnWriteArrayList<>();
 
 
-  @Override
-  public boolean shouldStorage(Event event) {
-    return true;
+  public List<Event> events() {
+    return new ArrayList<>(events);
   }
 
   @Override
-  public void save(Event event, Handler<AsyncResult<Void>> resultHandler) {
+  public void insert(Event event, Handler<AsyncResult<Void>> resultHandler) {
     events.add(event);
     resultHandler.handle(Future.succeededFuture());
   }
 
   @Override
-  public void pendingList(Handler<AsyncResult<List<Event>>> resultHandler) {
+  public void waitingForSend(int fetchCount,
+      Handler<AsyncResult<List<Event>>> resultHandler) {
     List<Event> plist = events.stream().filter(e -> !e.head().ext().containsKey("state"))
-            .collect(Collectors.toList());
+        .collect(Collectors.toList());
     plist.forEach(e -> e.head().addExt("state", "0"));
     resultHandler.handle(Future.succeededFuture(new ArrayList<>(plist)));
   }
 
   @Override
-  public void mark(Event event, int status, Handler<AsyncResult<Void>> resultHandler) {
+  public void mark(String eventId, SendEventState state, Handler<AsyncResult<Void>> resultHandler) {
 
-  }
-
-  public List<Event> events() {
-    return new ArrayList<>(events);
   }
 }

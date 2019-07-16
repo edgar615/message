@@ -3,7 +3,6 @@ package com.github.edgar615.eventbus.bus;
 import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.github.edgar615.eventbus.utils.EventQueue;
 import com.github.edgar615.eventbus.utils.NamedThreadFactory;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.slf4j.Logger;
@@ -26,20 +25,20 @@ class EventBusConsumerImpl implements EventBusConsumer {
 
   private volatile boolean running = false;
 
-  private EventConsumerRepository consumerDao;
+  private EventConsumerRepository consumerRepository;
 
   private final int workerCount;
 
   private final long blockedCheckerMs;
 
   EventBusConsumerImpl(ConsumerOptions options, EventQueue queue,
-      EventConsumerRepository consumerDao) {
+      EventConsumerRepository consumerRepository) {
     this.workerCount = options.getWorkerPoolSize();
     this.workerExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
         NamedThreadFactory.create
             ("event-consumer-worker"));
     this.eventQueue = queue;
-    this.consumerDao = consumerDao;
+    this.consumerRepository = consumerRepository;
     this.blockedCheckerMs = options.getBlockedCheckerMs();
     this.checker = BlockedEventChecker.create(this.blockedCheckerMs);
     running = true;
@@ -48,7 +47,7 @@ class EventBusConsumerImpl implements EventBusConsumer {
   @Override
   public void start() {
     for (int i = 0; i < workerCount; i++) {
-      ConsumerWorker worker = new ConsumerWorker(eventQueue, consumerDao, checker,
+      ConsumerWorker worker = new ConsumerWorker(eventQueue, consumerRepository, checker,
           blockedCheckerMs);
       workerExecutor.submit(worker);
       // TODO shutdown
@@ -64,18 +63,13 @@ class EventBusConsumerImpl implements EventBusConsumer {
   }
 
   @Override
-  public Map<String, Object> metrics() {
-    return null;
-  }
-
-  @Override
   public long waitForHandle() {
     return eventQueue.size();
   }
 
   @Override
-  public void consumer(String topic, String resource, EventConsumer consumer) {
-    ConsumerRegistry.instance().register(new ConsumerKey(topic, resource), consumer);
+  public void consumer(String topic, String resource, EventHandler consumer) {
+    HandlerRegistry.instance().register(new HandlerKey(topic, resource), consumer);
   }
 
   @Override

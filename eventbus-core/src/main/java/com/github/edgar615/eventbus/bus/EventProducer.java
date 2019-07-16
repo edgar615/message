@@ -61,11 +61,6 @@ public interface EventProducer {
   void close();
 
   /**
-   * 返回度量指标
-   */
-  Map<String, Object> metrics();
-
-  /**
    * 等待被发送的消息
    */
   long waitForSend();

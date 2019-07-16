@@ -5,6 +5,7 @@ import static net.logstash.logback.marker.Markers.append;
 import com.github.edgar615.eventbus.bus.EventBusWriteStream;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.utils.EventSerDe;
+import com.github.edgar615.eventbus.utils.LoggingMarker;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -40,12 +41,12 @@ public class KafkaEventBusWriteStream implements EventBusWriteStream {
         Marker messageMarker =
             append("traceId", event.head().id())
                 .and(append("topic", metadata.topic()))
-                .and(append("topic", metadata.topic()))
                 .and(append("partition", metadata.partition()))
                 .and(append("offset", metadata.offset()));
         LOGGER.info(messageMarker, "write to kafka");
         future.complete(event);
       } else {
+        LOGGER.info(LoggingMarker.getIdLoggingMarker(event.head().id()), "write to kafka failed");
         future.completeExceptionally(exception);
       }
     });

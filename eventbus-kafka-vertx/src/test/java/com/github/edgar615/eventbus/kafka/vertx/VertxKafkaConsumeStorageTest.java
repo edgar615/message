@@ -2,6 +2,7 @@ package com.github.edgar615.eventbus.kafka.vertx;
 
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.kafka.KafkaReadOptions;
+import com.github.edgar615.eventbus.vertx.VertxEventConsumerRepository;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import io.vertx.core.AsyncResult;
@@ -41,7 +42,7 @@ public class VertxKafkaConsumeStorageTest {
     Multimap<Integer, Event> storage = ArrayListMultimap.create();
     KafkaVertxEventbusConsumer consumer
             = new KafkaVertxEventbusConsumerImpl(vertx, options,
-                                                 new VertxConsumerStorage() {
+                                                 new VertxEventConsumerRepository() {
                                                    @Override
                                                    public boolean
                                                    shouldStorage(Event event) {

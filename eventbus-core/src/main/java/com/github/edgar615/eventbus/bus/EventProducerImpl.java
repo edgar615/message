@@ -61,11 +61,6 @@ class EventProducerImpl implements EventProducer {
   }
 
   @Override
-  public Map<String, Object> metrics() {
-    return null;
-  }
-
-  @Override
   public long waitForSend() {
     return 0;
   }

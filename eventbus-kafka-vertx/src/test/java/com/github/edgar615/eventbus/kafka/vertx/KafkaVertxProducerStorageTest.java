@@ -20,8 +20,8 @@ public class KafkaVertxProducerStorageTest {
     KafkaWriteOptions options = new KafkaWriteOptions()
             .setFetchPendingPeriod(100);
     options.setServers("120.76.158.7:9092");
-    MockProducerStorage storage = new MockProducerStorage();
-    KafkaVertxEventbusProducer producer = KafkaVertxEventbusProducer.create(vertx, options, storage);
+    MockEventProducerRepository storage = new MockEventProducerRepository();
+    VertxKafkaEventbusProducer producer = VertxKafkaEventbusProducer.create(vertx, options, storage);
     for (int i = 0; i < 10; i++) {
       Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
       Event event = Event.create("DeviceControlEvent_1_3", message, 1);

@@ -8,6 +8,7 @@ import com.github.edgar615.eventbus.metrics.DummyMetrics;
 import com.github.edgar615.eventbus.utils.DefaultEventQueue;
 import com.github.edgar615.eventbus.utils.EventQueue;
 import com.github.edgar615.eventbus.utils.SequentialEventQueue;
+import com.github.edgar615.eventbus.vertx.VertxEventConsumerRepository;
 import com.github.edgar615.util.eventbus.*;
 import io.vertx.core.*;
 import org.slf4j.Logger;
@@ -37,7 +38,7 @@ class KafkaVertxEventbusConsumerImpl implements KafkaVertxEventbusConsumer {
 
   private final Handler<AsyncResult<Event>> resultHandler;
 
-  private final VertxConsumerStorage consumerStorage;
+  private final VertxEventConsumerRepository consumerStorage;
 
   private Function<Event, Boolean> blackListFilter = event -> false;
 
@@ -48,7 +49,7 @@ class KafkaVertxEventbusConsumerImpl implements KafkaVertxEventbusConsumer {
   }
 
   KafkaVertxEventbusConsumerImpl(Vertx vertx, KafkaReadOptions options,
-                                        VertxConsumerStorage consumerStorage,
+                                        VertxEventConsumerRepository consumerStorage,
                                         Function<Event, String> identificationExtractor,
                                         Function<Event, Boolean> blackListFilter) {
     this.vertx = vertx;

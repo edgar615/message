@@ -19,12 +19,12 @@ class ConsumerWorker implements Runnable {
   private final EventQueue queue;
   private final BlockedEventChecker checker;
   private final long blockedCheckerMs;
-  private final EventConsumerRepository consumerDao;
+  private final EventConsumerRepository consumerRepository;
 
-  ConsumerWorker(EventQueue queue, EventConsumerRepository consumerDao,
+  ConsumerWorker(EventQueue queue, EventConsumerRepository consumerRepository,
       BlockedEventChecker checker, long blockedCheckerMs) {
     this.queue = queue;
-    this.consumerDao = consumerDao;
+    this.consumerRepository = consumerRepository;
     this.checker = checker;
     this.blockedCheckerMs = blockedCheckerMs;
   }
@@ -80,21 +80,21 @@ class ConsumerWorker implements Runnable {
 
   private void doHandle(Event event) {
     try {
-      Collection<EventConsumer> subscribers =
-          ConsumerRegistry.instance()
-              .findAllSubscribers(new ConsumerKey(event.head().to(), event.action().resource()));
+      Collection<EventHandler> subscribers =
+          HandlerRegistry.instance()
+              .findAllHandler(new HandlerKey(event.head().to(), event.action().resource()));
       if (subscribers == null || subscribers.isEmpty()) {
         LOGGER.warn(LoggingMarker.getIdLoggingMarker(event.head().id()), "no subscriber");
       } else {
-        for (EventConsumer subscriber : subscribers) {
-          subscriber.subscribe(event);
+        for (EventHandler subscriber : subscribers) {
+          subscriber.handle(event);
         }
       }
-      if (consumerDao != null) {
+      if (consumerRepository != null) {
         markSucess(event);
       }
     } catch (Exception e) {
-      if (consumerDao != null) {
+      if (consumerRepository != null) {
         markFailed(event, e);
       }
       throw e;
@@ -103,7 +103,7 @@ class ConsumerWorker implements Runnable {
 
   private void markSucess(Event event) {
     try {
-      consumerDao.mark(event.head().id(), ConsumeEventState.SUCCEED);
+      consumerRepository.mark(event.head().id(), ConsumeEventState.SUCCEED);
     } catch (Exception e) {
       LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "mark event failed", e);
     }
@@ -113,7 +113,7 @@ class ConsumerWorker implements Runnable {
     LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "consume failed",
         throwable.getMessage());
     try {
-      consumerDao.mark(event.head().id(), ConsumeEventState.FAILED);
+      consumerRepository.mark(event.head().id(), ConsumeEventState.FAILED);
     } catch (Exception e) {
       LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "mark event failed", e);
     }

@@ -19,7 +19,7 @@ public class KafkaVertxProducerTest {
     Vertx vertx = Vertx.vertx();
     KafkaWriteOptions options = new KafkaWriteOptions();
     options.setServers("120.76.158.7:9092");
-    KafkaVertxEventbusProducer producer = KafkaVertxEventbusProducer.create(vertx, options);
+    VertxKafkaEventbusProducer producer = VertxKafkaEventbusProducer.create(vertx, options);
     for (int i = 0; i < 10; i++) {
       Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
       Event event = Event.create("DeviceControlEvent_1_3", message, 1);

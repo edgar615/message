@@ -93,8 +93,8 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
   private final Map<TopicPartition, Long> commitedOffsets = new ConcurrentHashMap<>();
 
   public KafkaEventBusReadStream(EventQueue queue,
-      EventConsumerRepository consumerDao, KafkaReadOptions options) {
-    super(queue, consumerDao);
+      EventConsumerRepository consumerRepository, KafkaReadOptions options) {
+    super(queue, consumerRepository);
     this.consumerExecutor =
         Executors.newFixedThreadPool(1, NamedThreadFactory.create("kafka-consumer"));
     this.consumer = new KafkaConsumer<>(options.getConfigs());

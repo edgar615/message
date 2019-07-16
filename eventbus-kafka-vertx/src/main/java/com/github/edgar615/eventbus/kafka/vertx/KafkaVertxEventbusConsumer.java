@@ -2,6 +2,7 @@ package com.github.edgar615.eventbus.kafka.vertx;
 
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.kafka.KafkaReadOptions;
+import com.github.edgar615.eventbus.vertx.VertxEventConsumerRepository;
 import io.vertx.core.Vertx;
 
 import java.util.Map;
@@ -33,7 +34,7 @@ public interface KafkaVertxEventbusConsumer {
   }
 
   static KafkaVertxEventbusConsumer create(Vertx vertx, KafkaReadOptions options,
-                                           VertxConsumerStorage consumerStorage,
+                                           VertxEventConsumerRepository consumerStorage,
                                            Function<Event, String> identificationExtractor,
                                            Function<Event, Boolean> blackListFilter) {
     return new KafkaVertxEventbusConsumerImpl(vertx, options, consumerStorage,
