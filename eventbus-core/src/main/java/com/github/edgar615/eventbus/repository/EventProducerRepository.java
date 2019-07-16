@@ -1,4 +1,4 @@
-package com.github.edgar615.eventbus.dao;
+package com.github.edgar615.eventbus.repository;
 
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.bus.EventProducer;
@@ -14,7 +14,7 @@ import java.util.List;
  * 在事件发布之后，会调用${@link #mark(String, SendEventState)}来向存储层标记事件的发布结果，这个方法应该尽量不要阻塞线程，否则会影响发布事件的性能。
  * 存储层应该记录事件失败的次数，超过一定次数的事件可以不再通过{@link #waitingForSend()}方法查询.
  */
-public interface EventProducerDao {
+public interface EventProducerRepository {
 
   /**
    * 插入一个事件

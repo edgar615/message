@@ -1,6 +1,6 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.dao.EventConsumerDao;
+import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.github.edgar615.eventbus.utils.EventQueue;
 import java.util.Map;
 
@@ -16,7 +16,7 @@ public interface EventBusConsumer {
   }
 
  static EventBusConsumer create(ConsumerOptions options, EventQueue queue,
-      EventConsumerDao consumerDao) {
+      EventConsumerRepository consumerDao) {
    return new EventBusConsumerImpl(options, queue, consumerDao);
  }
 

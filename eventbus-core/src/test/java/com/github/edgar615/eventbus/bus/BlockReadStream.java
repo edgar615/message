@@ -1,6 +1,6 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.dao.EventConsumerDao;
+import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.event.Message;
 import com.github.edgar615.eventbus.utils.EventQueue;
@@ -14,7 +14,7 @@ public class BlockReadStream extends AbstractEventBusReadStream {
 
   private AtomicInteger seq = new AtomicInteger();
 
-  public BlockReadStream(EventQueue queue, EventConsumerDao consumerDao) {
+  public BlockReadStream(EventQueue queue, EventConsumerRepository consumerDao) {
     super(queue, consumerDao);
   }
 

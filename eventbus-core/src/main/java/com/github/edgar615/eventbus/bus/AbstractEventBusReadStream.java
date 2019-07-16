@@ -1,6 +1,6 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.dao.EventConsumerDao;
+import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.utils.EventQueue;
 import com.github.edgar615.eventbus.utils.LoggingMarker;
@@ -21,9 +21,9 @@ public abstract class AbstractEventBusReadStream implements EventBusReadStream {
 
   private volatile long latestPaused = 0L;
 
-  private final EventConsumerDao consumerDao;
+  private final EventConsumerRepository consumerDao;
 
-  public AbstractEventBusReadStream(EventQueue queue, EventConsumerDao consumerDao) {
+  public AbstractEventBusReadStream(EventQueue queue, EventConsumerRepository consumerDao) {
     this.queue = queue;
     this.consumerDao = consumerDao;
   }

@@ -1,6 +1,6 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.dao.EventProducerDao;
+import com.github.edgar615.eventbus.repository.EventProducerRepository;
 import com.github.edgar615.eventbus.event.Event;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -30,8 +30,8 @@ public interface EventProducer {
   }
 
   static EventProducer create(ProducerOptions options, EventBusWriteStream writeStream,
-      EventProducerDao eventProducerDao) {
-    return new EventProducerImpl(options, writeStream, eventProducerDao);
+      EventProducerRepository eventProducerRepository) {
+    return new EventProducerImpl(options, writeStream, eventProducerRepository);
   }
 
   /**

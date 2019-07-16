@@ -1,7 +1,7 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.dao.ConsumeEventState;
-import com.github.edgar615.eventbus.dao.EventConsumerDao;
+import com.github.edgar615.eventbus.repository.ConsumeEventState;
+import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.github.edgar615.eventbus.event.Message;
 import com.github.edgar615.eventbus.utils.DefaultEventQueue;
 import com.github.edgar615.eventbus.utils.EventQueue;
@@ -31,14 +31,15 @@ public class ConsumerTest {
   public void testConsumer() {
     ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
     EventQueue eventQueue = DefaultEventQueue.create(1000);
-    EventConsumerDao eventConsumerDao = new MockConsumerDao();
+    EventConsumerRepository eventConsumerRepository = new MockConsumerRepository();
     AtomicInteger count = new AtomicInteger();
-    EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue, eventConsumerDao);
+    EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue,
+        eventConsumerRepository);
     eventBusConsumer.consumer(null, null, e -> {
       count.incrementAndGet();
     });
     ((EventBusConsumerImpl) eventBusConsumer).start();
-    EventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerDao);
+    EventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerRepository);
     ((BlockReadStream) readStream).pollAndEnqueue();
 
     Awaitility.await().until(() -> count.get() == 100);
@@ -50,7 +51,7 @@ public class ConsumerTest {
   public void testWriteDb() {
     ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
     EventQueue eventQueue = DefaultEventQueue.create(1000);
-    MockConsumerDao eventConsumerDao = new MockConsumerDao();
+    MockConsumerRepository eventConsumerDao = new MockConsumerRepository();
     AtomicInteger count = new AtomicInteger();
     EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue, eventConsumerDao);
     eventBusConsumer.consumer(null, null, e -> {
@@ -88,11 +89,12 @@ public class ConsumerTest {
       return message.content().get("deviceId").toString();
     },
         1000);
-    EventConsumerDao eventConsumerDao = new MockConsumerDao();
+    EventConsumerRepository eventConsumerRepository = new MockConsumerRepository();
     AtomicInteger count = new AtomicInteger();
     List<Integer> zeroList = new ArrayList<>();
     List<Integer> fiveList = new ArrayList<>();
-    EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue, eventConsumerDao);
+    EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue,
+        eventConsumerRepository);
     eventBusConsumer.consumer(null, null, e -> {
       try {
         TimeUnit.MILLISECONDS.sleep(500);
@@ -110,7 +112,7 @@ public class ConsumerTest {
       count.incrementAndGet();
     });
     eventBusConsumer.start();
-    EventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerDao);
+    EventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerRepository);
     ((BlockReadStream) readStream).pollAndEnqueue();
 
     try {
@@ -133,9 +135,10 @@ public class ConsumerTest {
   public void testPauseAndResume() {
     ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
     EventQueue eventQueue = DefaultEventQueue.create(5);
-    EventConsumerDao eventConsumerDao = new MockConsumerDao();
+    EventConsumerRepository eventConsumerRepository = new MockConsumerRepository();
     AtomicInteger count = new AtomicInteger();
-    EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue, eventConsumerDao);
+    EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue,
+        eventConsumerRepository);
     eventBusConsumer.consumer(null, null, e -> {
       try {
         TimeUnit.MILLISECONDS.sleep(40);
@@ -145,7 +148,7 @@ public class ConsumerTest {
       count.incrementAndGet();
     });
     eventBusConsumer.start();
-    EventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerDao);
+    EventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerRepository);
     ((BlockReadStream) readStream).pollAndEnqueue();
     Assert.assertTrue(readStream.paused());
     Awaitility.await().until(() -> count.get() == 100);
@@ -161,7 +164,7 @@ public class ConsumerTest {
   public void testScheduler() {
     ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
     EventQueue eventQueue = DefaultEventQueue.create(1000);
-    MockConsumerDao eventConsumerDao = new MockConsumerDao();
+    MockConsumerRepository eventConsumerDao = new MockConsumerRepository();
     AtomicInteger count = new AtomicInteger();
     EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue, eventConsumerDao);
     eventBusConsumer.consumer(null, null, e -> {

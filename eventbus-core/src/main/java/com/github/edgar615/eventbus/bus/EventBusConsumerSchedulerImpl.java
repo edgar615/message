@@ -1,6 +1,6 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.dao.EventConsumerDao;
+import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.utils.EventQueue;
 import com.github.edgar615.eventbus.utils.NamedThreadFactory;
@@ -26,7 +26,7 @@ class EventBusConsumerSchedulerImpl implements EventBusConsumerScheduler {
    */
   private long fetchPeriod;
 
-  private final EventConsumerDao eventConsumerDao;
+  private final EventConsumerRepository eventConsumerRepository;
 
   private final ScheduledExecutorService scheduledExecutor;
 
@@ -34,12 +34,12 @@ class EventBusConsumerSchedulerImpl implements EventBusConsumerScheduler {
 
   private volatile boolean closed = false;
 
-  EventBusConsumerSchedulerImpl(EventConsumerDao eventConsumerDao,
+  EventBusConsumerSchedulerImpl(EventConsumerRepository eventConsumerRepository,
       EventQueue queue, long fetchPeriod) {
     this.scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
         NamedThreadFactory.create("consumer-scheduler"));
     this.queue = queue;
-    this.eventConsumerDao = eventConsumerDao;
+    this.eventConsumerRepository = eventConsumerRepository;
     if (fetchPeriod <= 0) {
       this.fetchPeriod = DEFAULT_PREIOD;
     } else {
@@ -69,7 +69,7 @@ class EventBusConsumerSchedulerImpl implements EventBusConsumerScheduler {
         return;
       }
 
-      List<Event> waitingForConsume = eventConsumerDao.waitingForConsume();
+      List<Event> waitingForConsume = eventConsumerRepository.waitingForConsume();
       //没有数据，等待
       LOGGER.trace("{} events to be consume", waitingForConsume.size());
       if (waitingForConsume.isEmpty()) {

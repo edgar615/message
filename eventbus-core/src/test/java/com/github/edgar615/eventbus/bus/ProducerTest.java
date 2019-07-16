@@ -40,7 +40,7 @@ public class ProducerTest {
 
   @Test
   public void testStorage() {
-    MockProducerDao producerDao = new MockProducerDao();
+    MockProducerRepository producerDao = new MockProducerRepository();
     RoundRobinWriteStream writeStream = new RoundRobinWriteStream();
     EventProducer producer = EventProducer.create(new ProducerOptions(), writeStream, producerDao);
     producer.start();
@@ -81,7 +81,7 @@ public class ProducerTest {
 
   @Test
   public void testScheduler() {
-    MockProducerDao producerDao = new MockProducerDao();
+    MockProducerRepository producerDao = new MockProducerRepository();
     RoundRobinWriteStream writeStream = new RoundRobinWriteStream();
     EventBusProducerScheduler eventBusProducerScheduler = EventBusProducerScheduler.create(producerDao, writeStream, 3000);
     eventBusProducerScheduler.start();
@@ -147,7 +147,7 @@ public class ProducerTest {
 //
 //  @Test
 //  public void testMaxQuotaWithPersist() {
-//    MockProducerDao storage = new MockProducerDao();
+//    MockProducerRepository storage = new MockProducerRepository();
 //    ProducerOptions options = new ProducerOptions()
 //            .setMaxQuota(5);
 //    EventProducer producer = new BlockWriteStream(options, storage, 5);
@@ -170,7 +170,7 @@ public class ProducerTest {
 //  @Test
 //  public void testExpire() {
 //    ProducerOptions options = new ProducerOptions().setFetchPendingPeriod(10);
-//    MockProducerDao storage = new MockProducerDao();
+//    MockProducerRepository storage = new MockProducerRepository();
 //    BlockWriteStream producer = new BlockWriteStream(options, storage, 0);
 //    for (int i = 0; i < 10; i++) {
 //      if (i % 2 == 0) {
@@ -217,7 +217,7 @@ public class ProducerTest {
 //  @Test
 //  public void testPending() {
 //    ProducerOptions options = new ProducerOptions();
-//    MockProducerDao storage = new MockProducerDao();
+//    MockProducerRepository storage = new MockProducerRepository();
 //    options.setFetchPendingPeriod(3000);
 //    BlockWriteStream producer = new BlockWriteStream(options, storage, 0);
 //    for (int i = 0; i < 10; i++) {
@@ -253,7 +253,7 @@ public class ProducerTest {
 //  public void testPendingDelay() {
 //    ProducerOptions options = new ProducerOptions()
 //            .setMaxQuota(1);
-//    MockProducerDao storage = new MockProducerDao();
+//    MockProducerRepository storage = new MockProducerRepository();
 //    options.setFetchPendingPeriod(3000);
 //    BlockWriteStream producer = new BlockWriteStream(options, storage, 3);
 //    for (int i = 0; i < 10; i++) {

@@ -1,4 +1,4 @@
-package com.github.edgar615.eventbus.dao;
+package com.github.edgar615.eventbus.repository;
 
 import com.github.edgar615.eventbus.event.Event;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * 消息消费的持久层，用来保证消息的幂等，已经避免消息丢失
  */
-public interface EventConsumerDao {
+public interface EventConsumerRepository {
 
   /**
    * 插入一个事件，插入的过程中需要判断任务是否是重复消息，重复消息不在继续处理

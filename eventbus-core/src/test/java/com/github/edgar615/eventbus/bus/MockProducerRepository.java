@@ -1,7 +1,7 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.dao.EventProducerDao;
-import com.github.edgar615.eventbus.dao.SendEventState;
+import com.github.edgar615.eventbus.repository.EventProducerRepository;
+import com.github.edgar615.eventbus.repository.SendEventState;
 import com.github.edgar615.eventbus.event.Event;
 import com.google.common.collect.ImmutableList;
 
@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
  *
  * @author Edgar  Date 2017/3/29
  */
-public class MockProducerDao implements EventProducerDao {
+public class MockProducerRepository implements EventProducerRepository {
 
   private final List<Event> events = new ArrayList<>();
 
@@ -25,7 +25,7 @@ public class MockProducerDao implements EventProducerDao {
     return ImmutableList.copyOf(events);
   }
 
-  public MockProducerDao addEvent(Event event) {
+  public MockProducerRepository addEvent(Event event) {
     events.add(event);
     return this;
   }

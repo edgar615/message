@@ -1,12 +1,12 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.dao.EventProducerDao;
+import com.github.edgar615.eventbus.repository.EventProducerRepository;
 
 public interface EventBusProducerScheduler {
 
-  static EventBusProducerScheduler create(EventProducerDao eventProducerDao,
+  static EventBusProducerScheduler create(EventProducerRepository eventProducerRepository,
       EventBusWriteStream writeStream, long fetchPeriod) {
-    return new EventBusProducerSchedulerImpl(eventProducerDao, writeStream, fetchPeriod);
+    return new EventBusProducerSchedulerImpl(eventProducerRepository, writeStream, fetchPeriod);
   }
 
   void start();

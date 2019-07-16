@@ -1,7 +1,7 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.dao.ConsumeEventState;
-import com.github.edgar615.eventbus.dao.EventConsumerDao;
+import com.github.edgar615.eventbus.repository.ConsumeEventState;
+import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.event.Message;
 import com.google.common.collect.ImmutableMap;
@@ -11,7 +11,7 @@ import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class MockConsumerDao implements EventConsumerDao {
+public class MockConsumerRepository implements EventConsumerRepository {
 
   private final List<Event> events = new CopyOnWriteArrayList<>();
 

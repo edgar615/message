@@ -1,7 +1,7 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.dao.EventProducerDao;
-import com.github.edgar615.eventbus.dao.SendEventState;
+import com.github.edgar615.eventbus.repository.EventProducerRepository;
+import com.github.edgar615.eventbus.repository.SendEventState;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.utils.LoggingMarker;
 import com.github.edgar615.eventbus.utils.NamedThreadFactory;
@@ -29,7 +29,7 @@ class EventBusProducerSchedulerImpl implements EventBusProducerScheduler {
    */
   private long fetchPeriod;
 
-  private final EventProducerDao eventProducerDao;
+  private final EventProducerRepository eventProducerRepository;
 
   private final ScheduledExecutorService scheduledExecutor;
 
@@ -39,12 +39,12 @@ class EventBusProducerSchedulerImpl implements EventBusProducerScheduler {
 
   private volatile boolean closed = false;
 
-  EventBusProducerSchedulerImpl(EventProducerDao eventProducerDao,
+  EventBusProducerSchedulerImpl(EventProducerRepository eventProducerRepository,
       EventBusWriteStream writeStream, long fetchPeriod) {
     this.scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
         NamedThreadFactory.create("producer-scheduler"));
     this.writeStream = writeStream;
-    this.eventProducerDao = eventProducerDao;
+    this.eventProducerRepository = eventProducerRepository;
     if (fetchPeriod <= 0) {
       this.fetchPeriod = DEFAULT_PREIOD;
     } else {
@@ -72,7 +72,7 @@ class EventBusProducerSchedulerImpl implements EventBusProducerScheduler {
         LOGGER.trace("skip scheduler, closed:{}, processing:{}", closed, processing.get());
         return;
       }
-      List<Event> waitingForSend = eventProducerDao.waitingForSend();
+      List<Event> waitingForSend = eventProducerRepository.waitingForSend();
       //没有数据，等待
       LOGGER.trace("{} events to be send", waitingForSend.size());
       if (waitingForSend.isEmpty()) {
@@ -107,7 +107,7 @@ class EventBusProducerSchedulerImpl implements EventBusProducerScheduler {
   private void markSucess(Event event) {
     LOGGER.info(LoggingMarker.getIdLoggingMarker(event.head().id()), "send succeed");
     try {
-      eventProducerDao.mark(event.head().id(), SendEventState.SUCCEED);
+      eventProducerRepository.mark(event.head().id(), SendEventState.SUCCEED);
     } catch (Exception e) {
       LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "mark event failed", e);
     }
@@ -117,7 +117,7 @@ class EventBusProducerSchedulerImpl implements EventBusProducerScheduler {
     LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "send failed",
         throwable.getMessage());
     try {
-      eventProducerDao.mark(event.head().id(), SendEventState.FAILED);
+      eventProducerRepository.mark(event.head().id(), SendEventState.FAILED);
     } catch (Exception e) {
       LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "mark event failed", e);
     }

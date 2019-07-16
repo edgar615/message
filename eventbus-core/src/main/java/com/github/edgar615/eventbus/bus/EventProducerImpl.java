@@ -1,6 +1,6 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.dao.EventProducerDao;
+import com.github.edgar615.eventbus.repository.EventProducerRepository;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.utils.LoggingMarker;
 import java.util.Map;
@@ -12,17 +12,17 @@ class EventProducerImpl implements EventProducer {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EventProducer.class);
 
-  private final EventProducerDao eventProducerDao;
+  private final EventProducerRepository eventProducerRepository;
 
   private final EventBusWriteStream writeStream;
 
   private final ProducerOptions options;
 
   EventProducerImpl(ProducerOptions options, EventBusWriteStream writeStream,
-      EventProducerDao eventProducerDao) {
+      EventProducerRepository eventProducerRepository) {
     this.options = options;
     this.writeStream = writeStream;
-    this.eventProducerDao = eventProducerDao;
+    this.eventProducerRepository = eventProducerRepository;
   }
 
   @Override
@@ -48,10 +48,10 @@ class EventProducerImpl implements EventProducer {
 
   @Override
   public void save(Event event) {
-    if (eventProducerDao == null) {
-      throw new UnsupportedOperationException("required dao");
+    if (eventProducerRepository == null) {
+      throw new UnsupportedOperationException("required repository");
     }
-    eventProducerDao.insert(event);
+    eventProducerRepository.insert(event);
     LOGGER.info(LoggingMarker.getLoggingMarker(event, false),"write to db, waiting for send");
   }
 

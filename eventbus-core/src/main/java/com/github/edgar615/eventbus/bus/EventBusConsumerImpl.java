@@ -1,6 +1,6 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.dao.EventConsumerDao;
+import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.github.edgar615.eventbus.utils.EventQueue;
 import com.github.edgar615.eventbus.utils.NamedThreadFactory;
 import java.util.Map;
@@ -26,14 +26,14 @@ class EventBusConsumerImpl implements EventBusConsumer {
 
   private volatile boolean running = false;
 
-  private EventConsumerDao consumerDao;
+  private EventConsumerRepository consumerDao;
 
   private final int workerCount;
 
   private final long blockedCheckerMs;
 
   EventBusConsumerImpl(ConsumerOptions options, EventQueue queue,
-      EventConsumerDao consumerDao) {
+      EventConsumerRepository consumerDao) {
     this.workerCount = options.getWorkerPoolSize();
     this.workerExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
         NamedThreadFactory.create

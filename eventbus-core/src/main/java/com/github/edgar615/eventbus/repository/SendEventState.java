@@ -1,6 +1,6 @@
-package com.github.edgar615.eventbus.dao;
+package com.github.edgar615.eventbus.repository;
 
-public enum ConsumeEventState {
+public enum SendEventState {
   PENDING(1),
   SUCCEED(2),
   FAILED(3),
@@ -8,7 +8,7 @@ public enum ConsumeEventState {
 
   private final int value;
 
-  ConsumeEventState(int value) {
+  SendEventState(int value) {
     this.value = value;
   }
 
