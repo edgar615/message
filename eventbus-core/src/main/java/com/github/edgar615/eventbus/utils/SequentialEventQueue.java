@@ -1,20 +1,20 @@
 package com.github.edgar615.eventbus.utils;
 
 import com.github.edgar615.eventbus.event.Event;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 事件的队列，队列的长度有consumer控制，入队不阻塞，出队阻塞
  */
 public class SequentialEventQueue implements EventQueue {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(EventQueue.class);
 
   /**
@@ -33,7 +33,12 @@ public class SequentialEventQueue implements EventQueue {
 
   private Function<Event, String> identificationExtractor;
 
-  public SequentialEventQueue(Function<Event, String> identificationExtractor, int limit) {
+  public static SequentialEventQueue create(Function<Event, String> identificationExtractor,
+      int limit) {
+    return new SequentialEventQueue(identificationExtractor, limit);
+  }
+
+  private SequentialEventQueue(Function<Event, String> identificationExtractor, int limit) {
     Objects.requireNonNull(identificationExtractor);
     this.identificationExtractor = identificationExtractor;
     this.limit = limit;

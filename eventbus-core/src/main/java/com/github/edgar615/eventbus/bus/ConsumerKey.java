@@ -2,13 +2,13 @@ package com.github.edgar615.eventbus.bus;
 
 import java.util.Objects;
 
-class SubscriberKey {
+class ConsumerKey {
 
   private final String topic;
 
   private final String resource;
 
-  SubscriberKey(String topic, String resource) {
+  ConsumerKey(String topic, String resource) {
     this.topic = topic;
     this.resource = resource;
   }
@@ -29,7 +29,7 @@ class SubscriberKey {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    SubscriberKey that = (SubscriberKey) o;
+    ConsumerKey that = (ConsumerKey) o;
     return Objects.equals(topic, that.topic) &&
         Objects.equals(resource, that.resource);
   }

@@ -3,10 +3,8 @@ package com.github.edgar615.eventbus.bus;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Maps;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
 /**
@@ -14,46 +12,50 @@ import java.util.stream.Collectors;
  *
  * @author Edgar  Date 2017/4/14
  */
-class SubscriberRegistry {
+class ConsumerRegistry {
 
-  private static final SubscriberRegistry INSTANCE = new SubscriberRegistry();
+  private static final ConsumerRegistry INSTANCE = new ConsumerRegistry();
 
-  private final ConcurrentMap<SubscriberKey, CopyOnWriteArraySet<EventSubscriber>> subscribers =
+  private final ConcurrentMap<ConsumerKey, CopyOnWriteArraySet<EventConsumer>> subscribers =
       Maps.newConcurrentMap();
 
-  private SubscriberRegistry() {
+  private ConsumerRegistry() {
   }
 
-  static SubscriberRegistry instance() {
+  static ConsumerRegistry instance() {
     return INSTANCE;
   }
 
-  void register(SubscriberKey key, EventSubscriber subscriber) {
-    Collection<EventSubscriber> eventSubscribers = subscribers.get(key);
-    if (eventSubscribers == null) {
-      CopyOnWriteArraySet<EventSubscriber> newSet = new CopyOnWriteArraySet<>();
-      eventSubscribers =
+  void register(ConsumerKey key, EventConsumer subscriber) {
+    Collection<EventConsumer> eventConsumers = subscribers.get(key);
+    if (eventConsumers == null) {
+      CopyOnWriteArraySet<EventConsumer> newSet = new CopyOnWriteArraySet<>();
+      eventConsumers =
           MoreObjects.firstNonNull(subscribers.putIfAbsent(key, newSet), newSet);
     }
-    eventSubscribers.add(subscriber);
+    eventConsumers.add(subscriber);
   }
 
-  void unregister(SubscriberKey key, EventSubscriber subscriber) {
-    Collection<EventSubscriber> eventSubscribers = subscribers.get(key);
-    if (eventSubscribers == null) {
+  void unregister(ConsumerKey key, EventConsumer subscriber) {
+    Collection<EventConsumer> eventConsumers = subscribers.get(key);
+    if (eventConsumers == null) {
       return;
     }
-    eventSubscribers.remove(subscriber);
+    eventConsumers.remove(subscriber);
   }
 
-  Collection<EventSubscriber> findAllSubscribers(SubscriberKey key) {
+  void unregisterAll(ConsumerKey key) {
+    subscribers.remove(key);
+  }
+
+  Collection<EventConsumer> findAllSubscribers(ConsumerKey key) {
     return subscribers.keySet().stream()
         .filter(registerKey -> this.match(registerKey, key))
         .flatMap(registerKey -> subscribers.getOrDefault(registerKey, new CopyOnWriteArraySet<>()).stream())
         .collect(Collectors.toList());
   }
 
-  private boolean match(SubscriberKey registerKey, SubscriberKey eventKey) {
+  private boolean match(ConsumerKey registerKey, ConsumerKey eventKey) {
     boolean topicMatch = true;
     if (registerKey.topic() != null) {
       topicMatch = registerKey.topic().equals(eventKey.topic());

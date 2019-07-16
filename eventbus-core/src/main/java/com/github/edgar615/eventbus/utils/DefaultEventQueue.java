@@ -3,9 +3,6 @@ package com.github.edgar615.eventbus.utils;
 import com.github.edgar615.eventbus.event.Event;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +12,7 @@ import org.slf4j.LoggerFactory;
  * @author Edgar  Date 2018/5/3
  */
 public class DefaultEventQueue implements EventQueue {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(EventQueue.class);
 
   /**
@@ -24,7 +22,11 @@ public class DefaultEventQueue implements EventQueue {
 
   private final int limit;
 
-  public DefaultEventQueue(int limit) {
+  public static DefaultEventQueue create(int limit) {
+    return new DefaultEventQueue(limit);
+  }
+
+  private DefaultEventQueue(int limit) {
     this.limit = limit;
   }
 

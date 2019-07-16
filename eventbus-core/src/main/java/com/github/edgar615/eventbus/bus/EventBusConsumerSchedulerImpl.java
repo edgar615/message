@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
  * 定时从存储中拉取未处理任务处理
  * @author Edgar
  */
-public class EventBusConsumerSchedulerImpl implements EventBusConsumerScheduler {
+class EventBusConsumerSchedulerImpl implements EventBusConsumerScheduler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EventBusConsumerScheduler.class);
 
@@ -34,7 +34,7 @@ public class EventBusConsumerSchedulerImpl implements EventBusConsumerScheduler 
 
   private volatile boolean closed = false;
 
-  public EventBusConsumerSchedulerImpl(EventConsumerDao eventConsumerDao,
+  EventBusConsumerSchedulerImpl(EventConsumerDao eventConsumerDao,
       EventQueue queue, long fetchPeriod) {
     this.scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
         NamedThreadFactory.create("consumer-scheduler"));

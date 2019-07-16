@@ -2,21 +2,13 @@ package com.github.edgar615.eventbus.kafka;
 
 import com.github.edgar615.eventbus.bus.ConsumerOptions;
 import com.github.edgar615.eventbus.bus.EventBusConsumer;
-import com.github.edgar615.eventbus.bus.EventBusConsumerImpl;
 import com.github.edgar615.eventbus.utils.DefaultEventQueue;
 import com.github.edgar615.eventbus.utils.EventQueue;
-import com.github.edgar615.eventbus.utils.NamedThreadFactory;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Edgar on 2017/3/22.
@@ -33,12 +25,12 @@ public class KafkaConsumeEventTest {
     configs.put(ConsumerConfig.GROUP_ID_CONFIG, "user");
     KafkaReadOptions options = new KafkaReadOptions(configs)
         .addTopic("DeviceControlEvent");
-    EventQueue eventQueue = new DefaultEventQueue(100);
+    EventQueue eventQueue = DefaultEventQueue.create(100);
     KafkaEventBusReadStream readStream = new KafkaEventBusReadStream(eventQueue, null, options);
     ConsumerOptions consumerOptions = new ConsumerOptions()
         .setWorkerPoolSize(5)
         .setBlockedCheckerMs(1000);
-    EventBusConsumer consumer = new EventBusConsumerImpl(consumerOptions, eventQueue, null);
+    EventBusConsumer consumer = EventBusConsumer.create(consumerOptions, eventQueue);
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);
     });

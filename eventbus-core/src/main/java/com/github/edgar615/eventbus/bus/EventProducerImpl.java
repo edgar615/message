@@ -8,7 +8,7 @@ import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EventProducerImpl implements EventProducer {
+class EventProducerImpl implements EventProducer {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EventProducer.class);
 
@@ -18,7 +18,7 @@ public class EventProducerImpl implements EventProducer {
 
   private final ProducerOptions options;
 
-  public EventProducerImpl(ProducerOptions options, EventBusWriteStream writeStream,
+  EventProducerImpl(ProducerOptions options, EventBusWriteStream writeStream,
       EventProducerDao eventProducerDao) {
     this.options = options;
     this.writeStream = writeStream;

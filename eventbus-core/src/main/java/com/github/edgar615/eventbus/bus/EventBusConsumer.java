@@ -1,7 +1,8 @@
 package com.github.edgar615.eventbus.bus;
 
+import com.github.edgar615.eventbus.dao.EventConsumerDao;
+import com.github.edgar615.eventbus.utils.EventQueue;
 import java.util.Map;
-import java.util.function.BiPredicate;
 
 /**
  * Created by Edgar on 2017/4/18.
@@ -9,6 +10,15 @@ import java.util.function.BiPredicate;
  * @author Edgar  Date 2017/4/18
  */
 public interface EventBusConsumer {
+
+  static EventBusConsumer create(ConsumerOptions options, EventQueue queue) {
+    return new EventBusConsumerImpl(options, queue, null);
+  }
+
+ static EventBusConsumer create(ConsumerOptions options, EventQueue queue,
+      EventConsumerDao consumerDao) {
+   return new EventBusConsumerImpl(options, queue, consumerDao);
+ }
 
   void start();
 
@@ -29,9 +39,9 @@ public interface EventBusConsumer {
    *
    * @param topic
    * @param resource
-   * @param handler
+   * @param consumer
    */
-  void consumer(String topic, String resource, EventSubscriber handler);
+  void consumer(String topic, String resource, EventConsumer consumer);
 
   /**
    * 等待处理的消息数量

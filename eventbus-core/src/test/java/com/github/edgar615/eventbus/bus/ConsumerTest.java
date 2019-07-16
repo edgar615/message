@@ -1,20 +1,13 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.github.edgar615.eventbus.dao.ConsumeEventState;
 import com.github.edgar615.eventbus.dao.EventConsumerDao;
-import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.event.Message;
 import com.github.edgar615.eventbus.utils.DefaultEventQueue;
 import com.github.edgar615.eventbus.utils.EventQueue;
-import com.github.edgar615.eventbus.utils.NamedThreadFactory;
 import com.github.edgar615.eventbus.utils.SequentialEventQueue;
-import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.awaitility.Awaitility;
@@ -29,13 +22,18 @@ import org.junit.Test;
  */
 public class ConsumerTest {
 
+  @Before
+  public void setUp() {
+    ConsumerRegistry.instance().unregisterAll(new ConsumerKey(null, null));
+  }
+
   @Test
   public void testConsumer() {
     ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
-    EventQueue eventQueue = new DefaultEventQueue(1000);
+    EventQueue eventQueue = DefaultEventQueue.create(1000);
     EventConsumerDao eventConsumerDao = new MockConsumerDao();
     AtomicInteger count = new AtomicInteger();
-    EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao);
+    EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue, eventConsumerDao);
     eventBusConsumer.consumer(null, null, e -> {
       count.incrementAndGet();
     });
@@ -51,10 +49,10 @@ public class ConsumerTest {
   @Test
   public void testWriteDb() {
     ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
-    EventQueue eventQueue = new DefaultEventQueue(1000);
+    EventQueue eventQueue = DefaultEventQueue.create(1000);
     MockConsumerDao eventConsumerDao = new MockConsumerDao();
     AtomicInteger count = new AtomicInteger();
-    EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao);
+    EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue, eventConsumerDao);
     eventBusConsumer.consumer(null, null, e -> {
       int seq = count.incrementAndGet();
       if (seq % 2 == 0) {
@@ -85,7 +83,7 @@ public class ConsumerTest {
 
     ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10)
         .setBlockedCheckerMs(300);
-    SequentialEventQueue eventQueue = new SequentialEventQueue(e -> {
+    SequentialEventQueue eventQueue = SequentialEventQueue.create(e -> {
       Message message = (Message) e.action();
       return message.content().get("deviceId").toString();
     },
@@ -94,7 +92,7 @@ public class ConsumerTest {
     AtomicInteger count = new AtomicInteger();
     List<Integer> zeroList = new ArrayList<>();
     List<Integer> fiveList = new ArrayList<>();
-    EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao);
+    EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue, eventConsumerDao);
     eventBusConsumer.consumer(null, null, e -> {
       try {
         TimeUnit.MILLISECONDS.sleep(500);
@@ -111,7 +109,7 @@ public class ConsumerTest {
       }
       count.incrementAndGet();
     });
-    ((EventBusConsumerImpl) eventBusConsumer).start();
+    eventBusConsumer.start();
     EventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerDao);
     ((BlockReadStream) readStream).pollAndEnqueue();
 
@@ -134,10 +132,10 @@ public class ConsumerTest {
   @Test
   public void testPauseAndResume() {
     ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
-    EventQueue eventQueue = new DefaultEventQueue(5);
+    EventQueue eventQueue = DefaultEventQueue.create(5);
     EventConsumerDao eventConsumerDao = new MockConsumerDao();
     AtomicInteger count = new AtomicInteger();
-    EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao);
+    EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue, eventConsumerDao);
     eventBusConsumer.consumer(null, null, e -> {
       try {
         TimeUnit.MILLISECONDS.sleep(40);
@@ -146,7 +144,7 @@ public class ConsumerTest {
       }
       count.incrementAndGet();
     });
-    ((EventBusConsumerImpl) eventBusConsumer).start();
+    eventBusConsumer.start();
     EventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerDao);
     ((BlockReadStream) readStream).pollAndEnqueue();
     Assert.assertTrue(readStream.paused());
@@ -162,10 +160,10 @@ public class ConsumerTest {
   @Test
   public void testScheduler() {
     ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
-    EventQueue eventQueue = new DefaultEventQueue(1000);
+    EventQueue eventQueue = DefaultEventQueue.create(1000);
     MockConsumerDao eventConsumerDao = new MockConsumerDao();
     AtomicInteger count = new AtomicInteger();
-    EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao);
+    EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue, eventConsumerDao);
     eventBusConsumer.consumer(null, null, e -> {
       int seq = count.incrementAndGet();
       if (seq % 2 == 0) {
@@ -175,7 +173,7 @@ public class ConsumerTest {
     eventBusConsumer.start();
     EventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerDao);
 
-    EventBusConsumerScheduler scheduler = new EventBusConsumerSchedulerImpl(eventConsumerDao, eventQueue, 1000L);
+    EventBusConsumerScheduler scheduler = EventBusConsumerScheduler.create(eventConsumerDao, eventQueue, 1000L);
     scheduler.start();
 
     Awaitility.await().until(() -> count.get() == 100);

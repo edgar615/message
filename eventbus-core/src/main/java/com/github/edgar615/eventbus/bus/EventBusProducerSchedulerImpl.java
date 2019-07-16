@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
  * 定时从存储中拉取未发送任务进行发送
  * @author Edgar
  */
-public class EventBusProducerSchedulerImpl implements EventBusProducerScheduler {
+class EventBusProducerSchedulerImpl implements EventBusProducerScheduler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EventBusProducerScheduler.class);
 
@@ -39,7 +39,7 @@ public class EventBusProducerSchedulerImpl implements EventBusProducerScheduler 
 
   private volatile boolean closed = false;
 
-  public EventBusProducerSchedulerImpl(EventProducerDao eventProducerDao,
+  EventBusProducerSchedulerImpl(EventProducerDao eventProducerDao,
       EventBusWriteStream writeStream, long fetchPeriod) {
     this.scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
         NamedThreadFactory.create("producer-scheduler"));

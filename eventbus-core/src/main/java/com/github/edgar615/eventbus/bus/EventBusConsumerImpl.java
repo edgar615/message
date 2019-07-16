@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author Edgar  Date 2017/4/18
  */
-public class EventBusConsumerImpl implements EventBusConsumer {
+class EventBusConsumerImpl implements EventBusConsumer {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EventBusConsumer.class);
 
@@ -32,7 +32,7 @@ public class EventBusConsumerImpl implements EventBusConsumer {
 
   private final long blockedCheckerMs;
 
-  public EventBusConsumerImpl(ConsumerOptions options, EventQueue queue,
+  EventBusConsumerImpl(ConsumerOptions options, EventQueue queue,
       EventConsumerDao consumerDao) {
     this.workerCount = options.getWorkerPoolSize();
     this.workerExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
@@ -74,8 +74,8 @@ public class EventBusConsumerImpl implements EventBusConsumer {
   }
 
   @Override
-  public void consumer(String topic, String resource, EventSubscriber handler) {
-    SubscriberRegistry.instance().register(new SubscriberKey(topic, resource), handler);
+  public void consumer(String topic, String resource, EventConsumer consumer) {
+    ConsumerRegistry.instance().register(new ConsumerKey(topic, resource), consumer);
   }
 
   @Override

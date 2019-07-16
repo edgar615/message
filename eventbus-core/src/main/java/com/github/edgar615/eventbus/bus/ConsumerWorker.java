@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-public class ConsumerWorker implements Runnable {
+class ConsumerWorker implements Runnable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ConsumerWorker.class);
   private final EventQueue queue;
@@ -21,7 +21,7 @@ public class ConsumerWorker implements Runnable {
   private final long blockedCheckerMs;
   private final EventConsumerDao consumerDao;
 
-  public ConsumerWorker(EventQueue queue, EventConsumerDao consumerDao,
+  ConsumerWorker(EventQueue queue, EventConsumerDao consumerDao,
       BlockedEventChecker checker, long blockedCheckerMs) {
     this.queue = queue;
     this.consumerDao = consumerDao;
@@ -80,13 +80,13 @@ public class ConsumerWorker implements Runnable {
 
   private void doHandle(Event event) {
     try {
-      Collection<EventSubscriber> subscribers =
-          SubscriberRegistry.instance()
-              .findAllSubscribers(new SubscriberKey(event.head().to(), event.action().resource()));
+      Collection<EventConsumer> subscribers =
+          ConsumerRegistry.instance()
+              .findAllSubscribers(new ConsumerKey(event.head().to(), event.action().resource()));
       if (subscribers == null || subscribers.isEmpty()) {
         LOGGER.warn(LoggingMarker.getIdLoggingMarker(event.head().id()), "no subscriber");
       } else {
-        for (EventSubscriber subscriber : subscribers) {
+        for (EventConsumer subscriber : subscribers) {
           subscriber.subscribe(event);
         }
       }

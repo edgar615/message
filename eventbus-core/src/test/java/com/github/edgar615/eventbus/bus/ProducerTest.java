@@ -22,7 +22,7 @@ public class ProducerTest {
   @Test
   public void testSend() {
     BlockWriteStream writeStream = new BlockWriteStream(1);
-    EventProducer producer = new EventProducerImpl(new ProducerOptions(), writeStream, null);
+    EventProducer producer = EventProducer.create(new ProducerOptions(), writeStream);
     producer.start();
     AtomicInteger complete = new AtomicInteger();
     for (int i = 0; i < 10; i++) {
@@ -42,7 +42,7 @@ public class ProducerTest {
   public void testStorage() {
     MockProducerDao producerDao = new MockProducerDao();
     RoundRobinWriteStream writeStream = new RoundRobinWriteStream();
-    EventProducer producer = new EventProducerImpl(new ProducerOptions(), writeStream, producerDao);
+    EventProducer producer = EventProducer.create(new ProducerOptions(), writeStream, producerDao);
     producer.start();
     for (int i = 0; i < 10; i++) {
       if (i == 5) {
@@ -83,9 +83,9 @@ public class ProducerTest {
   public void testScheduler() {
     MockProducerDao producerDao = new MockProducerDao();
     RoundRobinWriteStream writeStream = new RoundRobinWriteStream();
-    EventBusProducerScheduler eventBusProducerScheduler = new EventBusProducerSchedulerImpl(producerDao, writeStream, 3000);
+    EventBusProducerScheduler eventBusProducerScheduler = EventBusProducerScheduler.create(producerDao, writeStream, 3000);
     eventBusProducerScheduler.start();
-    EventProducer producer = new EventProducerImpl(new ProducerOptions(), writeStream, producerDao);
+    EventProducer producer = EventProducer.create(new ProducerOptions(), writeStream, producerDao);
     producer.start();
     for (int i = 0; i < 10; i++) {
       if (i == 5) {
