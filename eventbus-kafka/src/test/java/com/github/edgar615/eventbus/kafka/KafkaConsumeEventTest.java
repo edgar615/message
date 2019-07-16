@@ -38,11 +38,7 @@ public class KafkaConsumeEventTest {
     ConsumerOptions consumerOptions = new ConsumerOptions()
         .setWorkerPoolSize(5)
         .setBlockedCheckerMs(1000);
-    ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
-        NamedThreadFactory.create("scheduler"));
-
-    EventBusConsumer consumer = new EventBusConsumerImpl(consumerOptions, eventQueue, null, scheduledExecutor);
-//    consumer.setPartitioner(event -> Integer.parseInt(event.action().resource()) % 3);
+    EventBusConsumer consumer = new EventBusConsumerImpl(consumerOptions, eventQueue, null);
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);
     });

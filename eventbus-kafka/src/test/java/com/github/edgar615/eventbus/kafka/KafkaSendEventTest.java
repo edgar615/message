@@ -23,7 +23,7 @@ public class KafkaSendEventTest {
     configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "192.168.1.212:9092");
     KafkaWriteOptions options = new KafkaWriteOptions(configs);
     KafkaEventBusWriteStream writeStream = new KafkaEventBusWriteStream(options);
-    EventProducer producer = new EventProducerImpl(new ProducerOptions(), writeStream);
+    EventProducer producer = new EventProducerImpl(new ProducerOptions(), writeStream, null);
     producer.start();
     for (int i = 0; i < 10; i++) {
       Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));

@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 定时从存储中拉取未发送任务进行发送
  * @author Edgar
  */
 public class EventBusProducerSchedulerImpl implements EventBusProducerScheduler {
@@ -54,23 +55,21 @@ public class EventBusProducerSchedulerImpl implements EventBusProducerScheduler 
 
   @Override
   public void start() {
-    LOGGER.info("start scheduler, period:{}ms", fetchPeriod);
+    LOGGER.info("start producer scheduler, period:{}ms", fetchPeriod);
     schedule(fetchPeriod);
   }
 
   @Override
   public void close() {
-    if (!scheduledExecutor.isShutdown()) {
-      LOGGER.info("close scheduler");
-      scheduledExecutor.shutdown();
-    }
+    LOGGER.info("close producer scheduler");
+    scheduledExecutor.shutdown();
   }
 
   private void schedule(long delay) {
     Runnable scheduledCommand = () -> {
       // 如果processing大于0说明有任务在执行，直接返回，在任务执行完成后会重新只执行定时任务
       if (closed || processing.get() > 0) {
-        LOGGER.trace("skip scheduler, closed:{}, processing:{}", closed,  processing.get());
+        LOGGER.trace("skip scheduler, closed:{}, processing:{}", closed, processing.get());
         return;
       }
       List<Event> waitingForSend = eventProducerDao.waitingForSend();
@@ -110,16 +109,17 @@ public class EventBusProducerSchedulerImpl implements EventBusProducerScheduler 
     try {
       eventProducerDao.mark(event.head().id(), SendEventState.SUCCEED);
     } catch (Exception e) {
-      LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()),"mark event failed", e);
+      LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "mark event failed", e);
     }
   }
 
   private void markFailed(Event event, Throwable throwable) {
-    LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "send failed", throwable.getMessage());
+    LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "send failed",
+        throwable.getMessage());
     try {
       eventProducerDao.mark(event.head().id(), SendEventState.FAILED);
     } catch (Exception e) {
-      LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()),"mark event failed", e);
+      LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "mark event failed", e);
     }
   }
 

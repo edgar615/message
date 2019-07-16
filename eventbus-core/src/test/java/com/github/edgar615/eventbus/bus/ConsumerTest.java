@@ -34,10 +34,8 @@ public class ConsumerTest {
     ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
     EventQueue eventQueue = new DefaultEventQueue(1000);
     EventConsumerDao eventConsumerDao = new MockConsumerDao();
-    ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
-        NamedThreadFactory.create("consumer-scheduler"));
     AtomicInteger count = new AtomicInteger();
-    EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao, scheduledExecutor);
+    EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao);
     eventBusConsumer.consumer(null, null, e -> {
       count.incrementAndGet();
     });
@@ -55,10 +53,8 @@ public class ConsumerTest {
     ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
     EventQueue eventQueue = new DefaultEventQueue(1000);
     MockConsumerDao eventConsumerDao = new MockConsumerDao();
-    ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
-        NamedThreadFactory.create("consumer-scheduler"));
     AtomicInteger count = new AtomicInteger();
-    EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao, scheduledExecutor);
+    EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao);
     eventBusConsumer.consumer(null, null, e -> {
       int seq = count.incrementAndGet();
       if (seq % 2 == 0) {
@@ -95,12 +91,10 @@ public class ConsumerTest {
     },
         1000);
     EventConsumerDao eventConsumerDao = new MockConsumerDao();
-    ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
-        NamedThreadFactory.create("consumer-scheduler"));
     AtomicInteger count = new AtomicInteger();
     List<Integer> zeroList = new ArrayList<>();
     List<Integer> fiveList = new ArrayList<>();
-    EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao, scheduledExecutor);
+    EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao);
     eventBusConsumer.consumer(null, null, e -> {
       try {
         TimeUnit.MILLISECONDS.sleep(500);
@@ -142,10 +136,8 @@ public class ConsumerTest {
     ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
     EventQueue eventQueue = new DefaultEventQueue(5);
     EventConsumerDao eventConsumerDao = new MockConsumerDao();
-    ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
-        NamedThreadFactory.create("consumer-scheduler"));
     AtomicInteger count = new AtomicInteger();
-    EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao, scheduledExecutor);
+    EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao);
     eventBusConsumer.consumer(null, null, e -> {
       try {
         TimeUnit.MILLISECONDS.sleep(40);

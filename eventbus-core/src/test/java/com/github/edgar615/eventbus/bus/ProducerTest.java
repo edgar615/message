@@ -22,7 +22,7 @@ public class ProducerTest {
   @Test
   public void testSend() {
     BlockWriteStream writeStream = new BlockWriteStream(1);
-    EventProducer producer = new EventProducerImpl(new ProducerOptions(), writeStream);
+    EventProducer producer = new EventProducerImpl(new ProducerOptions(), writeStream, null);
     producer.start();
     AtomicInteger complete = new AtomicInteger();
     for (int i = 0; i < 10; i++) {
@@ -42,9 +42,50 @@ public class ProducerTest {
   public void testStorage() {
     MockProducerDao producerDao = new MockProducerDao();
     RoundRobinWriteStream writeStream = new RoundRobinWriteStream();
+    EventProducer producer = new EventProducerImpl(new ProducerOptions(), writeStream, producerDao);
+    producer.start();
+    for (int i = 0; i < 10; i++) {
+      if (i == 5) {
+        Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
+        Event event = Event.create("sms", message);
+        producer.send(event);
+      } else {
+        Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
+        Event event = Event.create("test", message);
+        producer.save(event);
+      }
+    }
+
+    Awaitility.await().until(() -> producerDao.getEvents().size() == 9);
+    long count = producerDao.getEvents().stream()
+        .filter(e -> e.head().ext("state") == null)
+        .count();
+    Assert.assertEquals(9, count);
+
+    try {
+      TimeUnit.SECONDS.sleep(5);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+    count = producerDao.getEvents().stream()
+        .filter(e -> "2".equalsIgnoreCase(e.head().ext("state")))
+        .count();
+    Assert.assertEquals(0, count);
+
+    count = producerDao.getEvents().stream()
+        .filter(e -> "3".equalsIgnoreCase(e.head().ext("state")))
+        .count();
+    Assert.assertEquals(0, count);
+    producer.close();
+  }
+
+  @Test
+  public void testScheduler() {
+    MockProducerDao producerDao = new MockProducerDao();
+    RoundRobinWriteStream writeStream = new RoundRobinWriteStream();
     EventBusProducerScheduler eventBusProducerScheduler = new EventBusProducerSchedulerImpl(producerDao, writeStream, 3000);
-    EventProducer producer = new EventProducerImpl(new ProducerOptions(), writeStream, producerDao,
-        eventBusProducerScheduler);
+    eventBusProducerScheduler.start();
+    EventProducer producer = new EventProducerImpl(new ProducerOptions(), writeStream, producerDao);
     producer.start();
     for (int i = 0; i < 10; i++) {
       if (i == 5) {
@@ -79,6 +120,7 @@ public class ProducerTest {
         .count();
     Assert.assertEquals(5, count);
     producer.close();
+    eventBusProducerScheduler.close();
   }
 
 //  @Test

@@ -6,8 +6,6 @@ import com.github.edgar615.eventbus.utils.NamedThreadFactory;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.BiPredicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,22 +33,15 @@ public class EventBusConsumerImpl implements EventBusConsumer {
   private final long blockedCheckerMs;
 
   public EventBusConsumerImpl(ConsumerOptions options, EventQueue queue,
-      EventConsumerDao consumerDao,
-      ScheduledExecutorService scheduledExecutor) {
+      EventConsumerDao consumerDao) {
     this.workerCount = options.getWorkerPoolSize();
     this.workerExecutor = Executors.newFixedThreadPool(options.getWorkerPoolSize(),
         NamedThreadFactory.create
             ("event-consumer-worker"));
-    this.blockedCheckerMs = options.getBlockedCheckerMs();
     this.eventQueue = queue;
     this.consumerDao = consumerDao;
-    if (options.getBlockedCheckerMs() > 0) {
-      this.checker = BlockedEventChecker
-          .create(this.blockedCheckerMs,
-              scheduledExecutor);
-    } else {
-      checker = null;
-    }
+    this.blockedCheckerMs = options.getBlockedCheckerMs();
+    this.checker = BlockedEventChecker.create(this.blockedCheckerMs);
     running = true;
   }
 
@@ -70,9 +61,6 @@ public class EventBusConsumerImpl implements EventBusConsumer {
     running = false;
     LOGGER.info("closing consumer, remaining:{}", waitForHandle());
     workerExecutor.shutdown();
-//    if (eventBusProducerScheduler != null) {
-//      eventBusProducerScheduler.close();
-//    }
   }
 
   @Override
@@ -88,19 +76,6 @@ public class EventBusConsumerImpl implements EventBusConsumer {
   @Override
   public void consumer(String topic, String resource, EventSubscriber handler) {
     SubscriberRegistry.instance().register(new SubscriberKey(topic, resource), handler);
-  }
-
-
-  protected boolean isFull() {
-    return eventQueue.isFull();
-  }
-
-  protected boolean isLowWaterMark() {
-    return eventQueue.isLowWaterMark();
-  }
-
-  protected int size() {
-    return eventQueue.size();
   }
 
   @Override

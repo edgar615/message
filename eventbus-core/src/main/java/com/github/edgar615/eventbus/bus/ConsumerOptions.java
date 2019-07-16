@@ -40,7 +40,9 @@ public class ConsumerOptions {
    * @return ConsumerOptions
    */
   public ConsumerOptions setBlockedCheckerMs(int blockedCheckerMs) {
-    this.blockedCheckerMs = blockedCheckerMs;
+    if (blockedCheckerMs > 0) {
+      this.blockedCheckerMs = blockedCheckerMs;
+    }
     return this;
   }
 

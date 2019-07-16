@@ -1,10 +1,12 @@
 package com.github.edgar615.eventbus.bus;
 
 import com.github.edgar615.eventbus.utils.LoggingMarker;
+import com.github.edgar615.eventbus.utils.NamedThreadFactory;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -19,8 +21,9 @@ class BlockedEventChecker {
 
   private final Map<BlockedEventHolder, Object> map = new WeakHashMap<>();
 
-  private BlockedEventChecker(long interval,
-      ScheduledExecutorService scheduledExecutorService) {
+  private final ScheduledExecutorService scheduledExecutorService;
+  private BlockedEventChecker(long interval, ScheduledExecutorService scheduledExecutorService) {
+    this.scheduledExecutorService = scheduledExecutorService;
     scheduledExecutorService.scheduleAtFixedRate(() -> {
       synchronized (BlockedEventChecker.this) {
         map.keySet()
@@ -46,9 +49,14 @@ class BlockedEventChecker {
     map.put(holder, O);
   }
 
-  static BlockedEventChecker create(long interval,
-      ScheduledExecutorService scheduledExecutorService) {
-    return new BlockedEventChecker(interval, scheduledExecutorService);
+  public void close() {
+    this.scheduledExecutorService.shutdown();
+  }
+
+  static BlockedEventChecker create(long interval) {
+    ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor(
+        NamedThreadFactory.create("blocked-checker"));
+    return new BlockedEventChecker(interval, executorService);
   }
 
 }

@@ -39,10 +39,7 @@ public class SeekToBeginningConsumeEventTest  {
     ConsumerOptions consumerOptions = new ConsumerOptions()
         .setWorkerPoolSize(5)
         .setBlockedCheckerMs(1000);
-    ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
-        NamedThreadFactory.create("scheduler"));
-
-    EventBusConsumer consumer = new EventBusConsumerImpl(consumerOptions, eventQueue, null, scheduledExecutor);
+    EventBusConsumer consumer = new EventBusConsumerImpl(consumerOptions, eventQueue, null);
 //    consumer.setPartitioner(event -> Integer.parseInt(event.action().resource()) % 3);
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);

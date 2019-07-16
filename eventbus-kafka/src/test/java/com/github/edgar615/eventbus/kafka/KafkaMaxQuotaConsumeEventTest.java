@@ -35,15 +35,13 @@ public class KafkaMaxQuotaConsumeEventTest  {
     KafkaReadOptions options = new KafkaReadOptions(configs)
         .addTopic("DeviceControlEvent");
     EventQueue eventQueue = new DefaultEventQueue(5);
-    KafkaEventBusReadStream readStream = new KafkaEventBusReadStream(eventQueue, null, options);
     options.addStartingOffset(new TopicPartition("DeviceControlEvent", 0), 0L);
+    KafkaEventBusReadStream readStream = new KafkaEventBusReadStream(eventQueue, null, options);
+
     ConsumerOptions consumerOptions = new ConsumerOptions()
         .setWorkerPoolSize(5)
         .setBlockedCheckerMs(1000);
-    ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor(
-        NamedThreadFactory.create("scheduler"));
-
-    EventBusConsumer consumer = new EventBusConsumerImpl(consumerOptions, eventQueue, null, scheduledExecutor);
+    EventBusConsumer consumer = new EventBusConsumerImpl(consumerOptions, eventQueue, null);
 //    consumer.setPartitioner(event -> Integer.parseInt(event.action().resource()) % 3);
     consumer.consumer(null, null, e -> {
       logger.info("---| handle {}", e);
