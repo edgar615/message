@@ -158,4 +158,45 @@ public class ConsumerTest {
     eventBusConsumer.close();
     readStream.close();
   }
+
+  @Test
+  public void testScheduler() {
+    ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
+    EventQueue eventQueue = new DefaultEventQueue(1000);
+    MockConsumerDao eventConsumerDao = new MockConsumerDao();
+    AtomicInteger count = new AtomicInteger();
+    EventBusConsumer eventBusConsumer = new EventBusConsumerImpl(options, eventQueue, eventConsumerDao);
+    eventBusConsumer.consumer(null, null, e -> {
+      int seq = count.incrementAndGet();
+      if (seq % 2 == 0) {
+        throw new RuntimeException();
+      }
+    });
+    eventBusConsumer.start();
+    EventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerDao);
+
+    EventBusConsumerScheduler scheduler = new EventBusConsumerSchedulerImpl(eventConsumerDao, eventQueue, 1000L);
+    scheduler.start();
+
+    Awaitility.await().until(() -> count.get() == 100);
+
+
+    Awaitility.await().until(() -> {
+      long successCount = eventConsumerDao.events().stream()
+          .filter(e -> e.head().ext("state") != null)
+          .filter(e -> e.head().ext("state").equals(String.valueOf(ConsumeEventState.SUCCEED.value())))
+          .count();
+      return successCount == 50;
+    });
+    Awaitility.await().until(() -> {
+      long failedCount = eventConsumerDao.events().stream()
+          .filter(e -> e.head().ext("state") != null)
+          .filter(e -> e.head().ext("state").equals(String.valueOf(ConsumeEventState.SUCCEED.value())))
+          .count();
+      return failedCount == 50;
+    });
+    eventBusConsumer.close();
+    readStream.close();
+    scheduler.close();
+  }
 }

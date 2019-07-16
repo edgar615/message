@@ -39,27 +39,19 @@ public class ConsumerWorker implements Runnable {
 
   private void dequeueAndHandle() {
     Event event = null;
+    BlockedEventHolder holder = null;
     try {
       event = queue.dequeue();
       EventIdTracing eventIdTracing = new EventIdTracing(event.head().id());
       EventIdTracingHolder.set(eventIdTracing);
       MDC.put("x-request-id", event.head().id());
       long start = System.currentTimeMillis();
-      BlockedEventHolder holder = BlockedEventHolder.create(event.head().id(), blockedCheckerMs);
+      holder = BlockedEventHolder.create(event.head().id(), blockedCheckerMs);
       if (checker != null) {
         checker.register(holder);
       }
-//      metrics.consumerStart();
-//      if (isConsumed(event) || isBlackList(event)) {
-//        //忽略 handle
-//      } else {
-//        doHandle(event);
-//      }
       doHandle(event);
-      holder.completed();
       long duration = System.currentTimeMillis() - start;
-//      metrics.consumerEnd(duration);
-      queue.complete(event);
       LOGGER.info(
           LoggingMarker.getLoggingMarker(event.head().id(), ImmutableMap.of("duration", duration)),
           "consume succeed");
@@ -73,6 +65,16 @@ public class ConsumerWorker implements Runnable {
     } finally {
       EventIdTracingHolder.clear();
       MDC.remove("x-request-id");
+      try {
+        if (holder != null) {
+          holder.completed();
+        }
+        if (event != null) {
+          queue.complete(event);
+        }
+      } catch (Exception e) {
+        LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "complete failed", e);
+      }
     }
   }
 

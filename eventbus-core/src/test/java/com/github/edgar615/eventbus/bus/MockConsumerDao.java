@@ -3,12 +3,19 @@ package com.github.edgar615.eventbus.bus;
 import com.github.edgar615.eventbus.dao.ConsumeEventState;
 import com.github.edgar615.eventbus.dao.EventConsumerDao;
 import com.github.edgar615.eventbus.event.Event;
+import com.github.edgar615.eventbus.event.Message;
+import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MockConsumerDao implements EventConsumerDao {
 
   private final List<Event> events = new CopyOnWriteArrayList<>();
+
+  private AtomicInteger seq = new AtomicInteger();
 
   @Override
   public boolean insert(Event event) {
@@ -19,7 +26,18 @@ public class MockConsumerDao implements EventConsumerDao {
 
   @Override
   public List<Event> waitingForConsume(int fetchCount) {
-    return null;
+    int min = seq.get();
+    int max = min + fetchCount;
+    List<Event> events = new ArrayList<>();
+    for (int i = min; i < 100; i++) {
+      Message message = Message
+          .create("" + i, ImmutableMap.of("foo", "bar", "deviceId", new Random().nextInt(10)));
+      Event event = Event.create("DeviceControlEvent", message, 1);
+      events.add(event);
+      this.events.add(event);
+    }
+
+    return events;
   }
 
   @Override
