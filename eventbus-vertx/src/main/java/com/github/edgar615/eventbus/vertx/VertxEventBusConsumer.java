@@ -1,5 +1,9 @@
 package com.github.edgar615.eventbus.vertx;
 
+import com.github.edgar615.eventbus.bus.ConsumerOptions;
+import com.github.edgar615.eventbus.utils.EventQueue;
+import io.vertx.core.Vertx;
+
 /**
  * Created by Edgar on 2019/7/16.
  *
@@ -7,14 +11,14 @@ package com.github.edgar615.eventbus.vertx;
  */
 public interface VertxEventBusConsumer {
 
-//  static VertxEventBusConsumer create(ConsumerOptions options, EventQueue queue) {
-//    return new EventBusConsumerImpl(options, queue, null);
-//  }
-//
-// static VertxEventBusConsumer create(ConsumerOptions options, EventQueue queue,
-//     EventConsumerRepository consumerRepository) {
-//   return new EventBusConsumerImpl(options, queue, consumerRepository);
-// }
+  static VertxEventBusConsumer create(Vertx vertx, ConsumerOptions options, EventQueue queue) {
+    return new VertxEventBusConsumreImpl(vertx, options, queue, null);
+  }
+
+  static VertxEventBusConsumer create(Vertx vertx, ConsumerOptions options, EventQueue queue,
+      VertxEventConsumerRepository consumerRepository) {
+    return new VertxEventBusConsumreImpl(vertx, options, queue, consumerRepository);
+  }
 
   void start();
 

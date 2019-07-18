@@ -2,7 +2,6 @@ package com.github.edgar615.eventbus.bus;
 
 import com.github.edgar615.eventbus.repository.EventProducerRepository;
 import com.github.edgar615.eventbus.event.Event;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -23,15 +22,15 @@ import java.util.concurrent.CompletableFuture;
  *
  * @author Edgar  Date 2017/4/19
  */
-public interface EventProducer {
+public interface EventBusProducer {
 
-  static EventProducer create(ProducerOptions options, EventBusWriteStream writeStream) {
-    return new EventProducerImpl(options, writeStream, null);
+  static EventBusProducer create(ProducerOptions options, EventBusWriteStream writeStream) {
+    return new EventBusProducerImpl(options, writeStream, null);
   }
 
-  static EventProducer create(ProducerOptions options, EventBusWriteStream writeStream,
+  static EventBusProducer create(ProducerOptions options, EventBusWriteStream writeStream,
       EventProducerRepository eventProducerRepository) {
-    return new EventProducerImpl(options, writeStream, eventProducerRepository);
+    return new EventBusProducerImpl(options, writeStream, eventProducerRepository);
   }
 
   /**

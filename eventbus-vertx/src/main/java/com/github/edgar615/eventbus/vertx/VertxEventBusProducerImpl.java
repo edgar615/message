@@ -8,7 +8,7 @@ import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class VertxEventBusProducerImpl implements VertxEventBusProducer {
+class VertxEventBusProducerImpl implements VertxEventBusProducer {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(VertxEventBusProducer.class);
 
@@ -18,7 +18,7 @@ public class VertxEventBusProducerImpl implements VertxEventBusProducer {
 
   private final VertxEventProducerRepository producerRepository;
 
-  public VertxEventBusProducerImpl(Vertx vertx,
+  VertxEventBusProducerImpl(Vertx vertx,
       VertxEventBusWriteStream writeStream,
       VertxEventProducerRepository producerRepository) {
     this.vertx = vertx;
@@ -58,6 +58,10 @@ public class VertxEventBusProducerImpl implements VertxEventBusProducer {
   @Override
   public void close() {
     LOGGER.info("close producer");
+  }
+
+  @Override
+  public void start() {
   }
 
   @Override

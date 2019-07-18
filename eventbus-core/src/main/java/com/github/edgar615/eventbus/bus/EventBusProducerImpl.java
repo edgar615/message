@@ -3,14 +3,13 @@ package com.github.edgar615.eventbus.bus;
 import com.github.edgar615.eventbus.repository.EventProducerRepository;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.utils.LoggingMarker;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class EventProducerImpl implements EventProducer {
+class EventBusProducerImpl implements EventBusProducer {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(EventProducer.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(EventBusProducer.class);
 
   private final EventProducerRepository eventProducerRepository;
 
@@ -18,7 +17,7 @@ class EventProducerImpl implements EventProducer {
 
   private final ProducerOptions options;
 
-  EventProducerImpl(ProducerOptions options, EventBusWriteStream writeStream,
+  EventBusProducerImpl(ProducerOptions options, EventBusWriteStream writeStream,
       EventProducerRepository eventProducerRepository) {
     this.options = options;
     this.writeStream = writeStream;

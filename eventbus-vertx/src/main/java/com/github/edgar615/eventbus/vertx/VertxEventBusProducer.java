@@ -3,6 +3,7 @@ package com.github.edgar615.eventbus.vertx;
 import com.github.edgar615.eventbus.event.Event;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 
 /**
  * Created by Edgar on 2019/7/16.
@@ -17,14 +18,16 @@ public interface VertxEventBusProducer {
 
   void close();
 
+  void start();
+
   int waitForSend();
 
-//  static VertxKafkaEventbusProducer create(Vertx vertx, KafkaWriteOptions options) {
-//    return new VertxKafkaEventbusProducerImpl(vertx, options);
-//  }
-//
-//  static VertxKafkaEventbusProducer create(Vertx vertx, KafkaWriteOptions options,
-//      VertxEventProducerRepository storage) {
-//    return new VertxKafkaEventbusProducerImpl(vertx, options, storage);
-//  }
+  static VertxEventBusProducer create(Vertx vertx, VertxEventBusWriteStream writeStream) {
+    return new VertxEventBusProducerImpl(vertx, writeStream, null);
+  }
+
+  static VertxEventBusProducer create(Vertx vertx, VertxEventBusWriteStream writeStream,
+      VertxEventProducerRepository producerRepository) {
+    return new VertxEventBusProducerImpl(vertx, writeStream, producerRepository);
+  }
 }

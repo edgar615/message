@@ -80,14 +80,14 @@ class ConsumerWorker implements Runnable {
 
   private void doHandle(Event event) {
     try {
-      Collection<EventHandler> subscribers =
+      Collection<EventHandler> handlers =
           HandlerRegistry.instance()
               .findAllHandler(new HandlerKey(event.head().to(), event.action().resource()));
-      if (subscribers == null || subscribers.isEmpty()) {
-        LOGGER.warn(LoggingMarker.getIdLoggingMarker(event.head().id()), "no subscriber");
+      if (handlers == null || handlers.isEmpty()) {
+        LOGGER.warn(LoggingMarker.getIdLoggingMarker(event.head().id()), "no handler");
       } else {
-        for (EventHandler subscriber : subscribers) {
-          subscriber.handle(event);
+        for (EventHandler handler : handlers) {
+          handler.handle(event);
         }
       }
       if (consumerRepository != null) {
@@ -110,8 +110,6 @@ class ConsumerWorker implements Runnable {
   }
 
   private void markFailed(Event event, Throwable throwable) {
-    LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "consume failed",
-        throwable.getMessage());
     try {
       consumerRepository.mark(event.head().id(), ConsumeEventState.FAILED);
     } catch (Exception e) {

@@ -22,7 +22,7 @@ public class ProducerTest {
   @Test
   public void testSend() {
     BlockWriteStream writeStream = new BlockWriteStream(1);
-    EventProducer producer = EventProducer.create(new ProducerOptions(), writeStream);
+    EventBusProducer producer = EventBusProducer.create(new ProducerOptions(), writeStream);
     producer.start();
     AtomicInteger complete = new AtomicInteger();
     for (int i = 0; i < 10; i++) {
@@ -42,7 +42,8 @@ public class ProducerTest {
   public void testStorage() {
     MockProducerRepository producerDao = new MockProducerRepository();
     RoundRobinWriteStream writeStream = new RoundRobinWriteStream();
-    EventProducer producer = EventProducer.create(new ProducerOptions(), writeStream, producerDao);
+    EventBusProducer producer = EventBusProducer
+        .create(new ProducerOptions(), writeStream, producerDao);
     producer.start();
     for (int i = 0; i < 10; i++) {
       if (i == 5) {
@@ -85,7 +86,8 @@ public class ProducerTest {
     RoundRobinWriteStream writeStream = new RoundRobinWriteStream();
     EventBusProducerScheduler eventBusProducerScheduler = EventBusProducerScheduler.create(producerDao, writeStream, 3000);
     eventBusProducerScheduler.start();
-    EventProducer producer = EventProducer.create(new ProducerOptions(), writeStream, producerDao);
+    EventBusProducer producer = EventBusProducer
+        .create(new ProducerOptions(), writeStream, producerDao);
     producer.start();
     for (int i = 0; i < 10; i++) {
       if (i == 5) {
@@ -127,7 +129,7 @@ public class ProducerTest {
 //  public void testMaxQuota() {
 //    ProducerOptions options = new ProducerOptions();
 //    BlockWriteStream writeStream = new BlockWriteStream(5);
-//    EventProducer producer = new EventProducerImpl(options, writeStream);
+//    EventBusProducer producer = new EventBusProducerImpl(options, writeStream);
 //    AtomicInteger succeed = new AtomicInteger();
 //    AtomicInteger failed = new AtomicInteger();
 //    for (int i = 0; i < 11; i++) {
@@ -150,7 +152,7 @@ public class ProducerTest {
 //    MockProducerRepository storage = new MockProducerRepository();
 //    ProducerOptions options = new ProducerOptions()
 //            .setMaxQuota(5);
-//    EventProducer producer = new BlockWriteStream(options, storage, 5);
+//    EventBusProducer producer = new BlockWriteStream(options, storage, 5);
 //    AtomicInteger succeed = new AtomicInteger();
 //    AtomicInteger failed = new AtomicInteger();
 //    for (int i = 0; i < 11; i++) {

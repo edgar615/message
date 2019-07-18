@@ -1,6 +1,6 @@
 package com.github.edgar615.eventbus.kafka;
 
-import com.github.edgar615.eventbus.bus.EventProducer;
+import com.github.edgar615.eventbus.bus.EventBusProducer;
 import com.github.edgar615.eventbus.bus.ProducerOptions;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.event.Message;
@@ -22,7 +22,7 @@ public class KafkaSendEventTest {
     configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "192.168.1.212:9092");
     KafkaWriteOptions options = new KafkaWriteOptions(configs);
     KafkaEventBusWriteStream writeStream = new KafkaEventBusWriteStream(options);
-    EventProducer producer = EventProducer.create(new ProducerOptions(), writeStream);
+    EventBusProducer producer = EventBusProducer.create(new ProducerOptions(), writeStream);
     producer.start();
     for (int i = 0; i < 10; i++) {
       Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));

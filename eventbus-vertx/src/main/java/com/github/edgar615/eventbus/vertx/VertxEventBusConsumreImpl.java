@@ -1,46 +1,45 @@
 package com.github.edgar615.eventbus.vertx;
 
-import com.github.edgar615.eventbus.bus.BlockedEventChecker;
 import com.github.edgar615.eventbus.bus.ConsumerOptions;
 import com.github.edgar615.eventbus.event.Event;
-import com.github.edgar615.eventbus.repository.EventConsumerRepository;
+import com.github.edgar615.eventbus.repository.ConsumeEventState;
 import com.github.edgar615.eventbus.utils.EventQueue;
-import com.github.edgar615.eventbus.utils.NamedThreadFactory;
+import com.github.edgar615.eventbus.utils.LoggingMarker;
+import com.google.common.collect.ImmutableMap;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.impl.HandlerRegistration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
+class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(VertxEventBusConsumer.class);
 //  private final BlockedEventChecker checker;
 
   private final EventQueue eventQueue;
 
-  private volatile boolean running = false;
+  private VertxEventConsumerRepository consumerRepository;
 
-  private EventConsumerRepository consumerRepository;
-
-//  private final int workerCount;
-//
 //  private final long blockedCheckerMs;
 
   private final Handler<AsyncResult<Event>> resultHandler;
 
   private final Vertx vertx;
 
+  private long timerId;
+
   VertxEventBusConsumreImpl(Vertx vertx, ConsumerOptions options, EventQueue queue,
-      EventConsumerRepository consumerRepository) {
+      VertxEventConsumerRepository consumerRepository) {
     this.vertx = vertx;
     this.eventQueue = queue;
     this.consumerRepository = consumerRepository;
+    // TODO blocker
 //    this.blockedCheckerMs = options.getBlockedCheckerMs();
 //    this.checker = BlockedEventChecker.create(this.blockedCheckerMs);
 //    running = true;
@@ -58,7 +57,7 @@ public class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
 
   @Override
   public void close() {
-
+    vertx.cancelTimer(timerId);
   }
 
   @Override
@@ -78,7 +77,7 @@ public class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
 
   private void schedule(long delay) {
     if (delay > 0) {
-      vertx.setTimer(delay, l -> run(resultHandler));
+      timerId = vertx.setTimer(delay, l -> run(resultHandler));
     } else {
       run(resultHandler);
     }
@@ -95,42 +94,64 @@ public class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
   }
 
   private void doHandle(Event event, Handler<AsyncResult<Event>> resultHandler) {
-    //黑名单检查
     long start = System.currentTimeMillis();
-    Future<Integer> completeFuture = Future.future();
-    List<VertxEventHandler> handlers =
-        VertxHandlerRegistry.instance()
-            .findAllHandler(event)
-            .stream().filter(h -> h instanceof VertxEventHandler)
-            .map(h -> (VertxEventHandler) h)
-            .collect(Collectors.toList());
+    Future<ConsumeEventState> completeFuture = Future.future();
+    Collection<VertxEventHandler> handlers = VertxHandlerRegistry.instance()
+        .findAllHandler(new VertxHandlerKey(event.head().to(), event.action().resource()));
     if (handlers == null || handlers.isEmpty()) {
-      LOGGER.warn("[{}] [EC] [no handler]", event.head().id());
-      completeFuture.complete(1);
+      LOGGER.warn(LoggingMarker.getIdLoggingMarker(event.head().id()), "no handler");
+      completeFuture.complete(ConsumeEventState.SUCCEED);
     } else {
       List<Future> futures = new ArrayList<>();
       for (VertxEventHandler handler : handlers) {
         Future<Void> future = Future.future();
         futures.add(future);
-        handler.handle(event, future);
+        handler.handle(event, ar -> {
+          if (ar.succeeded()) {
+            future.complete();
+          } else {
+            future.fail(ar.cause());
+          }
+        });
       }
       CompositeFuture.all(futures)
-          .setHandler(ar -> completeFuture.complete(ar.succeeded() ? 1 : 2));
+          .setHandler(ar -> completeFuture
+              .complete(ar.succeeded() ? ConsumeEventState.SUCCEED : ConsumeEventState.FAILED));
     }
-    //持久化
-    if (consumerStorage != null && consumerStorage.shouldStorage(event)) {
-      completeFuture.setHandler(ar -> {
-        consumerStorage.mark(event, ar.succeeded() ? ar.result() : 2,
-            par -> {
-              metrics.consumerEnd(System.currentTimeMillis() - start);
-              resultHandler.handle(Future.succeededFuture(event));
-            });
-      });
-    } else {
-      completeFuture.setHandler(ar ->{
-        metrics.consumerEnd(System.currentTimeMillis() - start);
+    completeFuture.setHandler(ar -> {
+      if (ar.succeeded()) {
+        long duration = System.currentTimeMillis() - start;
+        LOGGER.info(
+            LoggingMarker.getLoggingMarker(event.head().id(), ImmutableMap.of("duration", duration)),
+            "consume succeed");
         resultHandler.handle(Future.succeededFuture(event));
-      });
-    }
+        if (consumerRepository != null) {
+          markSucess(event);
+        }
+      } else {
+        LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "consume failed",
+            ar.cause().getMessage());
+        resultHandler.handle(Future.failedFuture(ar.cause()));
+        if (consumerRepository != null) {
+          markFailed(event, ar.cause());
+        }
+      }
+    });
+  }
+
+  private void markSucess(Event event) {
+    consumerRepository.mark(event.head().id(), ConsumeEventState.SUCCEED, ar -> {
+      LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "mark event failed",
+          ar.cause());
+    });
+  }
+
+  private void markFailed(Event event, Throwable throwable) {
+    consumerRepository.mark(event.head().id(), ConsumeEventState.FAILED, ar -> {
+      if (ar.failed()) {
+        LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "mark event failed",
+            ar.cause());
+      }
+    });
   }
 }
