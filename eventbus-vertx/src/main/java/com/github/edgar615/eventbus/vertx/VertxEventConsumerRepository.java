@@ -18,7 +18,7 @@ public interface VertxEventConsumerRepository {
    *
    * @return 重复消息false，非重复消息 true
    */
-  boolean insert(Event event, Handler<AsyncResult<Boolean>> resultHandler);
+  void insert(Event event, Handler<AsyncResult<Boolean>> resultHandler);
 
   /**
    * 从数据库中取出十条未处理的事件

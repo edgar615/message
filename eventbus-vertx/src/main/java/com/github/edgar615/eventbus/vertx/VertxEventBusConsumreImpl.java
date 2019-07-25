@@ -62,7 +62,7 @@ class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
 
   @Override
   public void consumer(String topic, String resource, VertxEventHandler handler) {
-
+    VertxHandlerRegistry.instance().register(new VertxHandlerKey(topic, resource), handler);
   }
 
   @Override
