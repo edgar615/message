@@ -1,8 +1,8 @@
 package com.github.edgar615.eventbus.bus;
 
+import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.repository.ConsumeEventState;
 import com.github.edgar615.eventbus.repository.EventConsumerRepository;
-import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.utils.EventIdTracing;
 import com.github.edgar615.eventbus.utils.EventIdTracingHolder;
 import com.github.edgar615.eventbus.utils.EventQueue;

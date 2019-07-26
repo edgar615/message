@@ -1,9 +1,9 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.repository.ConsumeEventState;
-import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.event.Message;
+import com.github.edgar615.eventbus.repository.ConsumeEventState;
+import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;

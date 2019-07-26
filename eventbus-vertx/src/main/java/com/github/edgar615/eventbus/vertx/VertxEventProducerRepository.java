@@ -4,7 +4,6 @@ import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.repository.SendEventState;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-
 import java.util.List;
 
 /**

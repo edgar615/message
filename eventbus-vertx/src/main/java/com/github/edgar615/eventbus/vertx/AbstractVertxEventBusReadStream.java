@@ -2,7 +2,6 @@ package com.github.edgar615.eventbus.vertx;
 
 import com.github.edgar615.eventbus.bus.EventBusReadStream;
 import com.github.edgar615.eventbus.event.Event;
-import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.github.edgar615.eventbus.utils.EventQueue;
 import com.github.edgar615.eventbus.utils.LoggingMarker;
 import io.vertx.core.AsyncResult;

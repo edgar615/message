@@ -1,7 +1,7 @@
 package com.github.edgar615.eventbus.kafka.vertx;
 
-import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.bus.HandlerRegistration;
+import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.kafka.KafkaReadOptions;
 import com.github.edgar615.eventbus.metrics.ConsumerMetrics;
 import com.github.edgar615.eventbus.metrics.DummyMetrics;
@@ -10,13 +10,20 @@ import com.github.edgar615.eventbus.utils.EventQueue;
 import com.github.edgar615.eventbus.utils.SequentialEventQueue;
 import com.github.edgar615.eventbus.vertx.VertxEventConsumerRepository;
 import com.github.edgar615.util.eventbus.*;
-import io.vertx.core.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by Edgar on 2018/5/15.

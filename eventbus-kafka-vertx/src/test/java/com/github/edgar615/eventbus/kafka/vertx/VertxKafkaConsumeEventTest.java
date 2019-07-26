@@ -4,10 +4,9 @@ import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.kafka.KafkaReadOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Edgar on 2017/3/22.

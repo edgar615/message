@@ -3,7 +3,6 @@ package com.github.edgar615.eventbus.vertx;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.event.Message;
 import com.github.edgar615.eventbus.repository.ConsumeEventState;
-import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.google.common.collect.ImmutableMap;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -37,6 +36,7 @@ public class MockConsumerRepository implements VertxEventConsumerRepository {
     int max = min + fetchCount;
     List<Event> events = new ArrayList<>();
     for (int i = min; i < 100; i++) {
+      seq.incrementAndGet();
       Message message = Message
           .create("" + i, ImmutableMap.of("foo", "bar", "deviceId", new Random().nextInt(10)));
       Event event = Event.create("DeviceControlEvent", message, 1);

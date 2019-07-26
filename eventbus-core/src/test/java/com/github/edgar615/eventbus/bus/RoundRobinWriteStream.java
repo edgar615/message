@@ -1,6 +1,5 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.bus.EventBusWriteStream;
 import com.github.edgar615.eventbus.event.Event;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;

@@ -1,7 +1,7 @@
 package com.github.edgar615.eventbus.repository;
 
-import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.bus.EventBusProducer;
+import com.github.edgar615.eventbus.event.Event;
 import java.util.List;
 
 /**

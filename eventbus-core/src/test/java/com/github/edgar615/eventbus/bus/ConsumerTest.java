@@ -1,8 +1,8 @@
 package com.github.edgar615.eventbus.bus;
 
+import com.github.edgar615.eventbus.event.Message;
 import com.github.edgar615.eventbus.repository.ConsumeEventState;
 import com.github.edgar615.eventbus.repository.EventConsumerRepository;
-import com.github.edgar615.eventbus.event.Message;
 import com.github.edgar615.eventbus.utils.DefaultEventQueue;
 import com.github.edgar615.eventbus.utils.EventQueue;
 import com.github.edgar615.eventbus.utils.SequentialEventQueue;

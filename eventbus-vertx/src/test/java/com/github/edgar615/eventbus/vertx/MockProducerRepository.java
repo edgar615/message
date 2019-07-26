@@ -1,7 +1,6 @@
 package com.github.edgar615.eventbus.vertx;
 
 import com.github.edgar615.eventbus.event.Event;
-import com.github.edgar615.eventbus.repository.EventProducerRepository;
 import com.github.edgar615.eventbus.repository.SendEventState;
 import com.google.common.collect.ImmutableList;
 import io.vertx.core.AsyncResult;

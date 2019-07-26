@@ -1,7 +1,7 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.repository.EventProducerRepository;
 import com.github.edgar615.eventbus.event.Event;
+import com.github.edgar615.eventbus.repository.EventProducerRepository;
 import com.github.edgar615.eventbus.utils.LoggingMarker;
 import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;

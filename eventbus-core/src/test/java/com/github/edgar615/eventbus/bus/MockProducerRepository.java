@@ -1,10 +1,9 @@
 package com.github.edgar615.eventbus.bus;
 
+import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.repository.EventProducerRepository;
 import com.github.edgar615.eventbus.repository.SendEventState;
-import com.github.edgar615.eventbus.event.Event;
 import com.google.common.collect.ImmutableList;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;

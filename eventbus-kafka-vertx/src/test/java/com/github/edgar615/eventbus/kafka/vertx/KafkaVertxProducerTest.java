@@ -5,7 +5,6 @@ import com.github.edgar615.eventbus.event.Message;
 import com.github.edgar615.eventbus.kafka.KafkaWriteOptions;
 import com.google.common.collect.ImmutableMap;
 import io.vertx.core.Vertx;
-
 import java.util.concurrent.TimeUnit;
 
 /**

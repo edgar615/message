@@ -1,7 +1,7 @@
 package com.github.edgar615.eventbus.bus;
 
-import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.github.edgar615.eventbus.event.Event;
+import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.github.edgar615.eventbus.utils.EventQueue;
 import com.github.edgar615.eventbus.utils.NamedThreadFactory;
 import java.util.List;
@@ -56,6 +56,7 @@ class EventBusConsumerSchedulerImpl implements EventBusConsumerScheduler {
 
   @Override
   public void close() {
+    closed = true;
     LOGGER.info("close consumer scheduler");
     scheduledExecutor.shutdown();
   }

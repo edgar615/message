@@ -97,8 +97,8 @@ class VertxEventBusProducerSchedulerImpl implements VertxEventBusProducerSchedul
       }
       processing.addAndGet(waitingForSend.size());
       future.complete(waitingForSend);
-      future.compose(this::doSend);
     });
+    future.compose(this::doSend);
   }
 
   private Future<Void> doSend(List<Event> events) {

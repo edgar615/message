@@ -9,6 +9,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
@@ -60,7 +61,7 @@ public class ConsumerTest {
     EventQueue eventQueue = DefaultEventQueue.create(1000);
     MockConsumerRepository eventConsumerDao = new MockConsumerRepository();
     AtomicInteger count = new AtomicInteger();
-    VertxEventBusConsumer eventBusConsumer = VertxEventBusConsumer.create(vertx, options, eventQueue);
+    VertxEventBusConsumer eventBusConsumer = VertxEventBusConsumer.create(vertx, options, eventQueue, eventConsumerDao);
     VertxEventHandler handler = new VertxEventHandler() {
       @Override
       public void handle(Event event, Handler<AsyncResult<Event>> resultHandler) {
@@ -93,125 +94,96 @@ public class ConsumerTest {
     readStream.close();
   }
 
-//  @Test
-//  public void testSeq() {
-//
-//    ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10)
-//        .setBlockedCheckerMs(300);
-//    SequentialEventQueue eventQueue = SequentialEventQueue.create(e -> {
-//      Message message = (Message) e.action();
-//      return message.content().get("deviceId").toString();
-//    },
-//        1000);
-//    EventConsumerRepository eventConsumerRepository = new MockConsumerRepository();
-//    AtomicInteger count = new AtomicInteger();
-//    List<Integer> zeroList = new ArrayList<>();
-//    List<Integer> fiveList = new ArrayList<>();
-//    EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue,
-//        eventConsumerRepository);
-//    eventBusConsumer.consumer(null, null, e -> {
-//      try {
-//        TimeUnit.MILLISECONDS.sleep(500);
-//      } catch (InterruptedException e1) {
-//        e1.printStackTrace();
-//      }
-//      Message message = (Message) e.action();
-//      Integer deviceId = (Integer) message.content().get("deviceId");
-//      if (deviceId == 0) {
-//        zeroList.add(Integer.parseInt(e.action().resource()));
-//      }
-//      if (deviceId == 5) {
-//        fiveList.add(Integer.parseInt(e.action().resource()));
-//      }
-//      count.incrementAndGet();
-//    });
-//    eventBusConsumer.start();
-//    EventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerRepository);
+  @Test
+  public void testPauseAndResume() {
+    ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
+    EventQueue eventQueue = DefaultEventQueue.create(5);
+    VertxEventConsumerRepository eventConsumerRepository = new MockConsumerRepository();
+    AtomicInteger count = new AtomicInteger();
+    VertxEventBusConsumer eventBusConsumer = VertxEventBusConsumer.create(vertx, options, eventQueue,
+        eventConsumerRepository);
+    VertxEventHandler handler = new VertxEventHandler() {
+      @Override
+      public void handle(Event event, Handler<AsyncResult<Event>> resultHandler) {
+        try {
+          TimeUnit.MILLISECONDS.sleep(40);
+        } catch (InterruptedException e1) {
+          e1.printStackTrace();
+        }
+        count.incrementAndGet();
+        resultHandler.handle(Future.failedFuture(new RuntimeException()));
+      }
+    };
+
+    eventBusConsumer.consumer(null, null, handler);
+    eventBusConsumer.start();
+    VertxEventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerRepository);
+    readStream.start();
+    ((BlockReadStream) readStream).pollAndEnqueue(ar -> {});
+
+    Assert.assertTrue(readStream.paused());
+    Awaitility.await().until(() -> count.get() == 100);
+
 //    ((BlockReadStream) readStream).pollAndEnqueue();
-//
-//    try {
-//      TimeUnit.SECONDS.sleep(5);
-//    } catch (InterruptedException e) {
-//      e.printStackTrace();
-//    }
-//    Awaitility.await().until(() -> count.get() == 100);
-//    for (int i = 0; i < zeroList.size() - 1;i ++) {
-//      Assert.assertTrue(zeroList.get(i) < zeroList.get(i + 1));
-//    }
-//    for (int i = 0; i < fiveList.size() - 1;i ++) {
-//      Assert.assertTrue(fiveList.get(i) < fiveList.get(i + 1));
-//    }
-//    eventBusConsumer.close();
-//    readStream.close();
-//  }
-//
-//  @Test
-//  public void testPauseAndResume() {
-//    ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
-//    EventQueue eventQueue = DefaultEventQueue.create(5);
-//    EventConsumerRepository eventConsumerRepository = new MockConsumerRepository();
-//    AtomicInteger count = new AtomicInteger();
-//    EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue,
-//        eventConsumerRepository);
-//    eventBusConsumer.consumer(null, null, e -> {
-//      try {
-//        TimeUnit.MILLISECONDS.sleep(40);
-//      } catch (InterruptedException e1) {
-//        e1.printStackTrace();
-//      }
-//      count.incrementAndGet();
-//    });
-//    eventBusConsumer.start();
-//    EventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerRepository);
-//    ((BlockReadStream) readStream).pollAndEnqueue();
-//    Assert.assertTrue(readStream.paused());
-//    Awaitility.await().until(() -> count.get() == 100);
-//
-////    ((BlockReadStream) readStream).pollAndEnqueue();
-////    Awaitility.await().until(() -> !readStream.paused());
-////    Awaitility.await().until(() -> count.get() == 200);
-//    eventBusConsumer.close();
-//    readStream.close();
-//  }
-//
-//  @Test
-//  public void testScheduler() {
-//    ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
-//    EventQueue eventQueue = DefaultEventQueue.create(1000);
-//    MockConsumerRepository eventConsumerDao = new MockConsumerRepository();
-//    AtomicInteger count = new AtomicInteger();
-//    EventBusConsumer eventBusConsumer = EventBusConsumer.create(options, eventQueue, eventConsumerDao);
-//    eventBusConsumer.consumer(null, null, e -> {
-//      int seq = count.incrementAndGet();
-//      if (seq % 2 == 0) {
-//        throw new RuntimeException();
-//      }
-//    });
-//    eventBusConsumer.start();
-//    EventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerDao);
-//
-//    EventBusConsumerScheduler scheduler = EventBusConsumerScheduler.create(eventConsumerDao, eventQueue, 1000L);
-//    scheduler.start();
-//
-//    Awaitility.await().until(() -> count.get() == 100);
-//
-//
-//    Awaitility.await().until(() -> {
-//      long successCount = eventConsumerDao.events().stream()
-//          .filter(e -> e.head().ext("state") != null)
-//          .filter(e -> e.head().ext("state").equals(String.valueOf(ConsumeEventState.SUCCEED.value())))
-//          .count();
-//      return successCount == 50;
-//    });
-//    Awaitility.await().until(() -> {
-//      long failedCount = eventConsumerDao.events().stream()
-//          .filter(e -> e.head().ext("state") != null)
-//          .filter(e -> e.head().ext("state").equals(String.valueOf(ConsumeEventState.SUCCEED.value())))
-//          .count();
-//      return failedCount == 50;
-//    });
-//    eventBusConsumer.close();
-//    readStream.close();
-//    scheduler.close();
-//  }
+//    Awaitility.await().until(() -> !readStream.paused());
+//    Awaitility.await().until(() -> count.get() == 200);
+    eventBusConsumer.close();
+    readStream.close();
+  }
+
+  @Test
+  public void testScheduler() {
+    ConsumerOptions options = new ConsumerOptions().setWorkerPoolSize(10);
+    EventQueue eventQueue = DefaultEventQueue.create(5);
+    MockConsumerRepository eventConsumerRepository = new MockConsumerRepository();
+    AtomicInteger count = new AtomicInteger();
+    VertxEventBusConsumer eventBusConsumer = VertxEventBusConsumer.create(vertx, options, eventQueue,
+        eventConsumerRepository);
+    VertxEventHandler handler = new VertxEventHandler() {
+      @Override
+      public void handle(Event event, Handler<AsyncResult<Event>> resultHandler) {
+        try {
+          TimeUnit.MILLISECONDS.sleep(40);
+        } catch (InterruptedException e1) {
+          e1.printStackTrace();
+        }
+        int seq = count.incrementAndGet();
+        if (seq % 2 == 0) {
+          resultHandler.handle(Future.failedFuture(new RuntimeException()));
+        } else {
+          resultHandler.handle(Future.succeededFuture(event));
+        }
+      }
+    };
+
+    eventBusConsumer.consumer(null, null, handler);
+    eventBusConsumer.start();
+    VertxEventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerRepository);
+    readStream.start();
+
+    VertxEventBusConsumerScheduler scheduler = VertxEventBusConsumerScheduler.create(vertx, eventConsumerRepository, eventQueue, 1000L);
+    scheduler.start();
+
+    Awaitility.await().until(() -> count.get() == 100);
+    eventBusConsumer.close();
+    readStream.close();
+    scheduler.close();
+
+    Awaitility.await().until(() -> {
+      long successCount = eventConsumerRepository.events().stream()
+          .filter(e -> e.head().ext("state") != null)
+          .filter(e -> e.head().ext("state").equals(String.valueOf(ConsumeEventState.SUCCEED.value())))
+          .count();
+      return successCount == 50;
+    });
+    Awaitility.await().until(() -> {
+      long failedCount = eventConsumerRepository.events().stream()
+          .filter(e -> e.head().ext("state") != null)
+          .filter(e -> e.head().ext("state").equals(String.valueOf(ConsumeEventState.SUCCEED.value())))
+          .count();
+      return failedCount == 50;
+    });
+
+  }
+
 }

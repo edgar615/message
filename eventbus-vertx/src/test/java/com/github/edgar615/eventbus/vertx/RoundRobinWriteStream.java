@@ -1,11 +1,9 @@
 package com.github.edgar615.eventbus.vertx;
 
-import com.github.edgar615.eventbus.bus.EventBusWriteStream;
 import com.github.edgar615.eventbus.event.Event;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**

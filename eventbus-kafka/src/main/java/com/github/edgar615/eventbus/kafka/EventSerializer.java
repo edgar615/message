@@ -2,10 +2,9 @@ package com.github.edgar615.eventbus.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.edgar615.eventbus.event.Event;
+import java.util.Map;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
-
-import java.util.Map;
 
 /**
  * 为了避免有人写入错误的格式，这里不通过kafka做序列化，直接在程序做序列化

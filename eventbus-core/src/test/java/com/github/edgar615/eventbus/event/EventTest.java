@@ -1,11 +1,10 @@
 package com.github.edgar615.eventbus.event;
 
 import com.google.common.collect.ImmutableMap;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.util.Map;
 import java.util.UUID;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Created by edgar on 17-3-22.

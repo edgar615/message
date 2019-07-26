@@ -1,7 +1,6 @@
 package com.github.edgar615.eventbus.utils;
 
 import com.github.edgar615.eventbus.event.Event;
-
 import java.util.List;
 
 /**

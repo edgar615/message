@@ -3,8 +3,8 @@ package com.github.edgar615.eventbus.kafka;
 import static net.logstash.logback.marker.Markers.appendEntries;
 
 import com.github.edgar615.eventbus.bus.AbstractEventBusReadStream;
-import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.github.edgar615.eventbus.event.Event;
+import com.github.edgar615.eventbus.repository.EventConsumerRepository;
 import com.github.edgar615.eventbus.utils.EventQueue;
 import com.github.edgar615.eventbus.utils.EventSerDe;
 import com.github.edgar615.eventbus.utils.LoggingMarker;

@@ -34,6 +34,8 @@ class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
 
   private long timerId;
 
+  private volatile boolean scheduling = false;
+
   VertxEventBusConsumreImpl(Vertx vertx, ConsumerOptions options, EventQueue queue,
       VertxEventConsumerRepository consumerRepository) {
     this.vertx = vertx;
@@ -95,12 +97,12 @@ class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
 
   private void doHandle(Event event, Handler<AsyncResult<Event>> resultHandler) {
     long start = System.currentTimeMillis();
-    Future<ConsumeEventState> completeFuture = Future.future();
+    Future<CompositeFuture> completeFuture = Future.future();
     Collection<VertxEventHandler> handlers = VertxHandlerRegistry.instance()
         .findAllHandler(new VertxHandlerKey(event.head().to(), event.action().resource()));
     if (handlers == null || handlers.isEmpty()) {
       LOGGER.warn(LoggingMarker.getIdLoggingMarker(event.head().id()), "no handler");
-      completeFuture.complete(ConsumeEventState.SUCCEED);
+      completeFuture.complete();
     } else {
       List<Future> futures = new ArrayList<>();
       for (VertxEventHandler handler : handlers) {
@@ -115,8 +117,7 @@ class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
         });
       }
       CompositeFuture.all(futures)
-          .setHandler(ar -> completeFuture
-              .complete(ar.succeeded() ? ConsumeEventState.SUCCEED : ConsumeEventState.FAILED));
+          .setHandler(completeFuture);
     }
     completeFuture.setHandler(ar -> {
       if (ar.succeeded()) {
@@ -141,8 +142,10 @@ class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
 
   private void markSucess(Event event) {
     consumerRepository.mark(event.head().id(), ConsumeEventState.SUCCEED, ar -> {
-      LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "mark event failed",
-          ar.cause());
+      if (ar.failed()) {
+        LOGGER.error(LoggingMarker.getIdLoggingMarker(event.head().id()), "mark event failed",
+            ar.cause());
+      }
     });
   }
 

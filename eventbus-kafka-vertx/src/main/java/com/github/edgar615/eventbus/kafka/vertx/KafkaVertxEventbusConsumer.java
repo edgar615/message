@@ -4,7 +4,6 @@ import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.kafka.KafkaReadOptions;
 import com.github.edgar615.eventbus.vertx.VertxEventConsumerRepository;
 import io.vertx.core.Vertx;
-
 import java.util.Map;
 import java.util.function.Function;
 
