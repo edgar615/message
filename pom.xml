@@ -17,8 +17,8 @@
     <modules>
         <module>eventbus-core</module>
         <module>eventbus-kafka</module>
-        <module>eventbus-kafka-vertx</module>
-      <module>eventbus-vertx</module>
+        <module>eventbus-vertx-kafka</module>
+        <module>eventbus-vertx</module>
     </modules>
 
     <properties>

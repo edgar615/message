@@ -46,7 +46,7 @@ public class ConsumerTest {
     };
     eventBusConsumer.consumer(null, null, handler);
     eventBusConsumer.start();
-    VertxEventBusReadStream readStream = new BlockReadStream(eventQueue, null);
+    VertxEventBusReadStream readStream = new BlockReadStream(vertx, eventQueue, null);
     readStream.start();
     ((BlockReadStream) readStream).pollAndEnqueue(ar -> {});
 
@@ -75,7 +75,7 @@ public class ConsumerTest {
     };
     eventBusConsumer.consumer(null, null, handler);
     eventBusConsumer.start();
-    VertxEventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerDao);
+    VertxEventBusReadStream readStream = new BlockReadStream(vertx, eventQueue, eventConsumerDao);
     readStream.start();
     ((BlockReadStream) readStream).pollAndEnqueue(ar -> {});
 
@@ -117,7 +117,7 @@ public class ConsumerTest {
 
     eventBusConsumer.consumer(null, null, handler);
     eventBusConsumer.start();
-    VertxEventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerRepository);
+    VertxEventBusReadStream readStream = new BlockReadStream(vertx, eventQueue, eventConsumerRepository);
     readStream.start();
     ((BlockReadStream) readStream).pollAndEnqueue(ar -> {});
 
@@ -158,7 +158,7 @@ public class ConsumerTest {
 
     eventBusConsumer.consumer(null, null, handler);
     eventBusConsumer.start();
-    VertxEventBusReadStream readStream = new BlockReadStream(eventQueue, eventConsumerRepository);
+    VertxEventBusReadStream readStream = new BlockReadStream(vertx, eventQueue, eventConsumerRepository);
     readStream.start();
 
     VertxEventBusConsumerScheduler scheduler = VertxEventBusConsumerScheduler.create(vertx, eventConsumerRepository, eventQueue, 1000L);

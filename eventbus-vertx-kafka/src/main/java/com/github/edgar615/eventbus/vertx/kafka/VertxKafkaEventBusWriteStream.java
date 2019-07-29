@@ -1,4 +1,4 @@
-package com.github.edgar615.eventbus.kafka.vertx;
+package com.github.edgar615.eventbus.vertx.kafka;
 
 import static net.logstash.logback.marker.Markers.append;
 
@@ -13,9 +13,6 @@ import io.vertx.core.Vertx;
 import io.vertx.kafka.client.producer.KafkaProducer;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import io.vertx.kafka.client.producer.RecordMetadata;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
@@ -26,12 +23,8 @@ public class VertxKafkaEventBusWriteStream implements VertxEventBusWriteStream {
 
   private final KafkaProducer<String, String> producer;
 
-  public VertxKafkaEventBusWriteStream(Vertx vertx, Map<String, String> config) {
-    Map<String, String> configs = new HashMap<>(config);
-    config.put("key.serializer", StringSerializer.class.getName());
-    config.put("value.serializer", StringSerializer.class.getName());
-    this.producer = KafkaProducer.create(vertx, config);
-
+  public VertxKafkaEventBusWriteStream(Vertx vertx, KafkaWriteOptions options) {
+    this.producer = KafkaProducer.create(vertx, options.getConfigs());
   }
 
   @Override

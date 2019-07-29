@@ -34,8 +34,6 @@ class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
 
   private long timerId;
 
-  private volatile boolean scheduling = false;
-
   VertxEventBusConsumreImpl(Vertx vertx, ConsumerOptions options, EventQueue queue,
       VertxEventConsumerRepository consumerRepository) {
     this.vertx = vertx;

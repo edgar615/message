@@ -76,7 +76,7 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
   private static final int STATE_RUNNING = 1;
   private static final int STATE_CLOSED = 2;
 
-  private List<TopicPartition> partitionsAssigned = new CopyOnWriteArrayList<>();
+  private final List<TopicPartition> partitionsAssigned = new CopyOnWriteArrayList<>();
 
   private final KafkaReadOptions options;
 
@@ -226,7 +226,7 @@ public class KafkaEventBusReadStream extends AbstractEventBusReadStream implemen
       }
     }
 
-    consumer.commitAsync(
+    consumer.commitAsync(needCommitOffsets,
         (offsets, exception) -> {
           for (TopicPartition topicPartition : offsets.keySet()) {
             commitedOffsets.put(topicPartition, offsets.get(topicPartition).offset());

@@ -7,8 +7,6 @@ import java.util.List;
 
 public interface VertxEventBusReadStream {
 
-  void poll(Handler<AsyncResult<List<Event>>> handler);
-
   void start();
 
   void close();
@@ -16,12 +14,12 @@ public interface VertxEventBusReadStream {
   /**
    * 暂停读取消息
    */
-  void pause();
+  boolean pause();
 
   /**
    * 恢复读取消息
    */
-  void resume();
+  boolean resume();
 
   /**
    * 是否暂停
