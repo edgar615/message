@@ -1,5 +1,7 @@
 package com.github.edgar615.eventbus.vertx;
 
+import com.github.edgar615.eventbus.bus.BlockedEventChecker;
+import com.github.edgar615.eventbus.bus.BlockedEventHolder;
 import com.github.edgar615.eventbus.bus.ConsumerOptions;
 import com.github.edgar615.eventbus.event.Event;
 import com.github.edgar615.eventbus.repository.ConsumeEventState;
@@ -20,13 +22,13 @@ import org.slf4j.LoggerFactory;
 class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(VertxEventBusConsumer.class);
-//  private final BlockedEventChecker checker;
+  private final BlockedEventChecker checker;
 
   private final EventQueue eventQueue;
 
   private VertxEventConsumerRepository consumerRepository;
 
-//  private final long blockedCheckerMs;
+  private final long blockedCheckerMs;
 
   private final Handler<AsyncResult<Event>> resultHandler;
 
@@ -40,8 +42,8 @@ class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
     this.eventQueue = queue;
     this.consumerRepository = consumerRepository;
     // TODO blocker
-//    this.blockedCheckerMs = options.getBlockedCheckerMs();
-//    this.checker = BlockedEventChecker.create(this.blockedCheckerMs);
+    this.blockedCheckerMs = options.getBlockedCheckerMs();
+    this.checker = BlockedEventChecker.create(this.blockedCheckerMs);
 //    running = true;
     this.resultHandler = ar -> {
       eventQueue.complete(ar.result());
@@ -58,6 +60,7 @@ class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
   @Override
   public void close() {
     vertx.cancelTimer(timerId);
+    checker.close();
   }
 
   @Override
@@ -94,6 +97,10 @@ class VertxEventBusConsumreImpl implements VertxEventBusConsumer {
   }
 
   private void doHandle(Event event, Handler<AsyncResult<Event>> resultHandler) {
+    BlockedEventHolder holder = BlockedEventHolder.create(event.head().id(), blockedCheckerMs);
+    if (checker != null) {
+      checker.register(holder);
+    }
     long start = System.currentTimeMillis();
     Future<CompositeFuture> completeFuture = Future.future();
     Collection<VertxEventHandler> handlers = VertxHandlerRegistry.instance()

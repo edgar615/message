@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class BlockedEventChecker {
+public class BlockedEventChecker {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BlockedEventChecker.class);
 
@@ -53,7 +53,7 @@ class BlockedEventChecker {
     this.scheduledExecutorService.shutdown();
   }
 
-  static BlockedEventChecker create(long interval) {
+  public static BlockedEventChecker create(long interval) {
     ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor(
         NamedThreadFactory.create("blocked-checker"));
     return new BlockedEventChecker(interval, executorService);

@@ -15,6 +15,7 @@ import io.vertx.core.Vertx;
 import io.vertx.kafka.client.common.TopicPartition;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

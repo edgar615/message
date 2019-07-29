@@ -5,7 +5,7 @@ package com.github.edgar615.eventbus.bus;
  *
  * @author Edgar  Date 2016/7/8
  */
-class BlockedEventHolder {
+public class BlockedEventHolder {
   private final String eventId;
 
   private final long maxExecTime;
@@ -21,7 +21,7 @@ class BlockedEventHolder {
     this.maxExecTime = maxExecTime;
   }
 
-  static BlockedEventHolder create(String eventId, long maxExecTime) {
+  public static BlockedEventHolder create(String eventId, long maxExecTime) {
     return new BlockedEventHolder(eventId, maxExecTime);
   }
 

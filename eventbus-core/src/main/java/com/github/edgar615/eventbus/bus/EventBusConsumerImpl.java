@@ -60,6 +60,7 @@ class EventBusConsumerImpl implements EventBusConsumer {
     running = false;
     LOGGER.info("closing consumer, remaining:{}", waitForHandle());
     workerExecutor.shutdown();
+    checker.close();
   }
 
   @Override
