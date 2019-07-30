@@ -7,5 +7,7 @@ public interface EventBusWriteStream {
 
   CompletableFuture<Event> send(Event event);
 
+  void start();
+
   void close();
 }

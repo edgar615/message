@@ -13,7 +13,6 @@
 
     <properties>
         <kafka.version>1.0.1</kafka.version>
-        <jackson.version>2.4.6</jackson.version>
     </properties>
 
     <dependencies>
@@ -31,11 +30,6 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
             <version>${kafka.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.edgar615</groupId>

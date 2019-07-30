@@ -32,6 +32,11 @@ public class BlockWriteStream implements EventBusWriteStream {
   }
 
   @Override
+  public void start() {
+
+  }
+
+  @Override
   public void close() {
 
   }

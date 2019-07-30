@@ -19,6 +19,7 @@
         <module>eventbus-kafka</module>
         <module>eventbus-vertx-kafka</module>
         <module>eventbus-vertx</module>
+        <module>eventbus-redis</module>
     </modules>
 
     <properties>
@@ -35,6 +36,7 @@
         <metrics.version>3.2.0</metrics.version>
         <logstash.logback.version>6.1</logstash.logback.version>
         <logback.vesion>1.1.2</logback.vesion>
+        <jackson.version>2.4.6</jackson.version>
 
     </properties>
 
@@ -58,6 +60,11 @@
                 <version>${slf4j.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>net.logstash.logback</groupId>
                 <artifactId>logstash-logback-encoder</artifactId>
                 <version>${logstash.logback.version}</version>
@@ -75,11 +82,6 @@
                 <version>${guava.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>io.dropwizard.metrics</groupId>
-                <artifactId>metrics-core</artifactId>
-                <version>${metrics.version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 

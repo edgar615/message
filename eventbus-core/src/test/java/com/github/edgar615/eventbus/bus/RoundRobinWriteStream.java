@@ -26,6 +26,11 @@ public class RoundRobinWriteStream implements EventBusWriteStream {
   }
 
   @Override
+  public void start() {
+
+  }
+
+  @Override
   public void close() {
 
   }

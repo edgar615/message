@@ -55,6 +55,11 @@ public class KafkaEventBusWriteStream implements EventBusWriteStream {
   }
 
   @Override
+  public void start() {
+
+  }
+
+  @Override
   public void close() {
     try {
       producer.close(10, TimeUnit.SECONDS);
