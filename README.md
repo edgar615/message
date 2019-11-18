@@ -14,7 +14,7 @@ mvn -N versions:update-child-modules
 <th>内容</th>
 </tr>
 <tr>
-<td>head</td>
+<td>header</td>
 <td>JSON对象，表示消息头部各种属性</td>
 </tr>
 <tr>
@@ -36,7 +36,7 @@ mvn -N versions:update-child-modules
 <td>消息接收者信道</td>
 </tr>
 <tr>
-<td>action</td>
+<td>body</td>
 <td>消息活动，用于区分不同的消息类型</td>
 </tr>
 <tr>
@@ -73,12 +73,12 @@ ${xxx}用来表示扩展字段，可以用来扩展消息头中未定义的属�
 ### 消息活动
 消息活动目前仅实现了Message类型
 
-- 消息：message
+- 消息：event
 
 ## 消息内容
 消息内容为JSON格式文本，如果消息中存在二进制数据需要进行base64编码为文本串。消息体的编码格式为UTF-8，对于不同的action，消息内容格式不同。
 
-### 消息 message
+### 消息 event
 单向消息，不需要接收方（或者是消息订阅方）回应
 
 <table>
@@ -96,6 +96,10 @@ ${xxx}用来表示扩展字段，可以用来扩展消息头中未定义的属�
 </tr>
 </table>
 
+----------------------------------------------
+下面的文档已经不适用
+----------------------------------------------
+
 # 发送消息
 ## 示例
 
@@ -103,9 +107,9 @@ ${xxx}用来表示扩展字段，可以用来扩展消息头中未定义的属�
     options.setServers("10.11.0.31:9092");
     EventProducer producer = new KafkaEventProducer(options);
     for (int i = 0; i < 10; i++) {
-      Message message = Message.create("" + i, ImmutableMap.of("foo", "bar"));
-      Event event = Event.create("test", message, 1);
-      producer.send(event);
+      Message event = Message.create("" + i, ImmutableMap.of("foo", "bar"));
+      Event message = Event.create("test", event, 1);
+      producer.send(message);
     }
 
 EventProducer内部使用了一个队列保存所有要发送的消息，按照入队顺序将消息发送到消息服务器
@@ -145,17 +149,17 @@ EventProducer内部使用了一个队列保存所有要发送的消息，按照�
     /**
      * 过滤不需要持久化的事件
      *
-     * @param event 事件
+     * @param message 事件
      * @return true：持久化，false：不做持久化
      */
-    boolean shouldStorage(Event event);
+    boolean shouldStorage(Event message);
 
     /**
      * 事件的持久化.
      *
-     * @param event 事件
+     * @param message 事件
      */
-    void save(Event event);
+    void save(Event message);
 
     /**
      * @return 待发送的事件列表
@@ -165,10 +169,10 @@ EventProducer内部使用了一个队列保存所有要发送的消息，按照�
     /**
      * 标记事件,这个方法应该尽量不要阻塞线程，否则会影响发布事件的性能。
      *
-     * @param event
+     * @param message
      * @param status 1-成功，2-失败 3-过期
      */
-    void mark(Event event, int status);
+    void mark(Event message, int status);
 
 注册ProducerStorage之后，EventProducer内部会启用一个定时任务，定时调用ProducerStorage的pendingList方法，从持久层查询需要发送的消息。
 再消息发送成功或者失败之后，会对持久层中的消息做状态标记：status 1-成功，2-失败 3-过期
@@ -202,14 +206,14 @@ ProducerStorage里所有的方法应该尽可能的编写非阻塞的代码，�
 
 该接口只有一个方法需要实现
 
-    int partition(Event event);
+    int partition(Event message);
 
 Consumer在从消息服务器读取到消息之后会根据数据值将分片后的消息推送到一个私有队列，线程池按照顺序依次执行队列中的分片消息。
 
     options.setServers(server)
-      .setPartitioner(event -> {
-        Message message = (Message) event.action();
-        int userId = (int) message.content().get("userId");
+      .setPartitioner(message -> {
+        Message event = (Message) message.body();
+        int userId = (int) event.content().get("userId");
         return userId % 5;
       })
 

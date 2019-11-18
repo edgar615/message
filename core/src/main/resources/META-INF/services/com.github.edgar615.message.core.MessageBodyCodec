@@ -1,0 +1,3 @@
+com.github.edgar615.message.core.EventCodec
+com.github.edgar615.message.core.RequestCodec
+com.github.edgar615.message.core.ResponseCodec
