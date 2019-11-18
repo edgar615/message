@@ -11,15 +11,16 @@
     </parent>
 
     <groupId>com.github.edgar615</groupId>
-    <artifactId>eventbus</artifactId>
+    <artifactId>message</artifactId>
     <packaging>pom</packaging>
     <version>2.0.0</version>
     <modules>
-        <module>eventbus-core</module>
-        <module>eventbus-kafka</module>
-        <module>eventbus-vertx-kafka</module>
-        <module>eventbus-vertx</module>
-        <module>eventbus-redis</module>
+        <module>core</module>
+        <module>bus</module>
+        <module>bus-kafka</module>
+        <module>bus-vertx-kafka</module>
+        <module>bus-vertx</module>
+        <module>bus-redis</module>
     </modules>
 
     <properties>
@@ -116,7 +117,7 @@
                                         <excludes>
                                             <exclude>org.apache.commons:commons-lang3</exclude>
                                         </excludes>
-                                        <message>must use Guava，not commons-lang</message>
+                                        <core>must use Guava，not commons-lang</core>
                                     </bannedDependencies>-->
                                 </rules>
                             </configuration>
