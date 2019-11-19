@@ -56,19 +56,6 @@ public interface Message {
   /**
    * 创建一个Message对象
    *
-   * @param to     消息接收者信道
-   * @param body 消息活动
-   * @return Message对象
-   */
-  static Message create(String to, MessageBody body, long duration) {
-    Preconditions.checkNotNull(body, "body cannot be null");
-    MessageHeader head = MessageHeader.create(to, body.name(), duration);
-    return create(head, body);
-  }
-
-  /**
-   * 创建一个Message对象
-   *
    * @param id     消息ID，消息ID请使用唯一的ID
    * @param to     消息接收者信道
    * @param body 消息活动

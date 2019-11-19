@@ -174,12 +174,15 @@ public class BuilderCodegenProcessor extends AbstractProcessor {
     }
     builder.addStatement("$T content = new $T()", mapType, hashMap);
     for (BuilderField field : fields) {
-      builder.addStatement("content.put($S, $N)", field.name(), field.name());
+      // 忽略id
+      if (!"id".equals(field.name())) {
+        builder.addStatement("content.put($S, $N)", field.name(), field.name());
+      }
     }
     builder.addStatement("$T body = $T.create($N, $N)", Event.class, Event.class, "resource",
         "content");
     builder
-        .addStatement("$T message = $T.create($N, $N)", Message.class, Message.class, "to", "body");
+        .addStatement("$T message = $T.create($N, $N, $N)", Message.class, Message.class, "id", "to", "body");
     builder
         .addStatement("message.header().addExts($N)", "ext");
     builder.addStatement("return $N", "message");
