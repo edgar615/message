@@ -25,7 +25,7 @@ public class BlockReadStream extends AbstractMessageReadStream {
     List<Message> messages = new ArrayList<>();
     for (int i = min; i < max; i++) {
       Event event = Event.create("" + i, ImmutableMap.of("foo", "bar", "deviceId", new Random().nextInt(10)));
-      Message message = Message.create("DeviceControlEvent", event, 1);
+      Message message = Message.create("DeviceControlEvent", event);
       messages.add(message);
     }
     return messages;

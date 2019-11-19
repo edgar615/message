@@ -39,7 +39,7 @@ public class BlockReadStream extends AbstractVertxMessageReadStream {
     for (int i = min; i < max; i++) {
       Event event = Event
           .create("" + i, ImmutableMap.of("foo", "bar", "deviceId", new Random().nextInt(10)));
-      Message message = Message.create("DeviceControlEvent", event, 1);
+      Message message = Message.create("DeviceControlEvent", event);
       messages.add(message);
     }
     handler.handle(Future.succeededFuture(messages));

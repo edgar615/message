@@ -32,7 +32,7 @@ public class MockConsumerRepository implements MessageConsumerRepository {
     for (int i = min; i < 100; i++) {
       Event event = Event
           .create("" + i, ImmutableMap.of("foo", "bar", "deviceId", new Random().nextInt(10)));
-      Message message = Message.create("DeviceControlEvent", event, 1);
+      Message message = Message.create("DeviceControlEvent", event);
       messages.add(message);
       this.messages.add(message);
     }

@@ -39,7 +39,7 @@ public class MockConsumerRepository implements VertxMessageConsumerRepository {
       seq.incrementAndGet();
       Event event = Event
           .create("" + i, ImmutableMap.of("foo", "bar", "deviceId", new Random().nextInt(10)));
-      Message message = Message.create("DeviceControlEvent", event, 1);
+      Message message = Message.create("DeviceControlEvent", event);
       messages.add(message);
       this.messages.add(message);
     }

@@ -28,7 +28,7 @@ public class VertxKafkaProducerTest {
     producer.start();
     for (int i = 0; i < 130; i++) {
       Event event = Event.create("" + i, ImmutableMap.of("foo", "bar"));
-      Message message = Message.create("DeviceControlEvent", event, 1);
+      Message message = Message.create("DeviceControlEvent", event);
       producer.send(message, ar -> {
 
       });
