@@ -38,26 +38,19 @@ class MessageHeaderImpl implements MessageHeader {
    */
   private final Map<String, String> ext = new HashMap<>();
 
-  /**
-   * 多长时间有效，单位秒，小于0为永不过期
-   */
-  private final long duration;
-
-  MessageHeaderImpl(String id, String to, String action, long timestamp, long duration) {
+  MessageHeaderImpl(String id, String to, String action, long timestamp) {
     Preconditions.checkNotNull(id, "id can not be null");
     Preconditions.checkNotNull(to, "to can not be null");
     Preconditions.checkNotNull(action, "body cannot be null");
     Preconditions.checkNotNull(timestamp, "timestamp cannot be null");
-    Preconditions.checkNotNull(duration, "duration cannot be null");
     this.id = id;
     this.to = to;
     this.action = action;
     this.timestamp = timestamp;
-    this.duration = duration;
   }
 
-  MessageHeaderImpl(String id, String to, String action, long duration) {
-    this(id, to, action, Instant.now().getEpochSecond(), duration);
+  MessageHeaderImpl(String id, String to, String action ) {
+    this(id, to, action, Instant.now().getEpochSecond());
   }
 
   @Override
@@ -82,8 +75,7 @@ class MessageHeaderImpl implements MessageHeader {
         .add("to", to)
         .add("body", action)
         .add("id", id)
-        .add("timestamp", timestamp)
-        .add("duration", duration);
+        .add("timestamp", timestamp);
     ext.forEach((k, v) -> helper.add(k, v));
     return helper.toString();
   }
@@ -106,11 +98,6 @@ class MessageHeaderImpl implements MessageHeader {
   @Override
   public String action() {
     return action;
-  }
-
-  @Override
-  public long duration() {
-    return duration;
   }
 
   @Override

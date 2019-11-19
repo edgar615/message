@@ -21,14 +21,13 @@ public class MessageTest {
     Map<String, Object> map = message.toMap();
     Map<String, Object> headerMap = (Map<String, Object>) map.get("header");
 
-    Assert.assertEquals(5, headerMap.size());
+    Assert.assertEquals(4, headerMap.size());
     Assert.assertEquals(id, headerMap.get("id"));
     Assert.assertEquals(to, headerMap.get("to"));
-    Assert.assertEquals(event.name(), headerMap.get("body"));
+    Assert.assertEquals(event.name(), headerMap.get("action"));
     Assert.assertTrue(headerMap.containsKey("timestamp"));
-    Assert.assertTrue(headerMap.containsKey("duration"));
 
-    Map<String, Object> bodyMap = (Map<String, Object>) map.get("data");
+    Map<String, Object> bodyMap = (Map<String, Object>) map.get("body");
     Assert.assertEquals("UserAdd", bodyMap.get("resource"));
     Map<String, Object> content = (Map<String, Object>) bodyMap.get("content");
     Assert.assertEquals("bar", content.get("foo"));
@@ -59,15 +58,14 @@ public class MessageTest {
     Map<String, Object> map = message.toMap();
     Map<String, Object> headerMap = (Map<String, Object>) map.get("header");
 
-    Assert.assertEquals(6, headerMap.size());
+    Assert.assertEquals(5, headerMap.size());
     Assert.assertEquals(id, headerMap.get("id"));
     Assert.assertEquals(to, headerMap.get("to"));
-    Assert.assertEquals(request.name(), headerMap.get("body"));
+    Assert.assertEquals(request.name(), headerMap.get("action"));
     Assert.assertTrue(headerMap.containsKey("timestamp"));
-    Assert.assertTrue(headerMap.containsKey("duration"));
     Assert.assertTrue(headerMap.containsKey("from"));
 
-    Map<String, Object> bodyMap = (Map<String, Object>) map.get("data");
+    Map<String, Object> bodyMap = (Map<String, Object>) map.get("body");
     Assert.assertEquals("UserAdd", bodyMap.get("resource"));
     Assert.assertEquals("insert", bodyMap.get("operation"));
     Map<String, Object> content = (Map<String, Object>) bodyMap.get("content");
@@ -105,16 +103,15 @@ public class MessageTest {
     Map<String, Object> map = message.toMap();
     Map<String, Object> headerMap = (Map<String, Object>) map.get("header");
 
-    Assert.assertEquals(7, headerMap.size());
+    Assert.assertEquals(6, headerMap.size());
     Assert.assertEquals(id, headerMap.get("id"));
     Assert.assertEquals(to, headerMap.get("to"));
-    Assert.assertEquals(response.name(), headerMap.get("body"));
+    Assert.assertEquals(response.name(), headerMap.get("action"));
     Assert.assertTrue(headerMap.containsKey("timestamp"));
-    Assert.assertTrue(headerMap.containsKey("duration"));
     Assert.assertEquals(from, headerMap.get("from"));
     Assert.assertEquals(group, headerMap.get("group"));
 
-    Map<String, Object> bodyMap = (Map<String, Object>) map.get("data");
+    Map<String, Object> bodyMap = (Map<String, Object>) map.get("body");
     Assert.assertEquals(reply, bodyMap.get("reply"));
     Assert.assertEquals(1, bodyMap.get("result"));
     Map<String, Object> content = (Map<String, Object>) bodyMap.get("content");

@@ -9,7 +9,7 @@ import java.util.Map;
  */
 public interface Event extends MessageBody {
 
-  String TYPE = "core";
+  String TYPE = "event";
 
   /**
    * @return 请求参数

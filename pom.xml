@@ -21,6 +21,7 @@
         <module>bus-vertx-kafka</module>
         <module>bus-vertx</module>
         <module>bus-redis</module>
+      <module>codegen</module>
     </modules>
 
     <properties>

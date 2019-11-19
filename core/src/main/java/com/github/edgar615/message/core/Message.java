@@ -30,106 +30,85 @@ public interface Message {
   MessageBody body();
 
   /**
-   * 创建一个Event对象
+   * 创建一个Message对象
    *
-   * @param head   消息头
-   * @param action 消息活动
-   * @return Event对象
+   * @param header   消息头
+   * @param body 消息活动
+   * @return Message对象
    */
-  static Message create(MessageHeader head, MessageBody action) {
-    return new MessageImpl(head, action);
+  static Message create(MessageHeader header, MessageBody body) {
+    return new MessageImpl(header, body);
   }
 
   /**
-   * 创建一个Event对象
-   *
-   * @param to     消息接收者信道
-   * @param action 消息活动
-   * @return Event对象
-   */
-  static Message create(String to, MessageBody action) {
-    Preconditions.checkNotNull(action, "body cannot be null");
-    MessageHeader head = MessageHeader.create(to, action.name());
-    return create(head, action);
-  }
-
-  /**
-   * 创建一个Event对象
+   * 创建一个Message对象
    *
    * @param to     消息接收者信道
-   * @param action 消息活动
-   * @return Event对象
+   * @param body 消息活动
+   * @return Message对象
    */
-  static Message create(String to, MessageBody action, long duration) {
-    Preconditions.checkNotNull(action, "body cannot be null");
-    MessageHeader head = MessageHeader.create(to, action.name(), duration);
-    return create(head, action);
+  static Message create(String to, MessageBody body) {
+    Preconditions.checkNotNull(body, "body cannot be null");
+    MessageHeader head = MessageHeader.create(to, body.name());
+    return create(head, body);
   }
 
   /**
-   * 创建一个Event对象
+   * 创建一个Message对象
+   *
+   * @param to     消息接收者信道
+   * @param body 消息活动
+   * @return Message对象
+   */
+  static Message create(String to, MessageBody body, long duration) {
+    Preconditions.checkNotNull(body, "body cannot be null");
+    MessageHeader head = MessageHeader.create(to, body.name(), duration);
+    return create(head, body);
+  }
+
+  /**
+   * 创建一个Message对象
    *
    * @param id     消息ID，消息ID请使用唯一的ID
    * @param to     消息接收者信道
-   * @param action 消息活动
-   * @return Event对象
+   * @param body 消息活动
+   * @return Message对象
    */
-  static Message create(String id, String to, MessageBody action) {
-    Preconditions.checkNotNull(action, "body cannot be null");
-    MessageHeader head = MessageHeader.create(id, to, action.name());
-    return create(head, action);
-  }
-
-  /**
-   * 创建一个Event对象
-   *
-   * @param id       消息ID，消息ID请使用唯一的ID
-   * @param to       消息接收者信道
-   * @param action   消息活动
-   * @param duration 多长时间有效，单位秒，小于0为永不过期
-   * @return
-   */
-  static Message create(String id, String to, MessageBody action,
-                      long duration) {
-    Preconditions.checkNotNull(action, "body cannot be null");
-    MessageHeader head = MessageHeader.create(id, to, action.name(), duration);
-    return create(head, action);
+  static Message create(String id, String to, MessageBody body) {
+    Preconditions.checkNotNull(body, "body cannot be null");
+    MessageHeader head = MessageHeader.create(id, to, body.name());
+    return create(head, body);
   }
 
   static Message fromMap(Map<String, Object> map) {
     Preconditions.checkArgument(map.containsKey("header"), "map must contains header");
-    Preconditions.checkArgument(map.containsKey("data"), "map must contains data");
+    Preconditions.checkArgument(map.containsKey("body"), "map must contains body");
     Map<String, Object> headerMap = Maps.newHashMap((Map<String, Object>) map.get("header"));
     Preconditions.checkArgument(headerMap.containsKey("id"), "header must contains id");
     Preconditions.checkArgument(headerMap.containsKey("to"), "header must contains to");
-    Preconditions.checkArgument(headerMap.containsKey("body"), "header must contains body");
+    Preconditions.checkArgument(headerMap.containsKey("action"), "header must contains action");
     Preconditions.checkArgument(headerMap.containsKey("timestamp"), "header must contains timestamp");
     String id = (String) headerMap.get("id");
     String to = (String) headerMap.get("to");
-    String action = (String) headerMap.get("body");
+    String action = (String) headerMap.get("action");
     long timestamp = Long.parseLong(headerMap.get("timestamp").toString());
-    long duration = -1;
-    if (headerMap.containsKey("duration")) {
-      duration = Long.parseLong(headerMap.get("duration").toString());
-    }
     headerMap.remove("id");
     headerMap.remove("to");
-    headerMap.remove("body");
+    headerMap.remove("action");
     headerMap.remove("timestamp");
-    headerMap.remove("duration");
 
-    MessageHeader head = new MessageHeaderImpl(id, to, action, timestamp, duration);
+    MessageHeader head = new MessageHeaderImpl(id, to, action, timestamp);
     headerMap.forEach((k, v) -> {
       if (v != null) {
         head.addExt(k, v.toString());
       }
     });
 
-    Map<String, Object> dataMap = Maps.newHashMap((Map<String, Object>) map.get("data"));
+    Map<String, Object> bodyMap = Maps.newHashMap((Map<String, Object>) map.get("body"));
 
     List<MessageBody> actions = codecList.stream()
         .filter(c -> action.equalsIgnoreCase(c.name()))
-        .map(c -> c.decode(dataMap))
+        .map(c -> c.decode(bodyMap))
         .collect(Collectors.toList());
     MessageBody messageBody = actions.get(0);
 
@@ -142,9 +121,8 @@ public interface Message {
     map.put("header", headerMap);
     headerMap.put("id", header().id());
     headerMap.put("to", header().to());
-    headerMap.put("body", header().action());
+    headerMap.put("action", header().action());
     headerMap.put("timestamp", header().timestamp());
-    headerMap.put("duration", header().duration());
     headerMap.putAll(header().ext());
 
     List<Map<String, Object>> actions = codecList.stream()
@@ -152,7 +130,7 @@ public interface Message {
         .map(c -> c.encode(body()))
         .collect(Collectors.toList());
 
-    map.put("data", actions.get(0));
+    map.put("body", actions.get(0));
     return map;
   }
 }

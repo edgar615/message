@@ -42,11 +42,6 @@ public interface MessageHeader {
   String action();
 
   /**
-   * @return 多长时间内有效，单位秒
-   */
-  long duration();
-
-  /**
    * 额外属性
    *
    * @return 不可变map
@@ -62,7 +57,7 @@ public interface MessageHeader {
   String ext(String name);
 
   /**
-   * 创建EventHead对象，消息ID使用UUID自动生成
+   * 创建MessageHeader对象，消息ID使用UUID自动生成
    *
    * @param to     消息接收者信道
    * @param action 消息活动
@@ -81,7 +76,7 @@ public interface MessageHeader {
   }
 
   /**
-   * 创建EventHead对象，消息ID使用UUID自动生成
+   * 创建MessageHeader对象，消息ID使用UUID自动生成
    *
    * @param to       消息接收者信道
    * @param action   消息活动
@@ -93,7 +88,7 @@ public interface MessageHeader {
   }
 
   /**
-   * 创建EventHead对象
+   * 创建MessageHeader对象
    *
    * @param id     消息ID，消息ID请使用唯一的ID
    * @param to     消息接收者信道
@@ -105,7 +100,7 @@ public interface MessageHeader {
   }
 
   /**
-   * 创建EventHead对象
+   * 创建MessageHeader对象
    *
    * @param id       消息ID，消息ID请使用唯一的ID
    * @param to       消息接收者信道
