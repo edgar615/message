@@ -30,7 +30,7 @@
         <java.encoding>UTF-8</java.encoding>
         <project.build.sourceEncoding>${java.encoding}</project.build.sourceEncoding>
 
-        <junit.version>4.12</junit.version>
+        <junit.version>4.13.1</junit.version>
         <awaitility.version>2.0.0</awaitility.version>
         <slf4j.version>1.7.14</slf4j.version>
         <guava.version>26.0-jre</guava.version>
