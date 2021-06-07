@@ -36,7 +36,7 @@
         <guava.version>26.0-jre</guava.version>
         <metrics.version>3.2.0</metrics.version>
         <logstash.logback.version>6.1</logstash.logback.version>
-        <logback.vesion>1.1.2</logback.vesion>
+        <logback.vesion>1.2.0</logback.vesion>
         <jackson.version>2.4.6</jackson.version>
 
     </properties>
